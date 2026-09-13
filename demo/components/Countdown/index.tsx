@@ -30,7 +30,7 @@ const CountdownDemo: React.FC = () => {
                 Countdown <DemoTag>倒计时</DemoTag> <DemoTag>实时更新</DemoTag>
             </div>
 
-            <div style={labelStyle}>活动倒计时（island 风格）</div>
+            <div style={labelStyle}>活动倒计时</div>
             <Countdown value={deadline} format="DD 天 HH:mm:ss" prefix="烟火大会开始还有" variant="island" />
             <div style={{ marginTop: 16 }}>
                 <Button size="small" onClick={reset}>

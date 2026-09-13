@@ -119,7 +119,7 @@ const MENU_ITEMS: MenuItem[] = [
             { key: 'image', label: 'Image 图片' },
             { key: 'carousel', label: 'Carousel 轮播图', isNew: true },
             { key: 'time', label: 'Time 时钟' },
-            { key: 'countdown', label: 'Countdown 倒计时', isNew: true },
+            { key: 'countdown', label: 'Countdown 倒计时' },
         ],
     },
 ];
