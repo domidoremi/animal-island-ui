@@ -5,7 +5,7 @@
 ## Progress（场景图 fill + 波点 track）
 
 源码：`src/components/Progress/Progress.tsx`（受控渲染 + aria 适配）+ `types.ts`（类型定义）+ `progress.module.less`。
-**JSX 组件**（非命令式）：`percent` 受控传入，从 0 平滑动画到目标值。track 是奶油色波点 pill 带内阴影，fill 是场景图（默认 `sweet-corner.svg`）由组件内联注入，`background-size` 为轨道宽度的 80%，让更多场景细节可见。百分比文字固定显示在进度条右侧。
+**JSX 组件**（非命令式）：`percent` 受控传入，从 0 平滑动画到目标值。track 是奶油色波点 pill 带内阴影、无边框；fill 是场景图（默认 `sweet-corner.svg`）由组件内联注入，`background-size` 等于整条轨道宽度，场景铺满整条轨道。百分比文字固定显示在进度条右侧。
 
 **props**：
 ```ts
@@ -35,12 +35,11 @@ interface ProgressProps {
         radial-gradient(circle, rgba(196, 184, 158, 0.15) 1.5px, transparent 1.5px) 0 0 / 28px 28px,
         radial-gradient(circle, rgba(196, 184, 158, 0.1) 1px, transparent 1px) 7px 7px / 14px 14px,
         #f8f8f0;               /* 奶油色波点（与 Background default / Card pattern-default 一致） */
-    border: 2px solid #e8dcc8; /* 比 #c4b89e 更浅一档的细描边 */
     box-shadow: inset 0 2px 4px rgba(114, 93, 66, 0.08); /* 内凹阴影（很淡） */
     border-radius: 999px;      /* pill */
     overflow: hidden;
 }
-.track.size-small  { height: 14px; border-width: 1.5px; }
+.track.size-small  { height: 14px; }
 .track.size-middle { height: 24px; }
 .track.size-large  { height: 32px; }
 ```
@@ -56,7 +55,7 @@ interface ProgressProps {
        background-image: url(<variant svg>);
        background-repeat: no-repeat;
        background-position: left top;
-       background-size: <trackWidth * 0.8>px auto;  (0.8 → 场景显示更多内容) */
+       background-size: <trackWidth>px auto;  (图片铺满整条轨道，按进度从左裁剪) */
     transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
     overflow: hidden;
     display: flex; align-items: center; justify-content: flex-end; padding-right: 4px;

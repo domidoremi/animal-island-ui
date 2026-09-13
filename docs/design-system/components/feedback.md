@@ -5,7 +5,7 @@ Exact values for the components that report progress or pending state: Progress,
 ## Progress (scene-image fill on dotted track)
 
 Source: `src/components/Progress/Progress.tsx` (controlled rendering + aria wiring) + `types.ts` (type definitions) + `progress.module.less`.
-**A JSX component** (not imperative): `percent` is passed in controlled and animates smoothly from 0 to the target value. The track is a cream dotted pill with an inner shadow; the fill is a scene image (`sweet-corner.svg` by default) injected inline at `background-size: 80%` of the track width so more of the scene is visible. The label always sits right of the bar.
+**A JSX component** (not imperative): `percent` is passed in controlled and animates smoothly from 0 to the target value. The track is a cream dotted pill with an inner shadow; the fill is a scene image (`sweet-corner.svg` by default) injected inline at `background-size` equal to the full track width so the scene spans the whole bar. The label always sits right of the bar.
 
 **props**:
 ```ts
@@ -35,12 +35,11 @@ interface ProgressProps {
         radial-gradient(circle, rgba(196, 184, 158, 0.15) 1.5px, transparent 1.5px) 0 0 / 28px 28px,
         radial-gradient(circle, rgba(196, 184, 158, 0.1) 1px, transparent 1px) 7px 7px / 14px 14px,
         #f8f8f0;               /* cream dots (same as Background default / Card pattern-default) */
-    border: 2px solid #e8dcc8; /* very light stroke, one step lighter than #c4b89e, softer overall */
     box-shadow: inset 0 2px 4px rgba(114, 93, 66, 0.08); /* inner recess (very subtle) */
     border-radius: 999px;      /* pill */
     overflow: hidden;
 }
-.track.size-small  { height: 14px; border-width: 1.5px; }
+.track.size-small  { height: 14px; }
 .track.size-middle { height: 24px; }
 .track.size-large  { height: 32px; }
 ```
@@ -56,7 +55,7 @@ interface ProgressProps {
        background-image: url(<variant svg>);
        background-repeat: no-repeat;
        background-position: left top;
-       background-size: <trackWidth * 0.8>px auto;  (0.8 → more of the scene visible) */
+       background-size: <trackWidth>px auto;  (image spans the full track, clipped left by progress) */
     transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
     overflow: hidden;
     display: flex; align-items: center; justify-content: flex-end; padding-right: 4px;
