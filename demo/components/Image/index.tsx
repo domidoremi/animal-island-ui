@@ -71,7 +71,7 @@ const ImageDemo: React.FC = () => (
         {/* 点击预览 */}
         <div style={labelStyle}>点击预览（preview 默认开启，点击图片弹出大图，ESC / 遮罩 / 关闭按钮均可关闭）</div>
         <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
-            <Image src={pick(0)} alt="点击预览大图" width={330} height={200} preview />
+            <Image src={pick(0)} alt="点击预览大图" width={330} height={200} preview lazy />
         </div>
 
         {/* 相框类型 */}
@@ -81,11 +81,11 @@ const ImageDemo: React.FC = () => (
         </div>
         <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
             <div style={{ textAlign: 'center' }}>
-                <Image src={pick(1)} alt="默认类型" width={330} height={200} variant="default" />
+                <Image src={pick(1)} alt="默认类型" width={330} height={200} variant="default" lazy />
                 <div style={{ fontSize: 12, color: '#a0936e', marginTop: 6 }}>default（默认）</div>
             </div>
             <div style={{ textAlign: 'center' }}>
-                <Image src={pick(2)} alt="边框类型" width={330} height={200} variant="bordered" />
+                <Image src={pick(2)} alt="边框类型" width={330} height={200} variant="bordered" lazy />
                 <div style={{ fontSize: 12, color: '#a0936e', marginTop: 6 }}>bordered（边框）</div>
             </div>
         </div>
@@ -97,11 +97,19 @@ const ImageDemo: React.FC = () => (
         </div>
         <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
             <div style={{ textAlign: 'center' }}>
-                <Image src={pick(1)} alt="邮票（带年份）" width={210} height={154} variant="stamp" stampYear="2026" />
+                <Image
+                    src={pick(1)}
+                    alt="邮票（带年份）"
+                    width={210}
+                    height={154}
+                    variant="stamp"
+                    stampYear="2026"
+                    lazy
+                />
                 <div style={{ fontSize: 12, color: '#a0936e', marginTop: 6 }}>带年份</div>
             </div>
             <div style={{ textAlign: 'center' }}>
-                <Image src={pick(2)} alt="纯邮票边框" width={210} height={154} variant="stamp" />
+                <Image src={pick(2)} alt="纯邮票边框" width={210} height={154} variant="stamp" lazy />
                 <div style={{ fontSize: 12, color: '#a0936e', marginTop: 6 }}>仅齿孔边框（无文字）</div>
             </div>
         </div>
@@ -109,8 +117,8 @@ const ImageDemo: React.FC = () => (
         {/* 基础用法 */}
         <div style={labelStyle}>基础用法（自定义宽高）</div>
         <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
-            <Image src={pick(3)} alt="林间溪流" width={330} height={200} />
-            <Image src={pick(4)} alt="阳光田野" width={480} height={300} />
+            <Image src={pick(3)} alt="林间溪流" width={330} height={200} lazy />
+            <Image src={pick(4)} alt="阳光田野" width={480} height={300} lazy />
         </div>
 
         {/* 背景颜色 */}
@@ -125,6 +133,7 @@ const ImageDemo: React.FC = () => (
                         height={200}
                         color={c.color}
                         variant="bordered"
+                        lazy
                     />
                     <div style={{ fontSize: 12, color: '#a0936e', marginTop: 6 }}>{c.label}</div>
                 </div>
