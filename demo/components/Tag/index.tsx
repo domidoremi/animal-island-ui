@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Tag, type TagColor } from '../../../src';
+import { Tag, Icon, type TagColor } from '../../../src';
 import {
     CodeBlock,
     ApiTable,
@@ -87,11 +87,15 @@ const TagDemo: React.FC = () => {
                     <Tag variant="outlined" color="app-blue">
                         outlined
                     </Tag>
+                    <Tag variant="soft" color="app-green">
+                        soft
+                    </Tag>
                     <Tag variant="dashed" color="app-orange">
                         dashed
                     </Tag>
-                    <Tag variant="soft" color="app-pink">
-                        soft
+                    {/* 带图标标签：Flame 热门 */}
+                    <Tag variant="soft" color="app-red" size="medium">
+                        <Icon name="Flame" size={18} style={{ verticalAlign: 'middle' }} /> hot
                     </Tag>
                 </div>
 

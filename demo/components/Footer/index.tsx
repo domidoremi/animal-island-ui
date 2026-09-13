@@ -35,14 +35,14 @@ const FooterDemo: React.FC = () => {
             <div style={{ ...demoBodyStyle, padding: '40px 0' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
                     <FooterComponent name="Heart" />
-                    <FooterComponent name="Flower" />
+                    {/* <FooterComponent name="Flower" />
                     <FooterComponent name="Star" />
                     <FooterComponent name="Moon" />
                     <FooterComponent name="Sun" />
                     <FooterComponent name="Cloud" />
                     <FooterComponent name="Rainbow" />
                     <FooterComponent name="Butterfly" />
-                    <FooterComponent name="Fish" />
+                    <FooterComponent name="Fish" /> */}
                     <FooterComponent name="Sailboat" />
                     <FooterComponent name="Umbrella" />
                 </div>

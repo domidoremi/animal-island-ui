@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Card, Button, Typewriter, Icon } from '../src';
 import type { IconName } from '../src';
-import { islandGradient, flowersGradient, sceneryGradient, coralGradient, mintGradient } from './gradients';
+import { islandGradient } from './gradients';
 import { useIsMobile } from './tools';
 
 // ============================================
@@ -86,18 +86,21 @@ const FeatureCard: React.FC<{ feature: (typeof features)[0] }> = ({ feature }) =
             onMouseEnter={() => setHovered(true)}
             onMouseLeave={() => setHovered(false)}
         >
-            <img
-                src={feature.icon}
+            <div
                 style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                     width: 42,
                     height: 42,
-                    borderRadius: 10,
+                    margin: '0 auto',
                     transform: hovered ? 'scale(1.1) rotate(-4deg)' : 'scale(1) rotate(0deg)',
                     transition: 'transform 0.3s ease',
                     animation: hovered ? 'iconBounce 0.4s ease forwards' : 'none',
                 }}
-                alt={feature.title}
-            />
+            >
+                <Icon name={feature.icon} size={42} />
+            </div>
             <style>
                 {`
                     @keyframes iconBounce {
@@ -386,24 +389,24 @@ const S = {
 // ============================================
 // Data
 // ============================================
-const features = [
+const features: Array<{ icon: IconName; title: string; desc: string }> = [
     {
-        icon: coralGradient,
+        icon: 'Heart',
         title: '治愈系风格',
         desc: 'SVG 有机形状裁切，3D 按压按钮，温暖质朴的自然 UI 质感',
     },
     {
-        icon: flowersGradient,
+        icon: 'Star',
         title: '30+ 个组件',
         desc: 'Button / Input / Switch / Modal / Form / Table / Title / Tooltip / Typewriter / Card / Collapse / Cursor / Divider / Footer / Icon / Checkbox / Select / DatePicker / TimePicker / Tabs / CodeBlock / Radio / Tag / Notification / Progress',
     },
     {
-        icon: sceneryGradient,
+        icon: 'Paintbrush',
         title: '主题定制',
         desc: '40+ CSS 自定义属性，运行时换肤无需重新构建',
     },
     {
-        icon: mintGradient,
+        icon: 'Gift',
         title: '开箱即用',
         desc: 'ESM + CJS 双格式输出，TypeScript 类型声明完整',
     },
@@ -568,7 +571,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                                     Animal <br /> Island UI
                                 </>
                             )}
-                            <span style={S.heroVersion}>v1.9.0</span>
+                            <span style={S.heroVersion}>v1.11.0</span>
                         </h1>
                         <Typewriter speed={60}>
                             <p style={{ ...S.heroSubtitle, fontSize: isMobile ? 14 : 17 }}>
@@ -577,7 +580,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                         </Typewriter>
                         {/* 暂时隐藏：恢复时去掉 display: 'none' */}
                         <div style={{ ...S.heroActions, justifyContent: isMobile ? 'center' : 'flex-start' }}>
-                            <Button type="primary" size="large" onClick={() => onNavigate?.('/icon')}>
+                            <Button type="primary" size="large" onClick={() => onNavigate?.('/title')}>
                                 开始使用 →
                             </Button>
                         </div>
