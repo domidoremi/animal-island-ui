@@ -28,6 +28,17 @@ describe('Background', () => {
         expect(color.firstChild).toHaveClass(styles['bg-dots-pink']);
     });
 
+    it('支持场景背景图 type=sweet-corner / coffee-break（注入 backgroundImage）', () => {
+        const { container } = render(<Background type="sweet-corner" />);
+        const root = container.firstChild as HTMLElement;
+        expect(root).toHaveClass(styles['bg-sweet-corner']);
+        expect(root.style.backgroundImage).toMatch(/url\(.*sweet-corner(\.svg)?/);
+
+        const { container: coffee } = render(<Background type="coffee-break" />);
+        expect(coffee.firstChild).toHaveClass(styles['bg-coffee-break']);
+        expect((coffee.firstChild as HTMLElement).style.backgroundImage).toMatch(/url\(.*coffee-break(\.svg)?/);
+    });
+
     it('渲染 children 于背景之上', () => {
         render(
             <Background>

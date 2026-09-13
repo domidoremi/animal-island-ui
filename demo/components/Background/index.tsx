@@ -8,7 +8,7 @@ const dispatchPageBg = (type: BackgroundType | 'reset') => () =>
     window.dispatchEvent(new CustomEvent('demo-bg-easter-egg', { detail: type }));
 
 const BACKGROUND_TYPE_UNION =
-    "'default' | 'grid' | 'dots-dark-green' | 'sprinkles' | 'dots-pink' | 'dots-purple' | 'dots-blue' | 'dots-yellow' | 'dots-orange' | 'dots-teal' | 'dots-green' | 'dots-red' | 'dots-lime-green' | 'dots-yellow-green' | 'dots-brown' | 'dots-warm-peach-pink'";
+    "'default' | 'grid' | 'dots-dark-green' | 'sprinkles' | 'sweet-corner' | 'coffee-break' | 'dots-pink' | 'dots-purple' | 'dots-blue' | 'dots-yellow' | 'dots-orange' | 'dots-teal' | 'dots-green' | 'dots-red' | 'dots-lime-green' | 'dots-yellow-green' | 'dots-brown' | 'dots-warm-peach-pink'";
 
 const BACKGROUND_API: ApiRow[] = [
     {
@@ -40,12 +40,14 @@ const previewBox: React.CSSProperties = {
     fontSize: 15,
 };
 
-// 全部 16 种类型（type / 中文名 / 文字色），dots-* 底色对应 Card pattern-* 系列，文字色与 Card pattern 系列保持一致
+// 全部 18 种类型（type / 中文名 / 文字色），dots-* 底色对应 Card pattern-* 系列，文字色与 Card pattern 系列保持一致
 const CARD_COLORS: ReadonlyArray<[BackgroundType, string, string]> = [
     ['default', '奶油色波点（默认）', '#725d42'],
     ['grid', '网格', '#725d42'],
     ['dots-dark-green', '深绿波点', '#3a6b3a'],
     ['sprinkles', '彩色针糖', '#725d42'],
+    ['sweet-corner', '甜点街角', '#725d42'],
+    ['coffee-break', '咖啡时光', '#725d42'],
     ['dots-pink', '应用粉', '#a85565'],
     ['dots-purple', '紫色', '#6a3a9a'],
     ['dots-blue', '应用蓝', '#4a5a8a'],
@@ -63,32 +65,36 @@ const CARD_COLORS: ReadonlyArray<[BackgroundType, string, string]> = [
 const BackgroundDemo: React.FC = () => (
     <div style={sectionStyle}>
         <div style={sectionTitleStyle}>
-            Background <DemoTag>16 types · Card pattern base · zero image assets</DemoTag>
+            Background <DemoTag>18 types · Card pattern base · 2 scene images</DemoTag>
         </div>
         <div style={labelStyle}>全部类型（dots-* 底色对应 Card pattern-* 系列，hover 预览整站壁纸）</div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
-            {CARD_COLORS.map(([type, cn, color]) => (
-                <Background
-                    key={type}
-                    type={type}
-                    style={{
-                        width: type === 'sprinkles' ? 348 : 168,
-                        height: 120,
-                        borderRadius: 14,
-                        display: 'grid',
-                        placeItems: 'center',
-                        fontWeight: 600,
-                        color,
-                    }}
-                    onMouseEnter={dispatchPageBg(type)}
-                    onMouseLeave={dispatchPageBg('reset')}
-                >
-                    <span style={{ textAlign: 'center', lineHeight: 1.5 }}>
-                        <span style={{ display: 'block', fontSize: 14 }}>{type}</span>
-                        <span style={{ display: 'block', fontSize: 12, opacity: 0.85 }}>{cn}</span>
-                    </span>
-                </Background>
-            ))}
+            {CARD_COLORS.map(([type, cn, color]) => {
+                const isScene = type === 'sweet-corner' || type === 'coffee-break';
+                return (
+                    <Background
+                        key={type}
+                        type={type}
+                        style={{
+                            width: type === 'sprinkles' || isScene ? 348 : 168,
+                            height: 120,
+                            ...(isScene ? { backgroundSize: '240% auto' } : null),
+                            borderRadius: 14,
+                            display: 'grid',
+                            placeItems: 'center',
+                            fontWeight: 600,
+                            color,
+                        }}
+                        onMouseEnter={dispatchPageBg(type)}
+                        onMouseLeave={dispatchPageBg('reset')}
+                    >
+                        <span style={{ textAlign: 'center', lineHeight: 1.5 }}>
+                            <span style={{ display: 'block', fontSize: 14 }}>{type}</span>
+                            <span style={{ display: 'block', fontSize: 12, opacity: 0.85 }}>{cn}</span>
+                        </span>
+                    </Background>
+                );
+            })}
         </div>
         <div style={{ ...labelStyle, marginTop: 24 }}>承载内容（children 渲染在图案之上）</div>
         <Background type="sprinkles" style={{ ...previewBox, padding: 24 }}>
@@ -112,6 +118,10 @@ const App = () => {
 
             {/* 彩色针糖壁纸 */}
             <Background type="sprinkles" style={{ height: 200 }} />
+
+            {/* 场景背景图（cover 铺满） */}
+            <Background type="sweet-corner" style={{ height: 200 }} />
+            <Background type="coffee-break" style={{ height: 200 }} />
 
             {/* 底色对应 Card pattern-* 系列壁纸 */}
             <Background type="dots-blue" style={{ height: 200 }} />

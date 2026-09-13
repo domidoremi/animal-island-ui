@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback, Suspense, lazy } from 'react';
 import { Cursor } from '../src';
 import '../src/styles/index.less';
 import backgroundStyles from '../src/components/Background/background.module.less';
+import bgSweetCorner from '../src/assets/image/sweet-corner.svg';
+import bgCoffeeBreak from '../src/assets/image/coffee-break.svg';
 import './fonts.css';
 import HomePage from './HomePage';
 import { PAGE_INFO } from './pageInfo';
@@ -410,6 +412,13 @@ const App: React.FC = () => {
                             opacity: eggOn ? 1 : 0,
                             transition: 'opacity 0.45s ease',
                             pointerEvents: 'none',
+                            // scene 类型：单个 CSS 类只含底色/size/position，无图（组件内用内联 backgroundImage 注入），这里补上
+                            backgroundImage:
+                                pageBg === 'sweet-corner'
+                                    ? `url(${bgSweetCorner})`
+                                    : pageBg === 'coffee-break'
+                                      ? `url(${bgCoffeeBreak})`
+                                      : undefined,
                         }}
                     />
                     {/* Desktop sidebar */}
