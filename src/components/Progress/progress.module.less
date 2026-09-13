@@ -4,13 +4,12 @@
 // ============================================
 
 // ---------- Tokens (avoid importing variables.less in module CSS) ----------
-@stripe-bg: #0ec4b6; // fill 底色兜底（背景图加载前）
+@stripe-bg: #f8f8f0; // fill 底色兜底（背景图加载前）
 
 @track-bg: #f8f8f0;
 @track-border: #e8dcc8;
 @track-inner: rgba(114, 93, 66, 0.08);
 
-@text-on-fill: #fff;
 @text-on-track: #725d42;
 
 // ---------- Root ----------
@@ -23,19 +22,6 @@
     user-select: none;
     vertical-align: middle;
     width: 100%;
-}
-
-.body {
-    flex: 1 1 auto;
-    min-width: 0;
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-
-.body.noGap {
-    gap: 0;
 }
 
 .row {
@@ -60,18 +46,18 @@
     text-align: right;
 }
 
-.info.top {
-    align-self: flex-end;
-}
-
 // ---------- Track ----------
 .track {
     position: relative;
     flex: 1 1 auto;
     width: 100%;
     min-width: 80px;
-    background: @track-bg;
-    border: 2px solid @track-border;
+    // 奶油色波点底（与 Background default / Card pattern-default 一致），fill 场景图覆盖其上
+    background:
+        radial-gradient(circle, rgba(196, 184, 158, 0.15) 1.5px, transparent 1.5px) 0 0 / 28px 28px,
+        radial-gradient(circle, rgba(196, 184, 158, 0.1) 1px, transparent 1px) 7px 7px / 14px 14px,
+        @track-bg;
+    // border: 1px solid @track-border;
     box-shadow: inset 0 2px 4px @track-inner;
     overflow: hidden;
     border-radius: 999px;
@@ -99,7 +85,7 @@
     width: 0;
     border-radius: 999px;
     // 底色兜底；实际背景图（sweet-corner.svg，cover 铺满）由组件内联样式注入，替换原 -45° 条纹
-    background-color: @stripe-bg;
+    // background-color: @stripe-bg;
     transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
     overflow: hidden;
     display: flex;
@@ -110,31 +96,6 @@
 
 .fill.noTransition {
     transition: none;
-}
-
-// ---------- Info text (inside fill) ----------
-.infoInside {
-    position: absolute;
-    right: 8px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: @text-on-fill;
-    font-weight: 800;
-    font-size: 11px;
-    letter-spacing: 0.02em;
-    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.15);
-    pointer-events: none;
-    white-space: nowrap;
-    z-index: 1;
-}
-
-.track.size-large .infoInside {
-    font-size: 13px;
-}
-
-.track.size-small .infoInside {
-    font-size: 9px;
-    right: 4px;
 }
 
 // ---------- Reduced motion ----------

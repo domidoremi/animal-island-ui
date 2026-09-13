@@ -98,7 +98,7 @@ const MENU_ITEMS: MenuItem[] = [
             { key: 'drawer', label: 'Drawer 抽屉' },
             { key: 'loading', label: 'Loading 加载' },
             { key: 'tooltip', label: 'Tooltip 气泡提示' },
-            { key: 'progress', label: 'Progress 进度条' },
+            { key: 'progress', label: 'Progress 进度条', isNew: true },
             { key: 'skeleton', label: 'Skeleton 骨架屏' },
             { key: 'backtop', label: 'BackTop 返回顶部' },
         ],

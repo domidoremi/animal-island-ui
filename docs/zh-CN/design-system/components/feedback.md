@@ -2,23 +2,23 @@
 
 反馈进度与等待状态的组件：Progress、Skeleton、BackTop 的精确取值
 
-## Progress（Button loading 同款青色斜纹）
+## Progress（场景图 fill + 波点 track）
 
 源码：`src/components/Progress/Progress.tsx`（受控渲染 + aria 适配）+ `types.ts`（类型定义）+ `progress.module.less`。
-**JSX 组件**（非命令式）：`percent` 受控传入，从 0 平滑动画到目标值。track 是沙土色 pill 带内阴影，fill 直接复用 Button loading 的 `-45°` 斜纹（`#0ec4b6` / `#01b0a7`），从右往左无限滚动（1s linear），与 Button 视觉上"同款进行中"。
+**JSX 组件**（非命令式）：`percent` 受控传入，从 0 平滑动画到目标值。track 是奶油色波点 pill 带内阴影，fill 是场景图（默认 `sweet-corner.svg`）由组件内联注入，`background-size` 为轨道宽度的 80%，让更多场景细节可见。百分比文字固定显示在进度条右侧。
 
 **props**：
 ```ts
 type ProgressSize = 'small' | 'middle' | 'large';
-type ProgressInfoPosition = 'inside' | 'right' | 'top';
+type ProgressVariant = 'sweet-corner' | 'forest-grove' | 'starry-camp' | 'coffee-break';
 
 interface ProgressProps {
     percent: number;            // required, 0-100, auto-clamped; non-integers are rounded for aria
-    size?: ProgressSize;        // small=12px / middle=20px / large=28px
-    showInfo?: boolean;         // default true
-    infoPosition?: ProgressInfoPosition; // default 'inside'
+    size?: ProgressSize;        // small=14px / middle=24px / large=32px
+    showInfo?: boolean;         // default true；文字显示在进度条右侧
+    variant?: ProgressVariant;  // fill 场景图；default 'sweet-corner'
     infoFormat?: (p: number) => ReactNode; // default `${p}%`
-    duration?: number;          // seconds; 0 disables the fill width animation; default 0.6 (does not affect stripe scrolling)
+    duration?: number;          // seconds; 0 disables the fill width animation; default 0.6
     className?: string;
     style?: CSSProperties;
 }
@@ -31,61 +31,53 @@ interface ProgressProps {
     flex: 1 1 auto;
     width: 100%;
     min-width: 80px;
-    background: #f8f8f0;          /* main background colour (matches --animal-bg, blends into the page) */
-    border: 2px solid #e8dcc8;     /* very light stroke, one step lighter than #c4b89e, softer overall */
-    box-shadow: inset 0 2px 4px rgba(114, 93, 66, 0.08); /* inner recess (very subtle) */
-    border-radius: 999px;         /* pill */
+    background:
+        radial-gradient(circle, rgba(196, 184, 158, 0.15) 1.5px, transparent 1.5px) 0 0 / 28px 28px,
+        radial-gradient(circle, rgba(196, 184, 158, 0.1) 1px, transparent 1px) 7px 7px / 14px 14px,
+        #f8f8f0;               /* 奶油色波点（与 Background default / Card pattern-default 一致） */
+    border: 2px solid #e8dcc8; /* 比 #c4b89e 更浅一档的细描边 */
+    box-shadow: inset 0 2px 4px rgba(114, 93, 66, 0.08); /* 内凹阴影（很淡） */
+    border-radius: 999px;      /* pill */
     overflow: hidden;
 }
-.track.size-small  { height: 12px; border-width: 1.5px; }
-.track.size-middle { height: 20px; }
-.track.size-large  { height: 28px; }
+.track.size-small  { height: 14px; border-width: 1.5px; }
+.track.size-middle { height: 24px; }
+.track.size-large  { height: 32px; }
 ```
 
-**Fill（精确值，与 Button loading 1:1）：**
+**Fill（精确值）：**
 ```css
 .fill {
     position: absolute;
     top: 0; left: 0; bottom: 0;
     width: 0;
     border-radius: 999px;
-    background: #0ec4b6;
-    background-image: repeating-linear-gradient(
-        -45deg,
-        #0ec4b6 0, #0ec4b6 10px,
-        #01b0a7 10px, #01b0a7 20px
-    );
-    background-size: 28.28px 28.28px;  /* 10px * √2, same as Button loading */
-    animation: animal-progress-stripe 1s linear infinite;
+    /* 场景图由 Progress.tsx 内联注入：
+       background-image: url(<variant svg>);
+       background-repeat: no-repeat;
+       background-position: left top;
+       background-size: <trackWidth * 0.8>px auto;  (0.8 → 场景显示更多内容) */
     transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
     overflow: hidden;
     display: flex; align-items: center; justify-content: flex-end; padding-right: 4px;
 }
-@keyframes animal-progress-stripe {
-    0%   { background-position: 0 0; }
-    100% { background-position: -28.28px 0; }
-}
 ```
 
-**Info 文字：**
+**Info 文字（进度条右侧）：**
 ```css
-.infoInside {
-    position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
-    color: #fff; font-weight: 800; font-size: 11px;  /* small 9px / large 13px */
-    letter-spacing: 0.02em; text-shadow: 0 1px 1px rgba(0, 0, 0, 0.15);
-    pointer-events: none; white-space: nowrap; z-index: 1;
+.row {
+    display: flex; align-items: center; gap: 12px; width: 100%; flex: 1 1 auto; min-width: 0;
 }
-.info.right { min-width: 44px; text-align: right; color: #725d42; font-weight: 700; }
-.info.top   { align-self: flex-end; color: #725d42; font-weight: 700; }
+.info {
+    font-weight: 700; color: #725d42; white-space: nowrap; flex-shrink: 0; letter-spacing: 0.02em;
+}
+.info.right { min-width: 44px; text-align: right; }
 ```
 
 **关键交互细节：**
-- `infoPosition="inside"` + `percent < 18%` 时，文字自动从 fill 内（白色）移到 track 末端（深色 `#725d42`），避免白字落在沙土色 track 上看不清。这是唯一「魔法」行为，其它都是声明式。
-- `duration=0` → 关闭 fill 宽度过渡（`transition: none`），瞬间到位；**不影响斜纹滚动**。
-- 斜纹滚动与 `prefers-reduced-motion: reduce` 联动：偏好降低动效时 `animation: none`，fill 宽度过渡同样置为 none。
-- 旧版 `status` / `strokeColor` / `leafAnimated` 已全部移除：fill 颜色固定为 Button loading 同款 teal 斜纹，库内只保留一种"进行中"视觉，避免与状态色打架。
+- `duration=0` → 关闭 fill 宽度过渡（`transition: none`），瞬间到位。
 - a11y：根 div 有 `role="progressbar"` + `aria-valuemin=0/aria-valuemax=100/aria-valuenow=<四舍五入后的 percent>/aria-valuetext=<infoFormat 的字符串结果>`。
-- `prefers-reduced-motion: reduce` 时所有动画自动关闭。
+- `prefers-reduced-motion: reduce` 时 fill 宽度过渡自动关闭。
 
 ## Loading（全屏落雪）
 

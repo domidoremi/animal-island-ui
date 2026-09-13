@@ -222,7 +222,7 @@ export type {
 } from './components/Notification';
 
 export { Progress } from './components/Progress';
-export type { ProgressProps, ProgressSize, ProgressInfoPosition } from './components/Progress';
+export type { ProgressProps, ProgressSize } from './components/Progress';
 
 export { Loading } from './components/Loading';
 export type { LoadingProps } from './components/Loading';

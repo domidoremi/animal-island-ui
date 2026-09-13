@@ -9,14 +9,6 @@ import React from 'react';
 export type ProgressSize = 'small' | 'middle' | 'large';
 
 /**
- * 百分比文字位置
- *  - inside: 在 bar 内部（fill 段内右对齐，跟随 fill 移动；fill 过窄时退化为紧贴 track 末端）
- *  - right:  在 bar 右侧
- *  - top:    在 bar 上方
- */
-export type ProgressInfoPosition = 'inside' | 'right' | 'top';
-
-/**
  * 进度条 fill 背景场景图
  *  - sweet-corner: 甜点店角（默认）
  *  - forest-grove: 森林树丛
@@ -30,10 +22,8 @@ export interface ProgressProps {
     percent: number;
     /** 尺寸 */
     size?: ProgressSize;
-    /** 是否显示百分比文字 */
+    /** 是否显示百分比文字（显示在进度条右侧） */
     showInfo?: boolean;
-    /** 百分比文字位置 */
-    infoPosition?: ProgressInfoPosition;
     /** fill 背景场景图（默认 sweet-corner） */
     variant?: ProgressVariant;
     /** 自定义文字格式化（默认 `${percent}%`） */

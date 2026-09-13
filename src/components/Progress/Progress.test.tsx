@@ -66,15 +66,6 @@ describe('Progress', () => {
             render(<Progress percent={7} infoFormat={(p) => `${Math.round(p)}/10`} />);
             expect(screen.getByText('7/10')).toBeInTheDocument();
         });
-
-        it('infoPosition=right places percent after the track', () => {
-            const { container } = render(<Progress percent={50} infoPosition="right" />);
-            // Should still render percent text
-            expect(screen.getByText('50%')).toBeInTheDocument();
-            // The row container has fill class to stretch
-            const row = container.querySelector(`.${styles.row}`) as HTMLElement | null;
-            expect(row).toBeInTheDocument();
-        });
     });
 
     describe('size', () => {
@@ -107,13 +98,10 @@ describe('Progress', () => {
             expect(fillEl.style.transitionDuration).toBe('1.2s');
         });
 
-        it('default fill carries the stripe animation class (CSS-defined)', () => {
+        it('default fill carries the fill class (CSS-defined)', () => {
             const { container } = render(<Progress percent={50} />);
             const fillEl = container.querySelector(`.${styles.fill}`) as HTMLElement;
             expect(fillEl).toBeInTheDocument();
-            // The fill class declares `animation: animal-progress-stripe 1s linear infinite`
-            // in progress.module.less; jsdom doesn't resolve module keyframes via getComputedStyle,
-            // so we assert the class is applied (the rule lives there).
             expect(fillEl.className).toContain(styles.fill);
         });
     });
@@ -126,24 +114,17 @@ describe('Progress', () => {
         });
     });
 
-    describe('inside info fallback for low percent', () => {
-        it('shows percent outside fill (track-end) when percent < 18% to keep white text readable', () => {
-            const { container } = render(<Progress percent={10} infoPosition="inside" />);
-            // When percent < 18%, only the OUTSIDE-fallback infoInside node is rendered
-            // (the inside-fill one is suppressed so the white text doesn't sit on the sandy track)
-            const infoNodes = container.querySelectorAll(`.${styles.infoInside}`);
-            expect(infoNodes.length).toBe(1);
-            expect(infoNodes[0]!.textContent).toBe('10%');
-            // The fallback should use track text color (#725d42) instead of white-on-fill
-            expect(infoNodes[0]).toHaveStyle({ color: 'rgb(114, 93, 66)' });
-        });
-
-        it('shows percent inside fill (white text) when percent >= 18%', () => {
-            const { container } = render(<Progress percent={50} infoPosition="inside" />);
-            const infoNodes = container.querySelectorAll(`.${styles.infoInside}`);
-            expect(infoNodes.length).toBe(1);
-            expect(infoNodes[0]!.textContent).toBe('50%');
-            // The inside one has no inline color override, so it inherits the white from .infoInside
+    describe('info position (right)', () => {
+        it('renders percent text after the track (right of the bar)', () => {
+            const { container } = render(<Progress percent={50} />);
+            const row = container.querySelector(`.${styles.row}`) as HTMLElement;
+            expect(row).toBeInTheDocument();
+            const info = row.querySelector(`.${styles.right}`) as HTMLElement;
+            expect(info).toBeInTheDocument();
+            expect(info.textContent).toBe('50%');
+            // The track and the label are siblings inside the row
+            const track = row.querySelector(`.${styles.track}`);
+            expect(track).toBeInTheDocument();
         });
     });
 });

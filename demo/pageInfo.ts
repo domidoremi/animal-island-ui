@@ -106,7 +106,7 @@ export const PAGE_INFO: Record<string, { title: string; desc: string }> = {
     },
     progress: {
         title: 'Progress 进度条',
-        desc: '斜纹滚动进度条 —  3 档 size, 支持 inside/right/top 三种文字位置、自定义格式化、duration 控制 fill 宽度动画',
+        desc: '场景图进度条 —  3 档 size, 百分比文字固定显示在右侧、自定义格式化、duration 控制 fill 宽度动画',
     },
     loading: {
         title: 'Loading 加载',

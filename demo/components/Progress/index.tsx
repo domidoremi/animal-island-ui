@@ -45,6 +45,7 @@ const S = {
         border: '1.5px solid #c4b89e',
         background: 'rgb(247, 243, 223)',
         color: '#725d42',
+        accentColor: '#725d42',
         fontFamily: 'inherit',
         fontSize: 13,
         fontWeight: 600,
@@ -55,8 +56,7 @@ const S = {
 const PROGRESS_API: ApiRow[] = [
     { prop: 'percent', desc: '当前百分比 (0-100,自动 clamp)', type: 'number', defaultVal: '-', required: true },
     { prop: 'size', desc: '尺寸', type: `'small' | 'middle' | 'large'`, defaultVal: "'middle'" },
-    { prop: 'showInfo', desc: '是否显示百分比文字', type: 'boolean', defaultVal: 'true' },
-    { prop: 'infoPosition', desc: '百分比文字位置', type: `'inside' | 'right' | 'top'`, defaultVal: "'inside'" },
+    { prop: 'showInfo', desc: '是否显示百分比文字（显示在进度条右侧）', type: 'boolean', defaultVal: 'true' },
     {
         prop: 'variant',
         desc: 'fill 背景场景图（当前进度区域显示该场景，从左揭开）',
@@ -64,7 +64,7 @@ const PROGRESS_API: ApiRow[] = [
         defaultVal: "'sweet-corner'",
     },
     { prop: 'infoFormat', desc: '自定义文字格式化', type: '(percent: number) => ReactNode', defaultVal: '${percent}%' },
-    { prop: 'duration', desc: 'fill 宽度动画时长(秒),0 = 不动画;不影响斜纹滚动', type: 'number', defaultVal: '0.6' },
+    { prop: 'duration', desc: 'fill 宽度动画时长(秒),0 = 不动画', type: 'number', defaultVal: '0.6' },
     { prop: 'className', desc: '自定义类名', type: 'string', defaultVal: '-' },
     { prop: 'style', desc: '自定义样式', type: 'CSSProperties', defaultVal: '-' },
 ];
@@ -87,7 +87,6 @@ const ProgressDemo: React.FC = () => {
                 if (p >= 100) {
                     window.setTimeout(() => {
                         setUploading(false);
-                        setUploadPct(0);
                     }, 600);
                     return 100;
                 }
@@ -100,59 +99,10 @@ const ProgressDemo: React.FC = () => {
     return (
         <div style={sectionStyle}>
             <div style={sectionTitleStyle}>
-                Progress <DemoTag>进度条</DemoTag> <DemoTag>斜纹滚动</DemoTag>
+                Progress <DemoTag>进度条</DemoTag> <DemoTag>场景图</DemoTag>
             </div>
             <div style={demoBodyStyle}>
-                {/* ---- 1. 基础 ---- */}
-                <div style={labelStyle}>基础用法</div>
-                <div style={S.barRow}>
-                    <Progress percent={25} />
-                    <Progress percent={50} />
-                    <Progress percent={100} />
-                </div>
-
-                {/* ---- 2. 尺寸 ---- */}
-                <div style={labelStyle}>size — 三档尺寸</div>
-                <div style={S.barRow}>
-                    <Progress percent={50} size="small" />
-                    <Progress percent={50} size="middle" />
-                    <Progress percent={50} size="large" />
-                </div>
-
-                {/* ---- 2.5 背景场景图 ---- */}
-                <div style={labelStyle}>variant — fill 背景场景图（当前进度区域显示场景，从左揭开）</div>
-                <div style={S.barRow}>
-                    <Progress percent={70} variant="sweet-corner" infoPosition="right" />
-                    <Progress percent={70} variant="forest-grove" infoPosition="right" />
-                    <Progress percent={70} variant="starry-camp" infoPosition="right" />
-                    <Progress percent={70} variant="coffee-break" infoPosition="right" />
-                </div>
-
-                {/* ---- 3. 文字位置 ---- */}
-                <div style={labelStyle}>infoPosition — 百分比文字位置</div>
-                <div style={S.barRow}>
-                    <Progress percent={pct} infoPosition="inside" />
-                    <Progress percent={pct} infoPosition="right" />
-                    <Progress percent={pct} infoPosition="top" />
-                </div>
-
-                {/* ---- 4. 受控滑块 ---- */}
-                <div style={labelStyle}>受控 — 滑块驱动 percent (0–100,自动 clamp)</div>
-                <div style={S.trackRow}>
-                    <span style={S.trackLabel}>percent:</span>
-                    <input
-                        type="range"
-                        min={0}
-                        max={100}
-                        value={pct}
-                        onChange={(e) => setPct(parseInt(e.target.value, 10))}
-                        style={{ flex: 1 }}
-                    />
-                    <span style={{ minWidth: 48, textAlign: 'right', fontWeight: 700, color: '#19c8b9' }}>{pct}%</span>
-                </div>
-                <Progress percent={pct} infoPosition="right" />
-
-                {/* ---- 5. 经典场景: 上传/经验/任务 ---- */}
+                {/* ---- 0. 经典场景: 上传/经验/任务 ---- */}
                 <div style={labelStyle}>经典场景 — 上传 / 经验 / 任务</div>
                 <div style={S.barRow}>
                     {/* 上传进度 */}
@@ -203,17 +153,54 @@ const ProgressDemo: React.FC = () => {
                         <div style={{ fontSize: 12, color: '#9f927d', marginBottom: 4, fontWeight: 600 }}>
                             今日 DIY 任务
                         </div>
-                        <Progress
-                            percent={taskPct}
-                            infoPosition="right"
-                            infoFormat={(p: number) => `${Math.round((p / 100) * 10)} / 10`}
-                        />
+                        <Progress percent={taskPct} infoFormat={(p: number) => `${Math.round((p / 100) * 10)} / 10`} />
                     </div>
                 </div>
 
+                {/* ---- 1. 基础 ---- */}
+                <div style={labelStyle}>基础用法</div>
+                <div style={S.barRow}>
+                    <Progress percent={25} />
+                    <Progress percent={50} />
+                    <Progress percent={100} />
+                </div>
+
+                {/* ---- 2. 尺寸 ---- */}
+                <div style={labelStyle}>size — 三档尺寸</div>
+                <div style={S.barRow}>
+                    <Progress percent={50} size="small" />
+                    <Progress percent={50} size="middle" />
+                    <Progress percent={50} size="large" />
+                </div>
+
+                {/* ---- 2.5 背景场景图 ---- */}
+                <div style={labelStyle}>variant — fill 背景场景图（当前进度区域显示场景，从左揭开）</div>
+                <div style={S.barRow}>
+                    <Progress percent={70} variant="sweet-corner" />
+                    <Progress percent={70} variant="forest-grove" />
+                    <Progress percent={70} variant="starry-camp" />
+                    <Progress percent={70} variant="coffee-break" />
+                </div>
+
+                {/* ---- 3. 受控滑块 ---- */}
+                <div style={labelStyle}>受控 — 滑块驱动 percent (0–100,自动 clamp)</div>
+                <div style={S.trackRow}>
+                    <span style={S.trackLabel}>percent:</span>
+                    <input
+                        type="range"
+                        min={0}
+                        max={100}
+                        value={pct}
+                        onChange={(e) => setPct(parseInt(e.target.value, 10))}
+                        style={{ flex: 1, accentColor: '#725d42' }}
+                    />
+                    <span style={{ minWidth: 48, textAlign: 'right', fontWeight: 700, color: '#19c8b9' }}>{pct}%</span>
+                </div>
+                <Progress percent={pct} />
+
                 {/* ---- 6. 关闭 fill 宽度动画 ---- */}
-                <div style={labelStyle}>duration=0 — 关闭 fill 宽度动画(斜纹滚动不受影响)</div>
-                <Progress percent={pct} duration={0} infoPosition="right" />
+                <div style={labelStyle}>duration=0 — 关闭 fill 宽度动画</div>
+                <Progress percent={pct} duration={0} />
 
                 {/* ---- 7. 无文字 ---- */}
                 <div style={labelStyle}>showInfo=false — 只渲染条,不带文字</div>
@@ -230,7 +217,7 @@ const App = () => {
     const [pct, setPct] = useState(45);
     return (
         <>
-            {/* 基础 - 斜纹滚动 fill */}
+            {/* 基础 - 场景图 fill */}
             <Progress percent={pct} />
 
             {/* 尺寸 */}
@@ -239,11 +226,6 @@ const App = () => {
 
             {/* fill 背景场景图（sweet-corner 默认） */}
             <Progress percent={50} variant="forest-grove" />
-
-            {/* 文字位置 */}
-            <Progress percent={pct} infoPosition="inside" />
-            <Progress percent={pct} infoPosition="right" />
-            <Progress percent={pct} infoPosition="top" />
 
             {/* 自定义格式化 (例如: 5/10 任务) */}
             <Progress

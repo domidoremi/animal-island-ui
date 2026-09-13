@@ -2,23 +2,23 @@
 
 Exact values for the components that report progress or pending state: Progress, Skeleton and BackTop.
 
-## Progress (Button-loading teal stripes)
+## Progress (scene-image fill on dotted track)
 
 Source: `src/components/Progress/Progress.tsx` (controlled rendering + aria wiring) + `types.ts` (type definitions) + `progress.module.less`.
-**A JSX component** (not imperative): `percent` is passed in controlled and animates smoothly from 0 to the target value. The track is a sand-coloured pill with an inner shadow; the fill reuses the Button loading `-45°` stripes verbatim (`#0ec4b6` / `#01b0a7`), scrolling right-to-left infinitely (1s linear) so it reads as the same "in progress" visual as Button.
+**A JSX component** (not imperative): `percent` is passed in controlled and animates smoothly from 0 to the target value. The track is a cream dotted pill with an inner shadow; the fill is a scene image (`sweet-corner.svg` by default) injected inline at `background-size: 80%` of the track width so more of the scene is visible. The label always sits right of the bar.
 
 **props**:
 ```ts
 type ProgressSize = 'small' | 'middle' | 'large';
-type ProgressInfoPosition = 'inside' | 'right' | 'top';
+type ProgressVariant = 'sweet-corner' | 'forest-grove' | 'starry-camp' | 'coffee-break';
 
 interface ProgressProps {
     percent: number;            // required, 0-100, auto-clamped; non-integers are rounded for aria
-    size?: ProgressSize;        // small=12px / middle=20px / large=28px
-    showInfo?: boolean;         // default true
-    infoPosition?: ProgressInfoPosition; // default 'inside'
+    size?: ProgressSize;        // small=14px / middle=24px / large=32px
+    showInfo?: boolean;         // default true; label sits right of the bar
+    variant?: ProgressVariant;  // scene image for the fill; default 'sweet-corner'
     infoFormat?: (p: number) => ReactNode; // default `${p}%`
-    duration?: number;          // seconds; 0 disables the fill width animation; default 0.6 (does not affect stripe scrolling)
+    duration?: number;          // seconds; 0 disables the fill width animation; default 0.6
     className?: string;
     style?: CSSProperties;
 }
@@ -31,61 +31,53 @@ interface ProgressProps {
     flex: 1 1 auto;
     width: 100%;
     min-width: 80px;
-    background: #f8f8f0;          /* main background colour (matches --animal-bg, blends into the page) */
-    border: 2px solid #e8dcc8;     /* very light stroke, one step lighter than #c4b89e, softer overall */
+    background:
+        radial-gradient(circle, rgba(196, 184, 158, 0.15) 1.5px, transparent 1.5px) 0 0 / 28px 28px,
+        radial-gradient(circle, rgba(196, 184, 158, 0.1) 1px, transparent 1px) 7px 7px / 14px 14px,
+        #f8f8f0;               /* cream dots (same as Background default / Card pattern-default) */
+    border: 2px solid #e8dcc8; /* very light stroke, one step lighter than #c4b89e, softer overall */
     box-shadow: inset 0 2px 4px rgba(114, 93, 66, 0.08); /* inner recess (very subtle) */
-    border-radius: 999px;         /* pill */
+    border-radius: 999px;      /* pill */
     overflow: hidden;
 }
-.track.size-small  { height: 12px; border-width: 1.5px; }
-.track.size-middle { height: 20px; }
-.track.size-large  { height: 28px; }
+.track.size-small  { height: 14px; border-width: 1.5px; }
+.track.size-middle { height: 24px; }
+.track.size-large  { height: 32px; }
 ```
 
-**Fill (exact values, 1:1 with Button loading):**
+**Fill (exact values):**
 ```css
 .fill {
     position: absolute;
     top: 0; left: 0; bottom: 0;
     width: 0;
     border-radius: 999px;
-    background: #0ec4b6;
-    background-image: repeating-linear-gradient(
-        -45deg,
-        #0ec4b6 0, #0ec4b6 10px,
-        #01b0a7 10px, #01b0a7 20px
-    );
-    background-size: 28.28px 28.28px;  /* 10px * √2, same as Button loading */
-    animation: animal-progress-stripe 1s linear infinite;
+    /* scene image injected inline by Progress.tsx:
+       background-image: url(<variant svg>);
+       background-repeat: no-repeat;
+       background-position: left top;
+       background-size: <trackWidth * 0.8>px auto;  (0.8 → more of the scene visible) */
     transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
     overflow: hidden;
     display: flex; align-items: center; justify-content: flex-end; padding-right: 4px;
 }
-@keyframes animal-progress-stripe {
-    0%   { background-position: 0 0; }
-    100% { background-position: -28.28px 0; }
-}
 ```
 
-**Info text:**
+**Info text (right of the bar):**
 ```css
-.infoInside {
-    position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
-    color: #fff; font-weight: 800; font-size: 11px;  /* small 9px / large 13px */
-    letter-spacing: 0.02em; text-shadow: 0 1px 1px rgba(0, 0, 0, 0.15);
-    pointer-events: none; white-space: nowrap; z-index: 1;
+.row {
+    display: flex; align-items: center; gap: 12px; width: 100%; flex: 1 1 auto; min-width: 0;
 }
-.info.right { min-width: 44px; text-align: right; color: #725d42; font-weight: 700; }
-.info.top   { align-self: flex-end; color: #725d42; font-weight: 700; }
+.info {
+    font-weight: 700; color: #725d42; white-space: nowrap; flex-shrink: 0; letter-spacing: 0.02em;
+}
+.info.right { min-width: 44px; text-align: right; }
 ```
 
 **Key interaction details:**
-- With `infoPosition="inside"` and `percent < 18%`, the label automatically moves out of the fill (white) to the end of the track (dark `#725d42`), so white text never lands on the sand-coloured track. This is the only "magic" behaviour; everything else is declarative.
-- `duration=0` → the fill width transition is disabled (`transition: none`) and jumps instantly; **stripe scrolling is unaffected**.
-- Stripe scrolling honours `prefers-reduced-motion: reduce`: with the preference set, `animation: none`, and the fill width transition is also set to none.
-- The legacy `status` / `strokeColor` / `leafAnimated` props are fully removed: the fill colour is fixed to the same teal stripes as Button loading, so the library keeps exactly one "in progress" visual and never clashes with status colours.
+- `duration=0` → the fill width transition is disabled (`transition: none`) and jumps instantly.
 - a11y: the root div carries `role="progressbar"` plus `aria-valuemin=0` / `aria-valuemax=100` / `aria-valuenow=<rounded percent>` / `aria-valuetext=<string result of infoFormat>`.
-- Under `prefers-reduced-motion: reduce`, all animations are switched off automatically.
+- Under `prefers-reduced-motion: reduce`, the fill width transition is switched off automatically.
 
 ## Loading (fullscreen falling snow)
 
