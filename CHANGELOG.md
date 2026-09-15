@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.13.0] - 2026-09-16
+
+### Changed
+
+- **图标迁移至 `naive-icons`**（破坏性变更）：内置 `Icon` 组件与 101 个私有图标移除，库改用独立的 [naive-icons](https://github.com/guokaigdg/naive-icons) 图标包；`naive-icons` 成为唯一运行时依赖，`Icon` 相关 API 迁移至该包
+- `Divider` 的 `icon` prop 由图标名改为接收 React 图标元素（如 `<FishIcon />`）
+- `Button` / `Collapse` / `Image` 内置装饰图标迁移至 `naive-icons`
+
+### Added
+
+- `Footer` 由图标链重构为版权栏：渲染 `© {year} {text}`，年份动态获取，文案默认 `All Rights Reserved.`，支持 `text` / `year` / `className` / `style` 自定义
+- Demo Icon 页展示全部 `naive-icons` 图标及 npm / yarn / pnpm 安装说明
+- Demo 首页与侧边栏改用 GROBOLD 展示字体
+
 ## [1.11.0] - 2026-09-11
 
 ### Added
