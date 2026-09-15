@@ -2,33 +2,25 @@
 
 Exact values for the scene-setting pieces that carry the island theme: Time, Phone, Footer and Wallet.
 
-## Footer (icon chain)
+## Footer (copyright bar)
 
-A continuous chain of all 101 built-in icons, tightly adjacent, repeating to fill the container width. Icon size matches the `Icon` component default (24px).
+A copyright bar that renders `© {year} {text}` — the year is fetched dynamically (current year), and the text defaults to `All Rights Reserved.`.
 
 ```tsx
-<Footer />           // default: 101-icon chain, size=24
-<Footer size={36} /> // custom icon size
-<Footer name="Heart" /> // single icon chained
-<Footer name="Leaf" size={36} /> // single icon + custom size
+<Footer />                  // © 2026 All Rights Reserved.
+<Footer text="Acme Ltd." /> // custom text
+<Footer text="Acme" year={2020} />
 ```
 
 ```less
 .footer {
-    display: flex;
-    flex-wrap: nowrap;
-    width: 100%;
-    overflow: hidden;
-    align-items: flex-start;
-}
-.cycle {
-    display: flex;
-    flex: 0 0 auto;
-    align-items: flex-start;
+    color: #807d75;
+    font-size: 12px;
+    padding: 16px 0;
+    text-align: center;
 }
 ```
 
-- Each cycle renders the icon sequence at `size` px; the number of cycles is recomputed from the container width via `ResizeObserver` so the row always fills it. Duplicate cycles are `aria-hidden`.
-- By default the sequence is the full 101-icon list (from the `Icon` registry order). Pass `name` (an `IconName`) to chain a single icon instead.
-- Icons are flex items with no gap, so they sit tightly adjacent. `size` defaults to 24px — the same as the `Icon` component.
+- The `year` defaults to the current year (`new Date().getFullYear()`); pass `year` to override it. The `text` replaces `All Rights Reserved.`.
+- Styling is fully overridable via `style` / `className`.
 

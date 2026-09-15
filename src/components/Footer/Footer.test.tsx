@@ -2,45 +2,47 @@ import { describe, it, expect } from 'vitest';
 import { render } from '@testing-library/react';
 import { Footer } from './Footer';
 import styles from './footer.module.less';
-import { ICON_LIST } from '../Icon';
+
+const thisYear = new Date().getFullYear();
 
 describe('Footer', () => {
-    it('渲染图标链容器', () => {
+    it('默认渲染版权栏（当前年份 + 默认文案）', () => {
         const { container } = render(<Footer />);
         const root = container.firstChild as HTMLElement;
-        expect(root).toHaveClass(styles.footer);
+        expect(root).toBeInTheDocument();
+        expect(root).toHaveTextContent(`© ${thisYear} All Rights Reserved.`);
     });
 
-    it('包含全部 101 个图标', () => {
+    it('text 可自定义文案', () => {
+        const { container } = render(<Footer text="Pocket Projects Inc." />);
+        expect(container.firstChild).toHaveTextContent(`© ${thisYear} Pocket Projects Inc.`);
+    });
+
+    it('year 可自定义年份', () => {
+        const { container } = render(<Footer text="Acme" year={2020} />);
+        expect(container.firstChild).toHaveTextContent('© 2020 Acme');
+    });
+
+    it('默认样式：颜色 #807d75、12px、padding 16px 0、居中', () => {
         const { container } = render(<Footer />);
-        const cycle = container.querySelector(`.${styles.cycle}`) as HTMLElement;
-        const svgs = cycle.querySelectorAll('svg');
-        expect(svgs.length).toBe(ICON_LIST.length);
-    });
-
-    it('默认 size=24 应用图标尺寸', () => {
-        const { container } = render(<Footer />);
-        const svg = container.querySelector('svg') as SVGElement;
-        expect(svg).toHaveStyle({ width: '24px', height: '24px' });
-    });
-
-    it('size 可配置', () => {
-        const { container } = render(<Footer size={40} />);
-        const svg = container.querySelector('svg') as SVGElement;
-        expect(svg).toHaveStyle({ width: '40px', height: '40px' });
-    });
-
-    it('name 指定单一图标相连', () => {
-        const { container } = render(<Footer name="Heart" />);
-        const cycle = container.querySelector(`.${styles.cycle}`) as HTMLElement;
-        const svgs = cycle.querySelectorAll('svg');
-        expect(svgs.length).toBe(1);
+        const root = container.firstChild as HTMLElement;
+        expect(root).toHaveStyle({
+            color: '#807d75',
+            'font-size': '12px',
+            padding: '16px 0',
+        });
     });
 
     it('应用 className 与 style', () => {
-        const { container } = render(<Footer className="x" style={{ marginTop: 8 }} />);
+        const { container } = render(<Footer className="x" style={{ fontSize: 14 }} />);
         const root = container.firstChild as HTMLElement;
         expect(root).toHaveClass('x');
-        expect(root).toHaveStyle({ marginTop: '8px' });
+        expect(root).toHaveStyle({ fontSize: '14px' });
+    });
+
+    it('语义化 footer 元素', () => {
+        const { container } = render(<Footer />);
+        expect(container.firstChild?.nodeName).toBe('FOOTER');
+        expect(container.firstChild).toHaveClass(styles.footer);
     });
 });

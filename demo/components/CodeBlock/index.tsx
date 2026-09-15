@@ -73,10 +73,10 @@ const App = () => {
                 const App = () => {
                     return (
                         <div>
-                            {/* 默认 size=24，101 个图标循环铺满 */}
+                            {/* 默认 © 2026 All Rights Reserved. */}
                             <Footer />
-                            {/* 自定义图标大小 */}
-                            <Footer size={36} />
+                            {/* 自定义文案 */}
+                            <Footer text="Acme Ltd." />
                         </div>
                     );
                 };
