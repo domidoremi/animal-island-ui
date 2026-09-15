@@ -160,10 +160,12 @@ const S = {
     sidebarHeader: {
         padding: '20px 20px 12px',
         borderBottom: '1px solid #e8e2d6',
+        fontFamily:
+            "'GROBOLD', Nunito, 'Zen Maru Gothic', -apple-system, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif",
         fontWeight: 700,
         fontSize: 15,
         color: '#725d42',
-        letterSpacing: -0.3,
+        letterSpacing: 0,
         display: 'flex',
         alignItems: 'center',
     } as React.CSSProperties,

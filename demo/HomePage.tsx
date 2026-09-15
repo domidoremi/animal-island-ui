@@ -246,7 +246,7 @@ const S = {
     } as React.CSSProperties,
     heroTitle: {
         fontFamily:
-            "Nunito, 'Zen Maru Gothic', -apple-system, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif",
+            "'GROBOLD', Nunito, 'Zen Maru Gothic', -apple-system, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif",
         fontSize: 55,
         fontWeight: 800,
         lineHeight: 1.1,
@@ -257,6 +257,8 @@ const S = {
     heroVersion: {
         display: 'inline-flex',
         alignItems: 'center',
+        fontFamily:
+            "'Nunito', 'Zen Maru Gothic', -apple-system, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif",
         fontSize: 12,
         fontWeight: 600,
         padding: '4px 10px',
