@@ -2,7 +2,8 @@
 
 animal-island-ui is a React 18 + TypeScript 5.7 component library (30 components, Less
 Modules, Vite 7 library build, Vitest 4) inspired by a cozy island-style UI.
-Zero runtime dependencies (`dependencies: {}`); CC BY-NC 4.0 (non-commercial).
+One runtime dependency: `naive-icons` (the icon set); everything else is a peerDependency
+or devDependency. CC BY-NC 4.0 (non-commercial).
 
 This file is the entry point for coding agents. It routes; the referenced docs hold the
 detail. Keep it lean — add new rules to the docs below, not here.
@@ -66,8 +67,8 @@ check `ComponentPage.tsx`'s internal `PAGE_INFO` first.
 
 - Never invent component APIs — read the source or declarations first.
 - Visual changes must satisfy [docs/design-system/design-rules.md](docs/design-system/design-rules.md).
-- No new runtime dependencies; never disable `preserveModules` / `cssCodeSplit`
-  (rationale in [docs/adr/](docs/adr/README.md)).
+- Keep runtime dependencies to a minimum — the only one is `naive-icons`
+  (rationale in [docs/adr/](docs/adr/README.md)); never disable `preserveModules` / `cssCodeSplit`.
 - Conventional Commits; branch from `main`.
 - Docs are English-primary with Chinese mirrors under `docs/zh-CN/`.
 - For audit/optimization requests: report P0 (must-fix) vs suggestions and let the user

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Input, Icon } from '../../../src';
+import { Input } from '../../../src';
+import { PhoneIcon } from 'naive-icons';
 import {
     labelStyle,
     sectionStyle,
@@ -84,11 +85,7 @@ const InputDemo: React.FC = () => {
                         onChange={(e) => setInputValue(e.target.value)}
                         onClear={() => setInputValue('')}
                     />
-                    <Input
-                        placeholder="Please enter your phone number"
-                        prefix={<Icon name="Phone" size={20} />}
-                        suffix="⏎"
-                    />
+                    <Input placeholder="Please enter your phone number" prefix={<PhoneIcon size={20} />} suffix="⏎" />
                 </div>
                 <div style={labelStyle}>size 尺寸</div>
                 <div style={{ ...(S.col as any), maxWidth: 360, gap: 12 }}>
@@ -109,6 +106,7 @@ const InputDemo: React.FC = () => {
             <CodeBlock
                 code={`import React, { useState } from 'react';
 import { Input } from 'animal-island-ui';
+import { PhoneIcon, LocationIcon } from 'naive-icons';
 
 const App = () => {
     const [val, setVal] = useState('');
@@ -119,7 +117,7 @@ const App = () => {
             {/* 带清除按钮 */}
             <Input placeholder="With clear" allowClear value={val} onChange={e => setVal(e.target.value)} />
             {/* 前后缀 */}
-            <Input placeholder="Prefix" prefix={<Icon name="Location" size={25} />} suffix="⏎" />
+            <Input placeholder="Prefix" prefix={<LocationIcon size={20} />} suffix="⏎" />
             {/* 小尺寸 */}
             <Input placeholder="Small" size="small" />
             {/* 大尺寸 */}

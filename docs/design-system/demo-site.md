@@ -28,7 +28,7 @@ border-bottom: 1px solid #e8e2d6;
 font-weight: 700;
 font-size: 15px;
 color: #725d42;
-letter-spacing: -0.3px;
+letter-spacing: 0px;
 
 /* Logo image */
 width: 24px;

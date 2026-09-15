@@ -6,7 +6,7 @@ import type { CardColor, CardProps, IconName, TagColor } from '../../../src';
 // 改技能内容时同步此处
 // ============================================
 
-export const INTRO_TAGS = ['React + TypeScript', '30 个组件', '零运行时依赖', 'CC BY-NC 4.0'];
+export const INTRO_TAGS = ['React + TypeScript', '30 个组件', '唯一依赖 naive-icons', 'CC BY-NC 4.0'];
 
 export interface QuickStep {
     title: string;
@@ -120,7 +120,7 @@ export const CATALOG: CatalogRow[] = [
     {
         category: 'General',
         color: 'app-teal',
-        components: ['Button', 'Icon', 'Typewriter', 'Cursor'],
+        components: ['Button', 'Typewriter', 'Cursor'],
         reference: 'general.md',
     },
     {

@@ -2,7 +2,19 @@
 
 ## 状态
 
-Accepted（已采纳）
+被取代（v1.12.0）—— 下面的图标决策如今允许且仅允许一个运行时依赖。
+
+## 取代说明（v1.12.0）：唯一例外 `naive-icons`
+
+组件库有意放弃了内置的成套图标，改用独立的 `naive-icons` 包，于是 `naive-icons` 成了 `dependencies` 下的**唯一**一条记录：
+
+```json
+"dependencies": {
+    "naive-icons": "^1.0.2"
+}
+```
+
+`naive-icons` 是纯 React + SVG，自身不带任何传递依赖；作为一手包也不会踩「两份 React」的坑（它被内联进 `dist/`，而非保持 external，因此消费者直接拿到图标字节，无需额外 runtime peer）。本记录的其它规则一概不变：`react`、`react-dom`、`classnames` 仍是 peer dependencies，且不得再新增任何运行时依赖 —— 未来再有新依赖，必须再次以新记录取代本记录。
 
 ## 背景
 

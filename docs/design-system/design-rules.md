@@ -91,8 +91,8 @@ Check code against this list before submitting it. **Any ❌ that appears is a f
 
 15. **No emoji standing in for UI icons**
     - ❌ `<span>🌊 Beach</span>` / `<span>✨ Sale</span>` — emoji vary in color temperature, style and weight across platforms
-    - ✅ `<Icon name="..." />` from the library; build purely decorative marks with CSS/HTML
+    - ✅ an icon component from `naive-icons` (e.g. `<FlowerIcon />`); build purely decorative marks with CSS/HTML
 
-16. **Icons come from the `<Icon>` component; no inline SVG, no Unicode symbols**
-    - ❌ Writing raw Unicode symbols (✓ ✕ ✗ → ←), hard-coding `<svg>`, or pulling in a third-party icon library
-    - ✅ `<Icon name="Camera" size={24} />` using one of the 101 built-in icon names; when no icon matches, substitute a pure-CSS decorative element
+16. **Icons come from the external `naive-icons` package; no inline SVG, no Unicode symbols**
+    - ❌ Writing raw Unicode symbols (✓ ✕ ✗ → ←), hard-coding `<svg>`, or pulling in another third-party icon library
+    - ✅ `import { FlowerIcon } from 'naive-icons'` then render `<FlowerIcon />`; when no icon matches, substitute a pure-CSS decorative element

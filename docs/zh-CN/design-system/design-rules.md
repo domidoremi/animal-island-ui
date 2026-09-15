@@ -91,8 +91,8 @@
 
 15. **禁止用 emoji 替代 UI 图标**
     - ❌ `<span>🌊 海滩</span>` / `<span>✨ 特价</span>` — emoji 跨平台色温、样式、权重不统一
-    - ✅ `<Icon name="..." />` 使用组件库内置图标；纯装饰性图形用 CSS/HTML 实现
+    - ✅ 使用 `naive-icons` 的图标组件（如 `<FlowerIcon />`）；纯装饰性图形用 CSS/HTML 实现
 
-16. **图标一律使用 `<Icon>` 组件，禁止内联 SVG 或 Unicode 符号**
-    - ❌ 直接写 Unicode 符号（✓ ✕ ✗ → ←）、硬编码 `<svg>`、或引入第三方图标库
-    - ✅ `<Icon name="Camera" size={24} />`，使用 101 个内置图标名之一；如无匹配图标，用纯 CSS 装饰元素替代
+16. **图标一律使用外部 `naive-icons` 包，禁止内联 SVG 或 Unicode 符号**
+    - ❌ 直接写 Unicode 符号（✓ ✕ ✗ → ←）、硬编码 `<svg>`、或引入其他第三方图标库
+    - ✅ `import { FlowerIcon } from 'naive-icons'` 后渲染 `<FlowerIcon />`；如无匹配图标，用纯 CSS 装饰元素替代

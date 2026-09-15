@@ -1,8 +1,16 @@
 import React, { useState } from 'react';
-import { Card, Button, Typewriter, Icon } from '../src';
-import type { IconName } from '../src';
+import { Card, Button, Typewriter } from '../src';
+import * as Icons from 'naive-icons';
 import { islandGradient } from './gradients';
 import { useIsMobile } from './tools';
+
+type NaiveIcon = React.FC<{ size?: number | string; color?: string; style?: React.CSSProperties }>;
+
+/** 按图标名解析 naive-icons 图标组件（如 'Heart' → HeartIcon） */
+function resolveIcon(name: string): NaiveIcon | null {
+    const Cmp = (Icons as Record<string, unknown>)[`${name}Icon`];
+    return typeof Cmp === 'function' ? (Cmp as NaiveIcon) : null;
+}
 
 // ============================================
 // Syntax highlighting
@@ -73,6 +81,7 @@ const CodeBlock: React.FC<{ code: string }> = ({ code }) => <pre style={S.codeBo
 
 const FeatureCard: React.FC<{ feature: (typeof features)[0] }> = ({ feature }) => {
     const [hovered, setHovered] = useState(false);
+    const IconCmp = resolveIcon(feature.icon);
     return (
         <Card
             style={{
@@ -99,7 +108,7 @@ const FeatureCard: React.FC<{ feature: (typeof features)[0] }> = ({ feature }) =
                     animation: hovered ? 'iconBounce 0.4s ease forwards' : 'none',
                 }}
             >
-                <Icon name={feature.icon} size={42} />
+                {IconCmp && <IconCmp size={42} />}
             </div>
             <style>
                 {`
@@ -120,7 +129,7 @@ const FeatureCard: React.FC<{ feature: (typeof features)[0] }> = ({ feature }) =
 // Styles
 // ============================================
 // 首页背景装饰：低透明度 Icon 平铺壁纸
-const BG_ICONS: IconName[] = [
+const BG_ICONS: string[] = [
     'Heart',
     'Star',
     'Sun',
@@ -389,7 +398,7 @@ const S = {
 // ============================================
 // Data
 // ============================================
-const features: Array<{ icon: IconName; title: string; desc: string }> = [
+const features: Array<{ icon: string; title: string; desc: string }> = [
     {
         icon: 'Heart',
         title: '治愈系风格',
@@ -526,27 +535,31 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
             `}</style>
             <div aria-hidden style={S.bgIcons}>
                 {/* 超大 Icon：每次进入随机几个、超级大，作为背景装饰 */}
-                {giants.map((g, i) => (
-                    <div
-                        key={`giant-${i}`}
-                        style={{
-                            position: 'absolute',
-                            left: `${g.left}%`,
-                            top: `${g.top}%`,
-                            transform: `translate(-50%, -50%) rotate(${g.rotate}deg)`,
-                        }}
-                    >
-                        <Icon
-                            name={g.name}
-                            size={g.size}
-                            color="#ffffff"
+                {giants.map((g, i) => {
+                    const GiantCmp = resolveIcon(g.name);
+                    return (
+                        <div
+                            key={`giant-${i}`}
                             style={{
-                                opacity: 0.68, // Home Icon 透明度
-                                animation: `iconFloat ${5.5 + (i % 3)}s ease-in-out ${-i * 1.2}s infinite`,
+                                position: 'absolute',
+                                left: `${g.left}%`,
+                                top: `${g.top}%`,
+                                transform: `translate(-50%, -50%) rotate(${g.rotate}deg)`,
                             }}
-                        />
-                    </div>
-                ))}
+                        >
+                            {GiantCmp && (
+                                <GiantCmp
+                                    size={g.size}
+                                    color="#ffffff"
+                                    style={{
+                                        opacity: 0.68, // Home Icon 透明度
+                                        animation: `iconFloat ${5.5 + (i % 3)}s ease-in-out ${-i * 1.2}s infinite`,
+                                    }}
+                                />
+                            )}
+                        </div>
+                    );
+                })}
             </div>
             {/* Hero */}
             <div style={{ ...S.hero }}>

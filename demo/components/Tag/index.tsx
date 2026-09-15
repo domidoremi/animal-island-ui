@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Tag, Icon, type TagColor } from '../../../src';
+import { Tag, type TagColor } from '../../../src';
+import { FlameIcon } from 'naive-icons';
 import {
     CodeBlock,
     ApiTable,
@@ -95,7 +96,7 @@ const TagDemo: React.FC = () => {
                     </Tag>
                     {/* 带图标标签：Flame 热门 */}
                     <Tag variant="soft" color="app-red" size="medium">
-                        <Icon name="Flame" size={18} style={{ verticalAlign: 'middle' }} /> hot
+                        <FlameIcon size={18} style={{ verticalAlign: 'middle' }} /> hot
                     </Tag>
                 </div>
 

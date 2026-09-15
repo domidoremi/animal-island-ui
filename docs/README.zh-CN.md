@@ -7,6 +7,11 @@
 <br/>
 
 <div align="center">
+需要图标？使用 **naive-icons** → <a href="https://github.com/guokaigdg/naive-icons">github.com/guokaigdg/naive-icons</a>
+</div>
+<br/>
+
+<div align="center">
 一款可爱风格的 React UI 组件库
 </div>
 <br/>
@@ -19,7 +24,7 @@
     <br/>
     <a href="../coverage/badges/coverage.json"><img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/guokaigdg/animal-island-ui/main/coverage/badges/coverage.json&style=flat-square" alt="Coverage"></a>
     <img src="https://img.shields.io/badge/tests-516%20✓-brightgreen?style=flat-square" alt="Tests">
-    <img src="https://img.shields.io/badge/components-35-blue?style=flat-square" alt="Components">
+    <img src="https://img.shields.io/badge/components-34-blue?style=flat-square" alt="Components">
     <img src="https://img.shields.io/badge/a11y-WAI--ARIA%20APG-brightgreen?style=flat-square" alt="Accessibility">
 </div>
 <br/>
@@ -40,6 +45,10 @@
 
 - 在线预览 (PC 端) [animal-island-ui-pc](https://guokaigdg.github.io/animal-island-ui/#/)
 - 在线预览（移动端）[animal-island-ui-mobile](https://guokaigdg.github.io/animal-island-ui/#/)
+
+## 图标
+
+如需图标，推荐使用 **naive-icons**：<https://github.com/guokaigdg/naive-icons>
 
 ## 🚀 用 AI 工具一键生成 animal-island-ui 风格页面（无需写代码）
 

@@ -92,7 +92,7 @@ Append to `src/index.ts`:
 export { default as MyComponent } from './components/MyComponent';
 export type { MyComponentProps } from './components/MyComponent/MyComponent';
 
-// 方式 B：组件用 named export（如 Checkbox / CodeBlock / Select / Icon / Tabs 当前采用）
+// 方式 B：组件用 named export（如 Checkbox / CodeBlock / Select / Tabs 当前采用）
 export { MyComponent } from './components/MyComponent';
 export type { MyComponentProps } from './components/MyComponent';
 ```

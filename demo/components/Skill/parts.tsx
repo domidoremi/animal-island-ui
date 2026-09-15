@@ -1,8 +1,17 @@
 import React from 'react';
-import { Card, Icon, Tag } from '../../../src';
+import { Card, Tag } from '../../../src';
+import * as Icons from 'naive-icons';
 import { DemoTag, demoBodyStyle, labelStyle, sectionStyle, sectionTitleStyle } from '../../tools';
 import type { CatalogRow, RuleGroup, Scenario, TokenGroup, WorkflowStep } from './data';
 import styles from './skill.module.less';
+
+type NaiveIcon = React.FC<{ size?: number | string }>;
+
+/** 按图标名解析 naive-icons 图标组件（如 'Book' → BookIcon） */
+function resolveIcon(name: string): NaiveIcon | null {
+    const Cmp = (Icons as Record<string, unknown>)[`${name}Icon`];
+    return typeof Cmp === 'function' ? (Cmp as NaiveIcon) : null;
+}
 
 // ============================================
 // Skill 介绍页的可复用片段
@@ -28,37 +37,42 @@ export const Section: React.FC<{
 );
 
 /** 工作原理步骤卡 */
-export const StepCard: React.FC<{ step: WorkflowStep; index: number }> = ({ step, index }) => (
-    <div className={styles.step}>
-        <Card pattern={step.pattern} className={styles.stepCard}>
-            <div className={styles.cardHead}>
-                <span className={styles.index}>{index + 1}</span>
-                <Icon name={step.icon} size={26} />
-                <span className={styles.cardTitle}>{step.title}</span>
-            </div>
-            <p className={styles.cardDesc}>{step.desc}</p>
-        </Card>
-    </div>
-);
+export const StepCard: React.FC<{ step: WorkflowStep }> = ({ step }) => {
+    const IconCmp = resolveIcon(step.icon);
+    return (
+        <div className={styles.step}>
+            <Card pattern={step.pattern} className={styles.stepCard}>
+                <div className={styles.cardHead}>
+                    {IconCmp && <IconCmp size={26} />}
+                    <span className={styles.cardTitle}>{step.title}</span>
+                </div>
+                <p className={styles.cardDesc}>{step.desc}</p>
+            </Card>
+        </div>
+    );
+};
 
 /** 使用场景卡 */
-export const ScenarioCard: React.FC<{ scenario: Scenario }> = ({ scenario }) => (
-    <Card color={scenario.color} className={styles.scenarioCard}>
-        <div className={styles.cardHead}>
-            <Icon name={scenario.icon} size={30} />
-            <span className={styles.scenarioTitle}>{scenario.title}</span>
-        </div>
-        <p className={`${styles.cardDesc} ${styles.scenarioDesc}`}>{scenario.desc}</p>
-        <div className={styles.agentRow}>
-            {scenario.agents.map((agent) => (
-                <Tag key={agent} size="small" variant="outlined" className={styles.pathChip}>
-                    {agent}
-                </Tag>
-            ))}
-        </div>
-        <code className={styles.pathChip}>{scenario.entry}</code>
-    </Card>
-);
+export const ScenarioCard: React.FC<{ scenario: Scenario }> = ({ scenario }) => {
+    const IconCmp = resolveIcon(scenario.icon);
+    return (
+        <Card color={scenario.color} className={styles.scenarioCard}>
+            <div className={styles.cardHead}>
+                {IconCmp && <IconCmp size={30} />}
+                <span className={styles.scenarioTitle}>{scenario.title}</span>
+            </div>
+            <p className={`${styles.cardDesc} ${styles.scenarioDesc}`}>{scenario.desc}</p>
+            <div className={styles.agentRow}>
+                {scenario.agents.map((agent) => (
+                    <Tag key={agent} size="small" variant="outlined" className={styles.pathChip}>
+                        {agent}
+                    </Tag>
+                ))}
+            </div>
+            <code className={styles.pathChip}>{scenario.entry}</code>
+        </Card>
+    );
+};
 
 /** 组件目录的一行分类 */
 export const CatalogItem: React.FC<{ row: CatalogRow }> = ({ row }) => (
@@ -78,22 +92,25 @@ export const CatalogItem: React.FC<{ row: CatalogRow }> = ({ row }) => (
 );
 
 /** 硬性规则分组卡 */
-export const RuleCard: React.FC<{ group: RuleGroup }> = ({ group }) => (
-    <Card type="dashed" className={styles.ruleCard}>
-        <div className={styles.cardHead}>
-            <Icon name={group.icon} size={22} />
-            <span className={styles.cardTitle}>{group.title}</span>
-            <Tag size="small" variant="soft" color={group.color}>
-                {group.rules.length} 条
-            </Tag>
-        </div>
-        <ul className={styles.ruleList}>
-            {group.rules.map((rule) => (
-                <li key={rule}>{rule}</li>
-            ))}
-        </ul>
-    </Card>
-);
+export const RuleCard: React.FC<{ group: RuleGroup }> = ({ group }) => {
+    const IconCmp = resolveIcon(group.icon);
+    return (
+        <Card type="dashed" className={styles.ruleCard}>
+            <div className={styles.cardHead}>
+                {IconCmp && <IconCmp size={22} />}
+                <span className={styles.cardTitle}>{group.title}</span>
+                <Tag size="small" variant="soft" color={group.color}>
+                    {group.rules.length} 条
+                </Tag>
+            </div>
+            <ul className={styles.ruleList}>
+                {group.rules.map((rule) => (
+                    <li key={rule}>{rule}</li>
+                ))}
+            </ul>
+        </Card>
+    );
+};
 
 /** 单个令牌色卡 —— 读取页面上该变量的真实计算值 */
 const Swatch: React.FC<{ token: string }> = ({ token }) => {

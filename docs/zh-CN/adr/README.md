@@ -6,7 +6,7 @@
 
 | ADR                                       | 标题             | 摘要                                                                                                    |
 | ----------------------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------- |
-| [0001](0001-zero-runtime-dependencies.md) | 零运行时依赖     | 包不声明任何 `dependencies`；React、React DOM 与 `classnames` 是 peer dependencies，构建时保持 external。 |
+| [0001](0001-zero-runtime-dependencies.md) | 零运行时依赖     | 包不声明任何 `dependencies`；React、React DOM 与 `classnames` 是 peer dependencies，构建时保持 external。**图标部分已被取代（v1.12.0）：`naive-icons` 现在是唯一运行时依赖。** |
 | [0002](0002-dual-design-token-system.md)  | 双层设计 token   | 需要参与计算的值用 Less 编译期变量，消费者可能重新定制主题的值用 `--animal-*` CSS 自定义属性。            |
 | [0003](0003-vite-library-mode-build.md)   | Vite library 构建 | ES + CJS 双格式输出，配合 `preserveModules` 与拆分后的 CSS，消费者只带走自己 import 的组件。             |
 | [0004](0004-docs-sync-automation.md)      | 文档同步自动化   | 组件在设计体系文档与 skill references 中的收录情况由机器校验，并在 CI 中强制执行。                        |

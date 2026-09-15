@@ -60,7 +60,7 @@ npm run build:demo
 - 新增或修改了组件？按 [component-development.md](./component-development.md) 走一遍，包括其中的文档同步矩阵与四处 demo 注册点。
 - 组件数或覆盖率有变化？跑 `npm run badges`，让 `README.md` 与 `docs/README.zh-CN.md` 保持同步。
 - 改了 `docs/` 下的英文文件？在同一个 commit 里更新它在 `docs/zh-CN/` 的对应文件 —— 否则 `npm run check:docs` 会失败。
-- 加了运行时依赖？不要加 —— 见 [build-and-release.md](./build-and-release.md)。
+- 加了运行时依赖？不要加 —— `naive-icons` 是唯一一个；见 [build-and-release.md](./build-and-release.md) 与 [ADR 0001](../adr/0001-zero-runtime-dependencies.md)。
 
 ## 许可证
 

@@ -1,5 +1,5 @@
 import React, { useState, useId } from 'react';
-import { Icon } from '../Icon';
+import { FishIcon } from 'naive-icons';
 import styles from './collapse.module.less';
 
 export interface CollapseProps {
@@ -57,7 +57,7 @@ export const Collapse: React.FC<CollapseProps> = ({
                 </span>
                 <span className={styles.questionText}>{question}</span>
                 <span className={styles.leafDecoration} aria-hidden>
-                    <Icon name="Fish" size={20} color="currentColor" />
+                    <FishIcon size={20} />
                 </span>
             </button>
             <div className={styles.answerWrapper} id={panelId} role="region" aria-labelledby={headerId}>

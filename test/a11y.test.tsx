@@ -49,7 +49,6 @@ import { Loading } from '@/components/Loading';
 import { Drawer } from '@/components/Drawer';
 import { Footer } from '@/components/Footer';
 import { Form, FormItem } from '@/components/Form';
-import { Icon } from '@/components/Icon';
 import { Image } from '@/components/Image';
 import { Input } from '@/components/Input';
 import { Modal } from '@/components/Modal';
@@ -145,12 +144,6 @@ describe('a11y smoke / 全组件 axe-core 自动检查', () => {
     it('Background (装饰背景容器)', async () => {
         const r = render(<Background type="sprinkles">内容</Background>);
         await expectNoA11yViolations(containerOf(r), 'Background');
-    });
-
-    it('Icon (无 aria-label 应有 violation，提示需要补)', async () => {
-        // 故意不传 aria-label：第一次跑会暴露"图标裸用没名字"问题
-        const r = render(<Icon name="Heart" />);
-        await expectNoA11yViolations(containerOf(r), 'Icon');
     });
 
     it('Switch (带 aria-label)', async () => {

@@ -1,6 +1,6 @@
 # 通用组件 —— 精确样式规范
 
-通用类组件 Button、Icon、Typewriter、Cursor 的像素级样式规范。
+通用类组件 Button、Typewriter、Cursor 的像素级样式规范。
 
 ## Button
 
@@ -86,34 +86,6 @@ animation: animal-btn-loading 1s linear infinite;
 color: #fff;
 box-shadow: 0 5px 0 0 #c94444; /* error-active */
 ```
-
-## Icon
-
-组件库内置**可爱图标集**（共 101 个，来自 `src/components/Icon/src/`，每个也作为组件导出，如 `HeartIcon`；以运行时 `ICON_LIST` 导出为准）的 SVG 图标组件。三种渲染模式：
-
-- `name` —— 101 个内置图标名之一，帕斯卡命名，如 `<Icon name="Heart" />`（由 `IconName` 类型约束）
-- `icon` —— 任意内置图标组件，如 `<Icon icon={HeartIcon} />`（优先级高于 `name`）
-- `src` —— 任意图片 URL，适合彩色位图素材；渲染为带 `background-image` 的 `<span>`
-
-```css
-.icon {
-    display: inline-block;
-    flex-shrink: 0;
-    vertical-align: middle;
-}
-
-/* 可选 hover 弹跳（`bounce` prop） */
-.icon-bounce:hover {
-    animation: iconBounce 0.3s ease-in-out forwards;
-}
-@keyframes iconBounce {
-    0%   { transform: scale(1) rotate(0deg); }
-    50%  { transform: scale(1.2) rotate(-5deg); }
-    100% { transform: scale(1.1) rotate(-4deg); }
-}
-```
-
-> 用法：`<Icon name="Heart" size={32} />` 或 `<Icon icon={HeartIcon} size={32} />`。`size` 默认 `24`，以内联 `width`/`height` 应用（number 为 px，string 为任意 CSS 长度），SVG 按 48×48 viewBox 渲染。`color` 映射到 SVG 的 `stroke`（默认沿用图标内置配色），`strokeWidth` 设置描边粗细（默认 `3.5`）；两者仅显式传入时才会覆盖内置默认值。未传 `aria-label` 的图标默认 `aria-hidden="true"`（装饰性）；传入 `aria-label` 时同时设置 `role="img"`，使标签成为可访问名。
 
 ## Typewriter
 

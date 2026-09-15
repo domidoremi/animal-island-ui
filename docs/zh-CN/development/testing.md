@@ -15,7 +15,7 @@
 ## 覆盖率
 
 - `include: ['src/components/**/*.{ts,tsx}']`
-- `exclude: ['**/*.d.ts', '**/index.ts', 'src/components/Icon/**']` —— 桶文件与纯展示性的 Icon 集合是有意的取舍，不是遗漏。
+- `exclude: ['**/*.d.ts', '**/index.ts']` —— 桶文件是有意的取舍，不是遗漏。
 - 阈值：statements 85、branches 75、functions 85、lines 85。所有组件都应在 90% 以上。
 
 ## 编写约定

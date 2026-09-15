@@ -19,8 +19,8 @@ Unit tests run through Vitest in jsdom; accessibility smoke tests run through a 
 ## Coverage
 
 - `include: ['src/components/**/*.{ts,tsx}']`
-- `exclude: ['**/*.d.ts', '**/index.ts', 'src/components/Icon/**']` — barrel files and the purely presentational Icon
-  set are a deliberate trade-off, not an oversight.
+- `exclude: ['**/*.d.ts', '**/index.ts']` — barrel files are a deliberate trade-off, not an
+  oversight.
 - Thresholds: statements 85, branches 75, functions 85, lines 85. Every component should sit at 90% or above.
 
 ## Conventions

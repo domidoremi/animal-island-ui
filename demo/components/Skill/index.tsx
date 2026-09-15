@@ -56,8 +56,8 @@ const SkillDemo: React.FC = () => (
                 技能是一个纯文本知识包，没有可执行代码，也不会常驻上下文 —— 代理按下面五步按需消费它：
             </p>
             <div className={styles.stepGrid}>
-                {WORKFLOW.map((step, i) => (
-                    <StepCard key={step.title} step={step} index={i} />
+                {WORKFLOW.map((step) => (
+                    <StepCard key={step.title} step={step} />
                 ))}
             </div>
         </Section>

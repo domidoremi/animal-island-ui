@@ -39,7 +39,7 @@ export default defineConfig({
             reporter: ['text', 'html', 'json-summary'],
             include: ['src/components/**/*.{ts,tsx}'],
             // 与产物无关：d.ts / 桶文件 / fonts 资源 / 纯展示内联 SVG 装饰
-            exclude: ['**/*.d.ts', '**/index.ts', 'src/components/Icon/**'],
+            exclude: ['**/*.d.ts', '**/index.ts'],
             thresholds: {
                 // 整体目标：达到专业组件库基线
                 statements: 85,

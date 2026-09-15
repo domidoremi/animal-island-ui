@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import classNames from 'classnames';
-import { Icon } from '../Icon';
+import { ImageIcon } from 'naive-icons';
 import styles from './image.module.less';
 
 export type ImageColor =
@@ -138,7 +138,7 @@ export const Image: React.FC<ImageProps> = ({
                 role="img"
                 aria-label={alt || '图片加载失败'}
             >
-                <Icon name="Image" size={32} />
+                <ImageIcon size={32} aria-hidden="true" />
                 <span>图片加载失败</span>
             </span>
         );

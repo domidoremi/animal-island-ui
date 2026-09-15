@@ -146,9 +146,9 @@ export const ApiTable: React.FC<{ rows: ApiRow[]; title?: string }> = ({ rows, t
     </div>
 );
 
-export const CodeBlock: React.FC<{ code: string }> = ({ code }) => (
+export const CodeBlock: React.FC<{ code: string; label?: string }> = ({ code, label = '使用示例' }) => (
     <div style={{ marginTop: 36 }}>
-        <div style={codeLabelStyle}>使用示例</div>
+        <div style={codeLabelStyle}>{label}</div>
 
         <CodeBlockBase
             style={{

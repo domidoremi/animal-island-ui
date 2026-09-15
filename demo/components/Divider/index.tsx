@@ -1,5 +1,17 @@
 import React from 'react';
 import { Divider } from '../../../src';
+import {
+    BeeIcon,
+    FishIcon,
+    FlowerIcon,
+    WatermelonIcon,
+    StarIcon,
+    RainbowIcon,
+    CloudIcon,
+    CactusIcon,
+    CakeIcon,
+    CoffeeIcon,
+} from 'naive-icons';
 import { labelStyle, sectionStyle, sectionTitleStyle, DemoTag, ApiTable, ApiRow, CodeBlock } from '../../tools';
 
 const DIVIDER_API: ApiRow[] = [
@@ -11,8 +23,8 @@ const DIVIDER_API: ApiRow[] = [
     },
     {
         prop: 'icon',
-        desc: '指定单一图标名，渲染「图标 + 连接线」相连分割线（与 type 二选一，icon 优先）',
-        type: `IconName（如 'Fish'）`,
+        desc: '指定单一图标元素，渲染「图标 + 连接线」相连分割线（与 type 二选一，icon 优先）',
+        type: `ReactNode（如 <FishIcon size={24} />）`,
         defaultVal: '-',
     },
     { prop: 'iconSize', desc: '图标大小（px）', type: 'number', defaultVal: '24' },
@@ -26,17 +38,17 @@ const DIVIDER_API: ApiRow[] = [
     },
 ];
 
-const ICON_DEMO_NAMES = [
-    'Bee',
-    'Fish',
-    'Flower',
-    'Watermelon',
-    'Star',
-    'Rainbow',
-    'Cloud',
-    'Cactus',
-    'Cake',
-    'Coffee',
+const ICON_DEMO_ICONS = [
+    <BeeIcon size={24} />,
+    <FishIcon size={24} />,
+    <FlowerIcon size={24} />,
+    <WatermelonIcon size={24} />,
+    <StarIcon size={24} />,
+    <RainbowIcon size={24} />,
+    <CloudIcon size={24} />,
+    <CactusIcon size={24} />,
+    <CakeIcon size={24} />,
+    <CoffeeIcon size={24} />,
 ] as const;
 
 const DividerDemo: React.FC = () => (
@@ -55,14 +67,15 @@ const DividerDemo: React.FC = () => (
         <div style={labelStyle}>squiggle（主题青色波浪线）</div>
         <Divider type="squiggle" />
         <div style={labelStyle}>icon（单图标相连分割线）</div>
-        {ICON_DEMO_NAMES.map((name) => (
-            <div key={name} style={{ marginBottom: 16 }}>
-                <Divider icon={name} />
+        {ICON_DEMO_ICONS.map((IconCmp, i) => (
+            <div key={i} style={{ marginBottom: 16 }}>
+                <Divider icon={IconCmp} />
             </div>
         ))}
         <CodeBlock
             code={`import React from 'react';
 import { Divider } from 'animal-island-ui';
+import { FishIcon, StarIcon } from 'naive-icons';
 
 const App = () => {
     return (
@@ -80,9 +93,9 @@ const App = () => {
             {/* 主题青色波浪线 */}
             <Divider type="squiggle" />
 
-            {/* 单图标相连：图标 + 居中短连接线循环铺满 */}
-            <Divider icon="Fish" />
-            <Divider icon="Star" />
+            {/* 单图标相连：图标元素 + 居中短连接线循环铺满 */}
+            <Divider icon={<FishIcon size={24} />} />
+            <Divider icon={<StarIcon size={24} />} />
         </div>
     );
 };

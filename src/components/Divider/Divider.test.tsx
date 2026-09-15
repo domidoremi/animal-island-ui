@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { render } from '@testing-library/react';
 import { Divider } from './Divider';
+import { FishIcon } from 'naive-icons';
 import styles from './divider.module.less';
 
 describe('Divider', () => {
@@ -44,7 +45,7 @@ describe('Divider', () => {
             configurable: true,
             get: () => 400,
         });
-        const { container } = render(<Divider icon="Fish" />);
+        const { container } = render(<Divider icon={<FishIcon size={24} />} />);
         const root = container.firstChild as HTMLElement;
         expect(root).toHaveClass(styles.iconDivider);
         expect(root.querySelector('svg')).toBeTruthy();

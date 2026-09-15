@@ -19,7 +19,7 @@ A React UI component library with a cute style
     <br/>
     <a href="./coverage/badges/coverage.json"><img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/guokaigdg/animal-island-ui/main/coverage/badges/coverage.json&style=flat-square" alt="Coverage"></a>
     <img src="https://img.shields.io/badge/tests-516%20✓-brightgreen?style=flat-square" alt="Tests">
-    <img src="https://img.shields.io/badge/components-35-blue?style=flat-square" alt="Components">
+    <img src="https://img.shields.io/badge/components-34-blue?style=flat-square" alt="Components">
     <img src="https://img.shields.io/badge/a11y-WAI--ARIA%20APG-brightgreen?style=flat-square" alt="Accessibility">
 </div>
 <br/>
@@ -41,6 +41,10 @@ This project is a lightweight UI component library built with React + TypeScript
 
 - Online Preview (PC) [animal-island-ui-pc](https://guokaigdg.github.io/animal-island-ui/#/)
 - Online Preview (Mobile) [animal-island-ui-mobile](https://guokaigdg.github.io/animal-island-ui/#/)
+
+## Icons
+
+Need icons? The recommended set is **naive-icons**: <https://github.com/guokaigdg/naive-icons>
 
 ## 🚀 Use AI to Generate animal-island-ui Pages (No Coding Needed)
 

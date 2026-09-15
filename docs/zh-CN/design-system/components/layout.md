@@ -244,7 +244,7 @@ interface CarouselProps extends Omit<HTMLAttributes<HTMLElement>, 'onChange'> {
 
 纯 CSS 实现，无图片资源：`dashed-*` 用 `linear-gradient` 画 2px 破折线（12px 节奏，50% 实 / 50% 空）；`thin` 为 `#e8dec7` 的 1px 实心细线；`hairline` 为 `#d5c3a2` 的 1px 细密虚线（6px 节奏）；`wave-yellow` 用内联 SVG data-URI 画黄色（#f5d04a）重复波浪线（40px 周期，±7px 振幅，圆头线帽）；`squiggle` 用内联 SVG data-URI 画主题青色（#19c8b9）波浪线，固定 120px 宽度平铺（`repeat-x`，viewport 0 0 120 10），首尾同高且切线水平，随容器变宽无缝衔接、不拉伸变形。
 
-传入 `icon`（IconName，如 `'Fish'`）时切换为图标相连模式（与 Footer 单图标链同思路）：flex 行重复 `[图标][空隙]` 单元铺满整行，由 `iconSize`（默认 24）与 `iconGap`（默认 8）控制。每个空隙内放一根 4×2px 棕色短连接条，水平居中，视觉上正好位于相邻两图标中间；最后一个图标不跟连接条，分割线两端都以图标收尾；周期数通过 ResizeObserver 随宽度变化实时重算。
+传入 `icon`（`IconComponent`，一个 React 图标组件，如来自 naive-icons 的 `FishIcon`）时切换为图标相连模式（与 Footer 单图标链同思路）：flex 行重复 `[图标][空隙]` 单元铺满整行，由 `iconSize`（默认 24）与 `iconGap`（默认 8）控制。每个空隙内放一根 4×2px 棕色短连接条，水平居中，视觉上正好位于相邻两图标中间；最后一个图标不跟连接条，分割线两端都以图标收尾；周期数通过 ResizeObserver 随宽度变化实时重算。
 
 ## Background（图案壁纸）
 
@@ -327,7 +327,7 @@ font-size: 18px; font-weight: 700;
 box-shadow: 0 2px 4px rgba(25, 200, 185, 0.3);
 /* 展开时 */ transform: rotate(180deg);
 
-/* 鱼图标装饰（Icon name="Fish"，color currentColor） */
+/* 鱼图标装饰（FishIcon，color currentColor） */
 opacity: 1; /* 默认与展开亮度一致 */
 /* expanded */ transform: rotate(45deg);
 

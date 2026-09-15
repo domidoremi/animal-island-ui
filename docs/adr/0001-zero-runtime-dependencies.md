@@ -2,7 +2,26 @@
 
 ## Status
 
-Accepted
+Superseded (v1.12.0) — the icon decision below now allows exactly one runtime dependency.
+
+## Supersession (v1.12.0): the single `naive-icons` exception
+
+The library intentionally dropped its own bundled icon set in favor of the independent
+`naive-icons` package, so `naive-icons` is now the **one and only** entry under
+`dependencies`:
+
+```json
+"dependencies": {
+    "naive-icons": "^1.0.2"
+}
+```
+
+`naive-icons` is pure React + SVG — it adds no transitive tree of its own, and being a
+first-party package it does not risk the "two copies of React" failure mode (it is inlined
+into `dist/`, not kept external, so consumers get the icon bytes without a runtime peer
+requirement). Every other rule in this record is unchanged: `react`, `react-dom`, and
+`classnames` stay peer dependencies, and no _further_ runtime dependency may be added —
+any future dependency must again supersede this record.
 
 ## Context
 

@@ -1,64 +1,12 @@
 import React from 'react';
-import { Icon, ICON_LIST, CoffeeIcon, ChatIcon, PlayIcon, CherryIcon, ImageIcon } from '../../../src';
-import { ApiTable, ApiRow, sectionStyle, sectionTitleStyle, DemoTag, CodeBlock, labelStyle } from '../../tools';
-import { islandGradient as customImage } from '../../gradients';
+import * as Icons from 'naive-icons';
+import type { IconComponent } from 'naive-icons';
+import { CodeBlock, sectionStyle, sectionTitleStyle, DemoTag, labelStyle, ApiTable } from '../../tools';
 
-const ICON_API: ApiRow[] = [
-    {
-        prop: 'name',
-        desc: '内置可爱图标名（共 101 个，如 Flower / Heart），与 icon / src 三选一',
-        type: 'IconName',
-        defaultVal: '-',
-    },
-    {
-        prop: 'icon',
-        desc: '任意内置图标组件（import { HeartIcon } from "..."）。与 name / src 三选一，优先级高于 name',
-        type: 'IconComponent',
-        defaultVal: '-',
-    },
-    {
-        prop: 'src',
-        desc: '自定义图片资源 URL（与 name / icon 三选一），用于彩色位图素材',
-        type: 'string',
-        defaultVal: '-',
-    },
-    {
-        prop: 'size',
-        desc: '图标尺寸',
-        type: 'number | string',
-        defaultVal: '24',
-    },
-    {
-        prop: 'color',
-        desc: '描边颜色（svg 模式）',
-        type: 'string',
-        defaultVal: 'currentColor',
-    },
-    {
-        prop: 'strokeWidth',
-        desc: '描边粗细（svg 模式）',
-        type: 'number | string',
-        defaultVal: '3.5',
-    },
-    {
-        prop: 'bounce',
-        desc: '弹跳动画',
-        type: 'boolean',
-        defaultVal: 'false',
-    },
-    {
-        prop: 'className',
-        desc: '自定义类名',
-        type: 'string',
-        defaultVal: '-',
-    },
-    {
-        prop: 'style',
-        desc: '自定义样式',
-        type: 'CSSProperties',
-        defaultVal: '-',
-    },
-];
+/** naive-icons 所有图标组件，按导出顺序排列（共 101 个） */
+const ALL_ICONS: IconComponent[] = (Object.entries(Icons) as Array<[string, unknown]>)
+    .filter(([, value]) => typeof value === 'function')
+    .map(([, value]) => value as IconComponent);
 
 const ZH_NAMES: Record<string, string> = {
     Airplane: '飞机',
@@ -164,44 +112,87 @@ const ZH_NAMES: Record<string, string> = {
     Wifi: '无线',
 };
 
+const fetchIconName = (IconCmp: IconComponent): string =>
+    IconCmp.displayName?.replace(/Icon$/, '') ?? (IconCmp.name as string)?.replace(/Icon$/, '') ?? 'Unknown';
+
+const INSTALL_CODE = `npm install naive-icons
+yarn add naive-icons
+pnpm add naive-icons`;
+
+const USAGE_CODE = `import React from 'react';
+import { FlowerIcon, HeartIcon } from 'naive-icons';
+
+export default function App() {
+    return (
+        <>
+            <FlowerIcon size={32} color="#e05260" strokeWidth={3} />
+            <HeartIcon size={32} />
+        </>
+    );
+}`;
+
 const IconDemo: React.FC = () => (
     <div style={sectionStyle}>
         <div style={sectionTitleStyle}>
-            Icon <DemoTag>built-in icons</DemoTag>
+            Icon <DemoTag>naive-icons</DemoTag>
         </div>
-        <div style={labelStyle}>基础用法（name 内置可爱图标）</div>
+        <div style={labelStyle}>
+            图标为独立 npm 包{' '}
+            <a
+                href="https://github.com/guokaigdg/naive-icons"
+                target="_blank"
+                rel="noreferrer"
+                style={{ color: '#725d42' }}
+            >
+                naive-icons
+            </a>
+            —— 手绘 naive folk art 风格的 SVG 图标库，105 个原创图标，为 React 与 TypeScript 打造。请先安装依赖：
+        </div>
+
+        <div style={{ marginBottom: 12 }}>
+            <CodeBlock code={INSTALL_CODE} label="安装" />
+        </div>
+
+        <div style={labelStyle}>
+            文档与完整示例参考{' '}
+            <a
+                href="https://github.com/guokaigdg/naive-icons"
+                target="_blank"
+                rel="noreferrer"
+                style={{ color: '#725d42' }}
+            >
+                https://github.com/guokaigdg/naive-icons
+            </a>
+        </div>
+
+        <div style={labelStyle}>基础用法</div>
         <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' as const, alignItems: 'center' }}>
-            <Icon name="Flower" size={32} />
-            <Icon name="Mic" size={32} />
-            <Icon name="Star" size={32} />
-            <Icon name="Sun" size={32} />
-            <Icon name="Umbrella" size={32} />
-            <Icon name="Wifi" size={32} />
-            <Icon name="Map" size={32} />
-            <Icon name="Camera" size={32} />
+            <Icons.FlowerIcon size={32} />
+            <Icons.MicIcon size={32} />
+            <Icons.StarIcon size={32} />
+            <Icons.SunIcon size={32} />
+            <Icons.UmbrellaIcon size={32} />
+            <Icons.WifiIcon size={32} />
+            <Icons.MapIcon size={32} />
+            <Icons.CameraIcon size={32} />
         </div>
-        <div style={labelStyle}>icon 模式：库根导出的任意内置图标组件</div>
-        <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' as const, alignItems: 'center' }}>
-            <Icon icon={CoffeeIcon} size={32} />
-            <Icon icon={PlayIcon} size={32} />
-            <Icon icon={CherryIcon} size={32} />
-            <Icon icon={ImageIcon} size={32} />
-            <Icon icon={ChatIcon} size={32} strokeWidth={3} />
-        </div>
+
         <div style={labelStyle}>size 尺寸</div>
         <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
-            <Icon name="Heart" size={16} />
-            <Icon name="Heart" size={24} />
-            <Icon name="Heart" size={32} />
-            <Icon name="Heart" size={48} />
+            <Icons.HeartIcon size={16} />
+            <Icons.HeartIcon size={24} />
+            <Icons.HeartIcon size={32} />
+            <Icons.HeartIcon size={48} />
         </div>
-        <div style={labelStyle}>bounce 弹跳动画（鼠标悬停查看效果）</div>
+
+        <div style={labelStyle}>color / strokeWidth 自定义</div>
         <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
-            <Icon name="Location" size={32} bounce />
-            <Icon name="Rabbit" size={32} bounce />
-            <Icon name="Wifi" size={32} bounce />
+            <Icons.CoffeeIcon size={32} color="#e05260" strokeWidth={3} />
+            <Icons.CherryIcon size={32} color="#2a9d8f" strokeWidth={3} />
+            <Icons.BulbIcon size={32} color="#e9c46a" strokeWidth={3} />
         </div>
-        <div style={labelStyle}>图标列表（全部 101 个）</div>
+
+        <div style={labelStyle}>全部图标（共 {ALL_ICONS.length} 个）</div>
         <div
             style={{
                 border: '1px solid #e8e2d6',
@@ -214,73 +205,68 @@ const IconDemo: React.FC = () => (
                 gap: 14,
             }}
         >
-            {ICON_LIST.map(({ name }) => (
-                <div
-                    key={name}
-                    style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        gap: 8,
-                        padding: '14px 6px',
-                        borderRadius: 10,
-                        background: '#fff',
-                        border: '1px solid transparent',
-                        transition: 'transform 0.15s ease, border-color 0.15s ease, background 0.15s ease',
-                    }}
-                    onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = 'translateY(-2px)';
-                        e.currentTarget.style.border = '1px solid #e8dec7';
-                        e.currentTarget.style.background = '#faf7f0';
-                    }}
-                    onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = 'none';
-                        e.currentTarget.style.border = '1px solid transparent';
-                        e.currentTarget.style.background = '#fff';
-                    }}
-                >
-                    <Icon name={name} size={45} />
-                    <span
+            {ALL_ICONS.map((IconCmp, i) => {
+                const name = fetchIconName(IconCmp);
+                return (
+                    <div
+                        key={i}
                         style={{
-                            fontSize: 11,
-                            color: '#a0936e',
-                            fontFamily: "'SF Mono', 'Fira Code', Consolas, monospace",
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            gap: 8,
+                            padding: '14px 6px',
+                            borderRadius: 10,
+                            background: '#fff',
+                            border: '1px solid transparent',
+                            transition: 'transform 0.15s ease, border-color 0.15s ease, background 0.15s ease',
+                        }}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.transform = 'translateY(-2px)';
+                            e.currentTarget.style.border = '1px solid #e8dec7';
+                            e.currentTarget.style.background = '#faf7f0';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = 'none';
+                            e.currentTarget.style.border = '1px solid transparent';
+                            e.currentTarget.style.background = '#fff';
                         }}
                     >
-                        {name}
-                    </span>
-                    <span style={{ fontSize: 13, color: '#725d42', fontWeight: 600 }}>{ZH_NAMES[name] ?? name}</span>
-                </div>
-            ))}
+                        <IconCmp size={45} />
+                        <span
+                            style={{
+                                fontSize: 11,
+                                color: '#a0936e',
+                                fontFamily: "'SF Mono', 'Fira Code', Consolas, monospace",
+                            }}
+                        >
+                            {name}Icon
+                        </span>
+                        <span style={{ fontSize: 13, color: '#725d42', fontWeight: 600 }}>
+                            {ZH_NAMES[name] ?? name}
+                        </span>
+                    </div>
+                );
+            })}
         </div>
-        <div style={sectionTitleStyle}>
-            Custom images <DemoTag>src mode</DemoTag>
-        </div>
-        <div style={labelStyle}>
-            自定义图片通过 <code>src</code> 传入：消费者自行 <code>import</code> 任意图片资源，按需进 bundle。
-        </div>
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-            <Icon src={customImage} size={48} bounce />
-            <Icon src={customImage} size={64} />
-        </div>
-        <CodeBlock
-            code={`import { Icon, HeartIcon } from 'animal-island-ui';
-import myIcon from './my-icon.svg';
 
-export default function App() {
-    return (
-        <>
-            {/* 内置可爱图标（name 方式） */}
-            <Icon name="Heart" size={32} />
-            {/* 内置图标组件（icon 方式） */}
-            <Icon icon={HeartIcon} size={32} color="#e05260" strokeWidth={3} />
-            {/* 自定义图片 */}
-            <Icon src={myIcon} size={48} />
-        </>
-    );
-}`}
+        <div style={labelStyle}>使用示例</div>
+        <CodeBlock code={USAGE_CODE} />
+
+        <ApiTable
+            rows={[
+                { prop: 'size', desc: '图标尺寸，宽高相等', type: 'number | string', defaultVal: '24' },
+                { prop: 'color', desc: '描边颜色', type: 'string', defaultVal: 'currentColor' },
+                { prop: 'strokeWidth', desc: '描边粗细', type: 'number | string', defaultVal: '3.5' },
+                { prop: 'fill', desc: '填充色', type: 'string', defaultVal: 'none' },
+                {
+                    prop: 'title',
+                    desc: '无障碍标题',
+                    type: 'string',
+                    defaultVal: '-',
+                },
+            ]}
         />
-        <ApiTable rows={ICON_API} />
     </div>
 );
 

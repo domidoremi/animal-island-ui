@@ -19,6 +19,8 @@ export default tseslint.config(
             '**/*.min.js',
             '**/*.min.d.ts',
             '**/island/**',
+            // naive-icons 静态展示站点（生成产物，非仓库源码）
+            'demo/components/Icon/website/**',
         ],
     },
 

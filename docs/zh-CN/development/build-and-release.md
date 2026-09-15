@@ -21,7 +21,7 @@
 - `exports` 把 `.` 映射到 ES / CJS / types 三件套，`./style` 映射到 `dist/index.css`，`./es/*` 映射到保留模块结构的 ES 产物，`./items/*` 映射到拷贝出来的 item 资源。
 - `sideEffects: false` 让打包器可以丢弃未使用的模块。
 - `files` 把发布的 tarball 限制在构建产物加顶层类型垫片与文档。
-- `dependencies` 为 `{}`。组件库零运行时依赖 —— 所有第三方包要么是 peerDependency，要么是 devDependency。
+- `dependencies` 只保留一个运行时依赖 `naive-icons`（图标集，纯 React + SVG，无传递依赖）。其余第三方包一律要么是 peerDependency，要么是 devDependency。不得再新增运行时依赖。
 
 `prepublishOnly` 会执行 `npm run build`，因此每次发布带出去的都是新鲜产物。
 

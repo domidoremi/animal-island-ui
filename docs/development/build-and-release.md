@@ -34,8 +34,9 @@ build logic without preserving the following breaks consumer tree-shaking:
   and `./items/*` to the copied item assets.
 - `sideEffects: false` lets bundlers drop unused modules.
 - `files` limits the published tarball to the build output plus the top-level type shim and docs.
-- `dependencies` is `{}`. The library has zero runtime dependencies — everything third-party is a peerDependency or a
-  devDependency.
+- `dependencies` holds exactly one runtime dependency, `naive-icons` (the icon set; pure
+  React + SVG, no transitive tree). Everything else third-party is a peerDependency or a
+  devDependency. Do not add further runtime dependencies.
 
 `prepublishOnly` runs `npm run build`, so a publish always ships a fresh artifact.
 

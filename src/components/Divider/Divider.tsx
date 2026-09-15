@@ -1,19 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import classNames from 'classnames';
-import { Icon } from '../Icon';
-import type { IconName } from '../Icon';
 import styles from './divider.module.less';
 
 export type DividerType = 'dashed-brown' | 'thin' | 'hairline' | 'wave-yellow' | 'squiggle';
 
-/** 单图标相连分割线可用的图标名（复用内置 101 图标） */
-export type DividerIconName = IconName;
-
 export interface DividerProps {
     /** 分隔线类型（type 与 icon 二选一，icon 优先） */
     type?: DividerType;
-    /** 指定单一图标名；传入时渲染「图标 + 连接线」循环相连的装饰分割线，铺满整行 */
-    icon?: DividerIconName;
+    /** 传入图标元素（来自 naive-icons，如 `<FishIcon size={24} />`）；传入时渲染「图标 + 连接线」循环相连的装饰分割线，铺满整行 */
+    icon?: React.ReactNode;
     /** 图标大小（px），同 Icon 默认 24 */
     iconSize?: number;
     /** 图标间距（px），即相邻图标之间的连接线长度，默认 8（紧密相连） */
@@ -33,7 +28,7 @@ export const Divider: React.FC<DividerProps> = ({
     style,
 }) => {
     const ref = useRef<HTMLDivElement>(null);
-    const [cycles, setCycles] = useState(1);
+    const [cycles, setCycles] = useState<number>(1);
     // 单个周期 = 图标 + 连接线宽度，按容器宽度重复拼接铺满
     const cycleWidth = iconSize + iconGap;
 
@@ -58,7 +53,7 @@ export const Divider: React.FC<DividerProps> = ({
             <div ref={ref} className={classNames(styles.iconDivider, className)} style={style} aria-hidden="true">
                 {Array.from({ length: cycles }).map((_, c) => (
                     <div key={c} className={styles.iconCycle} {...(c > 0 ? { 'aria-hidden': true } : {})}>
-                        <Icon name={icon} size={iconSize} />
+                        {icon}
                         {c < cycles - 1 && (
                             <span className={styles.iconGap} style={{ width: iconGap }}>
                                 <span className={styles.iconLine} />

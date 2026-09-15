@@ -87,34 +87,6 @@ color: #fff;
 box-shadow: 0 5px 0 0 #c94444; /* error-active */
 ```
 
-## Icon
-
-SVG icon component backed by the library's built-in **cute icon set** (101 icons from `src/components/Icon/src/`, each also exported as a component like `HeartIcon`; the runtime `ICON_LIST` export is authoritative). Three rendering modes:
-
-- `name` — one of the 101 built-in icon names, PascalCase e.g. `<Icon name="Heart" />` (typed by `IconName`)
-- `icon` — any built-in icon component, e.g. `<Icon icon={HeartIcon} />` (takes precedence over `name`)
-- `src` — any image URL for colorful raster assets; renders a `<span>` with `background-image`
-
-```css
-.icon {
-    display: inline-block;
-    flex-shrink: 0;
-    vertical-align: middle;
-}
-
-/* optional hover bounce (`bounce` prop) */
-.icon-bounce:hover {
-    animation: iconBounce 0.3s ease-in-out forwards;
-}
-@keyframes iconBounce {
-    0%   { transform: scale(1) rotate(0deg); }
-    50%  { transform: scale(1.2) rotate(-5deg); }
-    100% { transform: scale(1.1) rotate(-4deg); }
-}
-```
-
-> Usage: `<Icon name="Heart" size={32} />` or `<Icon icon={HeartIcon} size={32} />`. `size` defaults to `24` and is applied as inline `width`/`height` (number = px, string = any CSS length); icons render their SVG on a 48×48 viewBox. `color` maps to the SVG `stroke` (defaults to the icon's baked-in color), `strokeWidth` sets stroke weight (defaults to `3.5`); both are only applied when explicitly passed. Icons without an `aria-label` are marked `aria-hidden="true"` as decorative; passing `aria-label` also sets `role="img"` so the label becomes the accessible name.
-
 ## Typewriter
 
 ```tsx
