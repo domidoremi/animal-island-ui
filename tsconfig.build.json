@@ -25,7 +25,8 @@
         "src/icons",
         "src/components/Divider",
         "src/components/Button",
-        "src/components/Collapse"
+        "src/components/Collapse",
+        "src/components/TimePicker"
     ],
     "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx", "node_modules", "dist"]
 }

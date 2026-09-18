@@ -33,3 +33,6 @@ export type { CollapseProps } from './components/Collapse';
 
 export { Divider } from './components/Divider';
 export type { DividerProps, DividerType } from './components/Divider';
+
+export { TimePicker } from './components/TimePicker';
+export type { TimePickerProps, TimePickerSize, TimePickerStatus, TimePart } from './components/TimePicker';

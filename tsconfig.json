@@ -24,7 +24,8 @@
         "src/icons",
         "src/components/Divider",
         "src/components/Button",
-        "src/components/Collapse"
+        "src/components/Collapse",
+        "src/components/TimePicker"
     ],
     "exclude": ["node_modules", "dist"]
 }
