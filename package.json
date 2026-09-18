@@ -17,9 +17,14 @@
         "build": "tsc --project tsconfig.build.json",
         "test": "jest",
         "test:watch": "jest --watch",
+        "lint": "eslint .",
+        "lint:fix": "eslint . --fix",
         "format": "prettier --write .",
         "format:check": "prettier --check .",
-        "ci": "npm run format:check && npm run typecheck && npm run test && npm run build"
+        "ci": "npm run format:check && npm run lint && npm run typecheck && npm run test && npm run build"
+    },
+    "overrides": {
+        "eslint-plugin-ft-flow": "^3.0.11"
     },
     "peerDependencies": {
         "react": ">=19.0.0",
@@ -30,11 +35,13 @@
         "@babel/core": "^7.25.2",
         "@babel/runtime": "^7.25.0",
         "@react-native/babel-preset": "0.87.1",
+        "@react-native/eslint-config": "^0.87.1",
         "@react-native/jest-preset": "0.87.1",
         "@testing-library/react-native": "^14.0.1",
         "@types/jest": "^29.5.13",
         "@types/react": "^19.2.0",
         "babel-jest": "^29.7.0",
+        "eslint": "^9.39.5",
         "jest": "^29.7.0",
         "prettier": "3.8.4",
         "react": "^19.2.3",
