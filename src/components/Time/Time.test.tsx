@@ -2,6 +2,7 @@ import React from 'react';
 import { act, render } from '@testing-library/react-native';
 import { Time } from './Time';
 import { colors, fontSize, spacing } from '../../theme/tokens';
+import type { TestInstance } from 'test-renderer';
 
 /**
  * RN 版测试，对应 Web 版 `Time.test.tsx` 的 4 个用例。
@@ -21,25 +22,10 @@ import { colors, fontSize, spacing } from '../../theme/tokens';
  */
 const HIDDEN = { includeHiddenElements: true } as const;
 
-/**
- * 宿主节点的最小结构类型。
- *
- * 这里刻意**不** `import type { TestInstance } from 'test-renderer'`：
- * 本文件在 node16 解析下属于 CJS，而 `test-renderer` 是纯 ESM 包，
- * 于是会触发 TS1541（要求 `with { 'resolution-mode': 'import' }`）。
- * Divider / Button 的测试文件用的是那个导入，也确实会被验收用的独立 tsc 命令判红 ——
- * 既有问题，但没必要在新文件里复制，所以改用本地结构类型。
- */
-type HostInstance = {
-    type: unknown;
-    props: Record<string, unknown>;
-    children: unknown[];
-};
-
-const child = (node: unknown) => node as HostInstance;
+const child = (node: unknown) => node as TestInstance;
 
 /** 取节点上展开后的样式对象（`toHaveStyle` 只做子集匹配，要读值就得自己拍平） */
-const styleOf = (node: HostInstance) => {
+const styleOf = (node: TestInstance) => {
     const merged: Record<string, unknown> = {};
     const walk = (s: unknown) => {
         if (Array.isArray(s)) s.forEach(walk);

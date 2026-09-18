@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { act, fireEvent, render } from '@testing-library/react-native';
-import type { TestInstance } from 'test-renderer' with { 'resolution-mode': 'import' };
+import type { TestInstance } from 'test-renderer';
 import { Switch } from './Switch';
 
 /**

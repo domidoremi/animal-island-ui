@@ -2,6 +2,7 @@ import React from 'react';
 import { processColor } from 'react-native';
 import { render } from '@testing-library/react-native';
 import { Title, type TitleColor, type TitleSize, type TitleVariant } from './Title';
+import type { TestInstance } from 'test-renderer';
 
 /**
  * RN 版测试，对应 Web 版 `Title.test.tsx` 的 10 个用例。
@@ -24,24 +25,10 @@ import { Title, type TitleColor, type TitleSize, type TitleVariant } from './Tit
  * RNTL v14 的 `render` 是**异步**的，所有用例都要 `await`。
  */
 
-/**
- * 宿主节点的最小结构类型。
- *
- * 刻意**不** `import type { TestInstance } from 'test-renderer'`：本文件在 node16 解析下
- * 属于 CJS，而 `test-renderer` 是纯 ESM 包，会触发 TS1541（要求 `with { 'resolution-mode': 'import' }`）。
- * Divider / Button 的测试文件用的是那个导入，也确实会被验收用的独立 tsc 命令判红 ——
- * 既有问题，不必在新文件里复制。
- */
-type HostInstance = {
-    type: unknown;
-    props: Record<string, unknown>;
-    children: unknown[];
-};
-
-const child = (node: unknown) => node as HostInstance;
+const child = (node: unknown) => node as TestInstance;
 
 /** 取节点上展开后的样式对象（`toHaveStyle` 只做子集匹配，要读值就得自己拍平） */
-const styleOf = (node: HostInstance) => {
+const styleOf = (node: TestInstance) => {
     const merged: Record<string, unknown> = {};
     const walk = (s: unknown) => {
         if (Array.isArray(s)) s.forEach(walk);
@@ -70,8 +57,8 @@ const tailLeftD = (t: number) => polyD([t, 0], [t, t], [0, t], [t * 0.3, t * 0.5
 const tailRightD = (t: number) => polyD([0, 0], [t, 0], [t * 0.7, t * 0.5], [t, t], [0, t]);
 
 /** 深度优先收集所有 `<RNSVGPath>`（`<Svg>` → `<RNSVGGroup>` → `<RNSVGPath>`） */
-const svgPaths = (node: HostInstance): HostInstance[] => {
-    const out: HostInstance[] = [];
+const svgPaths = (node: TestInstance): TestInstance[] => {
+    const out: TestInstance[] = [];
     const walk = (n: unknown) => {
         if (typeof n !== 'object' || n === null) return;
         const i = child(n);
@@ -86,7 +73,7 @@ const svgPaths = (node: HostInstance): HostInstance[] => {
  * react-native-svg 会把 `fill` 预处理成 `{ type: 0, payload: <processColor 的结果> }`，
  * 所以不能直接跟 hex 字符串比，要跟 `processColor(hex)` 比。
  */
-const fillOf = (path: HostInstance) => (path.props.fill as { payload?: unknown } | undefined)?.payload;
+const fillOf = (path: TestInstance) => (path.props.fill as { payload?: unknown } | undefined)?.payload;
 
 const ALL_COLORS: TitleColor[] = [
     'default',

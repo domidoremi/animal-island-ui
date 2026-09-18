@@ -2,6 +2,7 @@ import React from 'react';
 import { Text, View } from 'react-native';
 import { render } from '@testing-library/react-native';
 import { Cursor } from './Cursor';
+import type { TestInstance } from 'test-renderer';
 
 /**
  * RN 版测试，对应 Web 版 `Cursor.test.tsx` 的 7 个用例。
@@ -30,7 +31,6 @@ import { Cursor } from './Cursor';
  * **测不到的**：一切与「指针长什么样」有关的东西 —— RN 没有指针，测试渲染器也没有。
  * 本文件能证明的只有：组件还在、children 被原样透传、`type` / `forceAll` 不产生副作用。
  */
-type TestInstance = Awaited<ReturnType<typeof render>>['container'];
 
 const child = (node: unknown) => node as TestInstance;
 

@@ -6,18 +6,7 @@ import path from 'path';
 import { render } from '@testing-library/react-native';
 import { Background, type BackgroundType } from './Background';
 import { BACKGROUND_PATTERN_SPEC, SCENE_BASE_COLOR } from './patterns';
-
-/**
- * RNTL v14 的 `TestInstance`。
- *
- * 已移植的 Divider / Button / Collapse 是直接 `import type { TestInstance } from 'test-renderer'`，
- * 但那在本仓的**独立** tsc 命令下会报
- * `TS1541: Type-only import of an ECMAScript module from a CommonJS module must have a
- * 'resolution-mode' attribute`（`--module node16`，而本包没有 `"type": "module"`；
- * 该报错在 Divider.test.tsx 上同样存在）。这里改成从 `render` 的返回类型反推，
- * 语义完全等价（RNTL 的 `container` 就是 `TestInstance`），且不触发 TS1541。
- */
-type TestInstance = Awaited<ReturnType<typeof render>>['container'];
+import type { TestInstance } from 'test-renderer';
 
 /**
  * RN 版测试，对应 Web 版 `Background.test.tsx` 的 7 个用例。

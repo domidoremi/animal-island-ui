@@ -1,7 +1,7 @@
 import React from 'react';
 import { Dimensions } from 'react-native';
 import { act, render } from '@testing-library/react-native';
-import type { TestInstance } from 'test-renderer' with { 'resolution-mode': 'import' };
+import type { TestInstance } from 'test-renderer';
 import { Loading } from './Loading';
 
 /**

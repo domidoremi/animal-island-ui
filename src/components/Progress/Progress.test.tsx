@@ -7,6 +7,7 @@ import { AccessibilityInfo } from 'react-native';
 import { act, fireEvent, render } from '@testing-library/react-native';
 import { Progress } from './Progress';
 import { colors } from '../../theme/tokens';
+import type { TestInstance } from 'test-renderer';
 
 /**
  * RN 版测试，对应 Web 版 `Progress.test.tsx` 的 16 个用例。
@@ -42,8 +43,6 @@ import { colors } from '../../theme/tokens';
  * 真机上的实际布局、`boxShadow: inset …` 的渲染、以及进度动画的流畅度都必须上真机看。
  */
 const HIDDEN = { includeHiddenElements: true } as const;
-
-type TestInstance = Awaited<ReturnType<typeof render>>['container'];
 
 const child = (node: unknown) => node as TestInstance;
 
