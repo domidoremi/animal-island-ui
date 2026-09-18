@@ -12,16 +12,42 @@ RN 移植是**增量**的 —— 它靠 `tsconfig.json`、`tsconfig.build.json`�
 
 ## 状态
 
-| 层             | 已移植 | 测试 | 备注                                                           |
-| -------------- | ------ | ---- | -------------------------------------------------------------- |
-| design tokens  | ✅     | 52   | `src/theme/tokens.ts`，与 `src/styles/variables.less` 1:1 对应 |
-| Divider        | ✅     | 12   | wave / squiggle 平铺用 `react-native-svg` 重建                 |
-| Button         | ✅     | 21   | 另建了一套 RN 图标集（`src/icons/`）                           |
-| Collapse       | ✅     | 14   | CSS Grid `0fr → 1fr` → 测量高度 + `Animated`                   |
-| TimePicker     | ✅     | 22   | 面板移入 `Modal`；几何计算抽到 `geometry.ts`（+15 测试）       |
-| 其余 30 个组件 | ❌     | —    | 未改动的 Web 源码                                              |
+**34 个组件里已移植 27 个。**
 
-`npm run ci` = `format:check` + `lint` + `typecheck` + `test` + `build`。当前 **136 用例 / 6 套件**。
+| 组件          | 用例  | 备注                                                                 |
+| ------------- | ----- | -------------------------------------------------------------------- |
+| design tokens | 52    | `src/theme/tokens.ts`，与 `src/styles/variables.less` 1:1 对应       |
+| BackTop       | 18    | 删掉 `duration`，新增 `scrollY`（见分歧）                            |
+| Background    | 11    | CSS 平铺 → SVG `<Pattern>`；场景图 → `src/assets/image/rn/`          |
+| Button        | 21    | 另建了一套 RN 图标集（`src/icons/`）                                 |
+| Card          | 22    | CSS `radial-gradient` 波点 → SVG `<Pattern>`                         |
+| Carousel      | 23    | `ScrollView` + `pagingEnabled`；下标算术抽到 `geometry.ts`           |
+| Checkbox      | 27    | `Pressable` + `accessibilityRole="checkbox"`                         |
+| CodeBlock     | 15    |                                                                      |
+| Collapse      | 14    | CSS Grid `0fr → 1fr` → 测量高度 + `Animated`                         |
+| Countdown     | 15+26 | 另有 26 条在 `format.test.ts`（时间格式化抽出来了）                  |
+| Cursor        | 7     | **有文档的空操作** —— 见分歧                                         |
+| Divider       | 12    | wave / squiggle 平铺用 `react-native-svg` 重建                       |
+| Footer        | 9     | `<footer>` → `Text`（RN 没有 `contentinfo` role）                    |
+| Image         | 29    | `react-dom` 的 portal → `Modal`；`naive-icons` 图标 → `src/icons/`   |
+| Input         | 28    | `TextInput`；聚焦样式由 `onFocus`/`onBlur` 驱动                      |
+| Loading       | 19    | 保留绝对定位而非 `Modal`，好让 `zIndex` 这个 prop 仍有意义           |
+| Pagination    | 47    | 页码省略折叠逻辑照搬                                                 |
+| Progress      | 28    | `prefers-reduced-motion` → `AccessibilityInfo.isReduceMotionEnabled` |
+| Radio         | 25    | `Pressable` + `accessibilityRole="radio"`                            |
+| Select        | 21+16 | `Modal` 面板；另有 16 条在 `geometry.test.ts`                        |
+| Skeleton      | 29    | `@keyframes` → `Animated.loop`                                       |
+| Switch        | 24    | `Pressable` + `accessibilityRole="switch"`                           |
+| Tabs          | 19    |                                                                      |
+| Tag           | 28    | `:hover` 丢弃                                                        |
+| Time          | 11    |                                                                      |
+| TimePicker    | 22+15 | 面板在 `Modal` 里；另有 15 条在 `geometry.test.ts`                   |
+| Title         | 17    | `clip-path` / 135° 切角 → `react-native-svg`                         |
+| Typewriter    | 13    |                                                                      |
+
+仍未改动的 Web 源码（7 个）：**Tooltip、Drawer、Modal、Table、Notification、Form、DatePicker**。
+
+`npm run ci` = `format:check` + `lint` + `typecheck` + `test` + `build`。当前 **663 用例 / 31 套件**。
 
 ### ⚠️ 本分支放弃了什么
 
@@ -120,6 +146,29 @@ trigger.measureInWindow((x, y, width, height) =>
 那会把富文本甚至可交互的 `answer` 压成一坨。Web 的 `region` 是不合并的 landmark，
 所以不设反而更接近。代价：iOS 上这个 landmark 可能因此不被播报。
 
+### 3. `Cursor` 是**有文档的空操作**
+
+上游的 `Cursor` 只是一个 `<div>`，靠 CSS（`cursor.css`）套一个**自定义鼠标指针**。
+RN 没有鼠标指针 —— RN 的 `cursor` 样式只接受 `'auto' | 'pointer'`，不支持 `url()` 图片。
+所以 RN 版渲染一个朴素 `View`，透传 `children` / `style` / `testID`，
+并**收下但不使用** `type` 与 `forceAll`。选它而不是删掉这个组件，是因为
+`Drawer` 与 `Modal` 会把内容包在 `<Cursor>` 里，必须继续能用。
+测试里断言四种 prop 组合渲染出的宿主树逐字节相同 —— 这就是「空操作」在此处的含义。
+
+### 4. 场景 SVG 变成了组件
+
+上游把 `.svg` 当**模块** import（bundler 的 svg loader 给一个 URL 字符串），
+再喂给 `background-image: url(...)`。RN 两者都没有。
+`Background` 与 `Progress` 实际用到的 4 张场景图转成了 `react-native-svg` 组件，
+放在 `src/assets/image/rn/`；`assets/image/svg/desktop/` 下的 30 张壁纸
+在 RN 子集里没有任何引用，故未转换。
+
+### 5. `BackTop` 改为接收 `scrollY`，不再监听 window
+
+上游读 `window` 的滚动位置。RN 没有 window 滚动，故新增可选 prop `scrollY?: number`
+（宿主透传 `onScroll` 拿到的 `contentOffset.y`），`visibilityHeight` 的比较仍留在组件内。
+`duration` **删掉**：`ScrollView.scrollTo` 只有动画 / 不动画两档，留着是死参数。
+
 ## 与上游行为的有意分歧
 
 以下是 RN 版**没有**照上游做的地方。每一处都在改动点写了注释。
@@ -165,6 +214,12 @@ trigger.measureInWindow((x, y, width, height) =>
 ## 测试笔记（RNTL v14 + RN 0.87 的坑）
 
 - **`render` 与 `fireEvent` 是 async 的** —— React 19 的异步 `act`。永远要 `await`。
+- **节点类型统一写 `import type { TestInstance } from 'test-renderer';`。**
+  这是规范形式（RNTL v14 从该包转出）。**不要**自己定义更窄的结构类型，
+  也**不要**加 `with { 'resolution-mode': 'import' }`。这两者只在用 `--module node16`
+  跑**独立** `tsc` 时才显得必要；而本仓 `tsconfig.json` 用的是 `module: ESNext` +
+  `moduleResolution: bundler`，在该口径下朴素写法一直是干净的。若要在项目外单独校验
+  某个组件，**先把模块口径对齐仓库**，否则你会去追一个根本不存在的 `TS1541`。
 - **`fireEvent(node, 'pressIn')` 对 `Pressable` 无效。** Pressability 把
   `onResponderGrant` / `onResponderRelease` 挂在宿主 view 上，从不暴露 `onPressIn`。
   Button 的测试直接触发 responder 序列，并给出完整的事件形状，包括

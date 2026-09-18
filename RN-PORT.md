@@ -13,16 +13,42 @@ components never enter the RN typecheck or test run.
 
 ## Status
 
-| Layer                   | Ported | Tests | Notes                                                                         |
-| ----------------------- | ------ | ----- | ----------------------------------------------------------------------------- |
-| design tokens           | ✅     | 52    | `src/theme/tokens.ts`, 1:1 with `src/styles/variables.less`                   |
-| Divider                 | ✅     | 12    | wave / squiggle tiling rebuilt on `react-native-svg`                          |
-| Button                  | ✅     | 21    | plus a self-built RN icon set (`src/icons/`)                                  |
-| Collapse                | ✅     | 14    | CSS Grid `0fr → 1fr` → measured height + `Animated`                           |
-| TimePicker              | ✅     | 22    | panel moved into a `Modal`; geometry extracted into `geometry.ts` (+15 tests) |
-| remaining 30 components | ❌     | —     | untouched Web source                                                          |
+**27 of 34 components ported.** `npm run ci` = `format:check` + `lint` + `typecheck` +
+`test` + `build`. Currently **663 tests / 31 suites**.
 
-`npm run ci` = `format:check` + `lint` + `typecheck` + `test` + `build`. Currently **136 tests / 6 suites**.
+| Component     | Tests | Notes                                                                |
+| ------------- | ----- | -------------------------------------------------------------------- |
+| design tokens | 52    | `src/theme/tokens.ts`, 1:1 with `src/styles/variables.less`          |
+| BackTop       | 18    | `duration` dropped; new `scrollY` prop (see divergences)             |
+| Background    | 11    | CSS tiling → SVG `<Pattern>`; scene images → `src/assets/image/rn/`  |
+| Button        | 21    | plus a self-built RN icon set (`src/icons/`)                         |
+| Card          | 22    | CSS `radial-gradient` dots → SVG `<Pattern>`                         |
+| Carousel      | 23    | `ScrollView` + `pagingEnabled`; index arithmetic in `geometry.ts`    |
+| Checkbox      | 27    | `Pressable` + `accessibilityRole="checkbox"`                         |
+| CodeBlock     | 15    |                                                                      |
+| Collapse      | 14    | CSS Grid `0fr → 1fr` → measured height + `Animated`                  |
+| Countdown     | 15+26 | +26 in `format.test.ts` (extracted time formatting)                  |
+| Cursor        | 7     | **documented no-op** — see divergences                               |
+| Divider       | 12    | wave / squiggle tiling rebuilt on `react-native-svg`                 |
+| Footer        | 9     | `<footer>` → `Text` (RN has no `contentinfo` role)                   |
+| Image         | 29    | `react-dom` portal → `Modal`; `naive-icons` image → `src/icons/`     |
+| Input         | 28    | `TextInput`; focus styling from `onFocus`/`onBlur`                   |
+| Loading       | 19    | absolute positioning kept (not `Modal`) so `zIndex` stays meaningful |
+| Pagination    | 47    | page-ellipsis collapsing preserved                                   |
+| Progress      | 28    | `prefers-reduced-motion` → `AccessibilityInfo.isReduceMotionEnabled` |
+| Radio         | 25    | `Pressable` + `accessibilityRole="radio"`                            |
+| Select        | 21+16 | `Modal` panel; +16 in `geometry.test.ts`                             |
+| Skeleton      | 29    | `@keyframes` → `Animated.loop`                                       |
+| Switch        | 24    | `Pressable` + `accessibilityRole="switch"`                           |
+| Tabs          | 19    |                                                                      |
+| Tag           | 28    | `:hover` dropped                                                     |
+| Time          | 11    |                                                                      |
+| TimePicker    | 22+15 | panel in a `Modal`; +15 in `geometry.test.ts`                        |
+| Title         | 17    | `clip-path` / 135° corners → `react-native-svg`                      |
+| Typewriter    | 13    |                                                                      |
+
+Still untouched Web source (7): **Tooltip, Drawer, Modal, Table, Notification, Form,
+DatePicker**.
 
 ### ⚠️ What this branch gives up
 
@@ -125,6 +151,31 @@ children into a single accessibility node, which would flatten a rich or interac
 `answer` into one blob. The Web `region` is a non-merging landmark, so leaving it off is
 the closer match. Trade-off: on iOS the landmark may therefore not be announced.
 
+### 3. `Cursor` is a documented no-op
+
+Upstream's `Cursor` is nothing but a `<div>` that applies a **custom mouse cursor** through
+CSS (`cursor.css`). RN has no mouse cursor — and RN's `cursor` style accepts only
+`'auto' | 'pointer'`, never a `url()` image. So the RN version renders a plain `View` that
+passes `children` / `style` / `testID` through, and accepts `type` and `forceAll` **without
+using them**. This was chosen over deleting the component because `Drawer` and `Modal` wrap
+their content in `<Cursor>` and must keep working. The test suite asserts the four prop
+combinations produce a byte-identical host tree, which is what "no-op" has to mean here.
+
+### 4. Scene SVGs became components
+
+Upstream imports `.svg` files as **modules** (bundler svg loader → a URL string) and feeds
+them to `background-image: url(...)`. RN has neither. The four scene images actually
+referenced by `Background` and `Progress` were converted to `react-native-svg` components in
+`src/assets/image/rn/`; the 30 wallpapers under `assets/image/svg/desktop/` are referenced by
+nothing in the RN subset and were left unconverted.
+
+### 5. `BackTop` takes `scrollY` instead of watching the window
+
+Upstream reads `window` scroll position. RN has no window scroll, so a new optional
+`scrollY?: number` prop lets the host pass `onScroll`'s `contentOffset.y` through, and the
+`visibilityHeight` comparison stays inside the component. `duration` was **dropped**:
+`ScrollView.scrollTo` only has animated / not-animated, so the prop would be dead.
+
 ## Deliberate divergences from upstream behaviour
 
 These are the places where the RN port does **not** do what upstream does. Each one is
@@ -179,6 +230,13 @@ fade-in is not perceptible.
 ## Testing notes (RNTL v14 + RN 0.87 gotchas)
 
 - **`render` and `fireEvent` are async** — React 19's async `act`. Always `await`.
+- **Get the node type as `import type { TestInstance } from 'test-renderer';`.** That is the
+  canonical form (RNTL v14 re-exports it from that package). Do **not** hand-roll a narrower
+  structural type, and do **not** add a `with { 'resolution-mode': 'import' }` attribute.
+  Both look necessary only under a standalone `tsc` invoked with `--module node16`; this
+  repo's `tsconfig.json` uses `module: ESNext` + `moduleResolution: bundler`, under which the
+  plain import is clean. If you verify a single component outside the project, **match the
+  repo's module settings** or you will chase a `TS1541` that does not exist.
 - **`fireEvent(node, 'pressIn')` does not work on `Pressable`.** Pressability attaches
   `onResponderGrant` / `onResponderRelease` to the host view and never exposes `onPressIn`.
   Button's tests fire the responder sequence directly with a full synthetic event shape,
