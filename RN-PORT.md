@@ -4,6 +4,8 @@ The `rn` branch of this fork ports the library from React DOM to React Native.
 This file records the decisions, the **deliberate divergences from upstream**, and the
 parts that are **not covered by tests** — so the next person doesn't have to re-derive them.
 
+中文镜像：[`docs/RN-PORT.zh-CN.md`](docs/RN-PORT.zh-CN.md). This English file is authoritative.
+
 Upstream `main` is untouched: the Web library (34 components, Less Modules, Vitest, Vite)
 still lives on disk. The RN port is **additive** — it is fenced off by explicit include
 lists in `tsconfig.json`, `tsconfig.build.json` and `jest.config.js`, so the un-ported Web
@@ -20,15 +22,15 @@ components never enter the RN typecheck or test run.
 | TimePicker              | ✅     | 22    | panel moved into a `Modal`; geometry extracted into `geometry.ts` (+15 tests) |
 | remaining 30 components | ❌     | —     | untouched Web source                                                          |
 
-`npm run ci` = `format:check` + `typecheck` + `test` + `build`. Currently **136 tests / 6 suites**.
+`npm run ci` = `format:check` + `lint` + `typecheck` + `test` + `build`. Currently **136 tests / 6 suites**.
 
 ### ⚠️ What this branch gives up
 
 Rewriting `package.json` for RN **removed the Web toolchain** (vite, vitest, less,
-`@testing-library/react`, eslint). So on `rn`:
+`@testing-library/react`). eslint was re-added, but on RN's terms — see "Linting". So on `rn`:
 
-- `npm run ci` is the **RN** pipeline. Upstream's `ci` (which also ran `check:docs`, `lint`,
-  `test:run`, `test:a11y`) no longer exists here.
+- `npm run ci` is the **RN** pipeline. Upstream's `ci` also ran `check:docs` and
+  `test:a11y`; neither has an RN equivalent here.
 - The Web components still on disk are **no longer verified by anything** on this branch.
   Their pipeline lives on `main`. If you edit a Web component here, you are on your own.
 - `.githooks/pre-commit` is **not active** (`core.hooksPath` is unset), so nothing runs `ci`
@@ -36,15 +38,39 @@ Rewriting `package.json` for RN **removed the Web toolchain** (vite, vitest, les
 
 ## Toolchain decisions
 
-| Decision                                    | Why                                                                                                                                                          |
-| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `react-native@0.87.1`, `react@19.2.x`       | Latest stable at the time; RN 0.87 peers on `react@^19.2.3`.                                                                                                 |
-| `preset: '@react-native/jest-preset'`       | **RN 0.87 moved the jest preset out of the `react-native` package.** `preset: 'react-native'` fails with `Module react-native should have "jest-preset.js"`. |
-| `jest@29` (not 30)                          | Matches the official template `@react-native-community/template@0.87.1`; jest 30 breaks the preset.                                                          |
-| `module: "node16"` in `tsconfig.build.json` | RN 0.87's types live at `react-native/types_generated/index.d.ts` and are only reachable through `package.json#exports`. node10 resolution → `TS7016`.       |
-| `prettier` pinned to `3.8.4`                | The upstream lockfile pins 3.8.4; `^3.4.0` resolves to 3.9.x, which reformats union types and makes `format:check` fail on **unmodified upstream files**.    |
-| eslint **not wired**                        | Upstream uses eslint 9 flat config; RN's `@react-native/eslint-config` still wants eslint 8. Deliberately deferred rather than half-done.                    |
-| `react-native-svg` as a peer dependency     | The library renders real SVG; the host app must install it.                                                                                                  |
+| Decision                                      | Why                                                                                                                                                          |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `react-native@0.87.1`, `react@19.2.x`         | Latest stable at the time; RN 0.87 peers on `react@^19.2.3`.                                                                                                 |
+| `preset: '@react-native/jest-preset'`         | **RN 0.87 moved the jest preset out of the `react-native` package.** `preset: 'react-native'` fails with `Module react-native should have "jest-preset.js"`. |
+| `jest@29` (not 30)                            | Matches the official template `@react-native-community/template@0.87.1`; jest 30 breaks the preset.                                                          |
+| `module: "node16"` in `tsconfig.build.json`   | RN 0.87's types live at `react-native/types_generated/index.d.ts` and are only reachable through `package.json#exports`. node10 resolution → `TS7016`.       |
+| `prettier` pinned to `3.8.4`                  | The upstream lockfile pins 3.8.4; `^3.4.0` resolves to 3.9.x, which reformats union types and makes `format:check` fail on **unmodified upstream files**.    |
+| eslint 9 + `@react-native/eslint-config/flat` | RN's own config; see "Linting" for the two things it needed.                                                                                                 |
+| `react-native-svg` as a peer dependency       | The library renders real SVG; the host app must install it.                                                                                                  |
+
+## Linting
+
+Upstream's `eslint.config.js` was ESM and imported vite/react-refresh plugins — both
+meaningless on this branch — so it was **replaced**, not extended. The replacement is CJS
+because this branch's `package.json` has no `"type": "module"` (upstream's does).
+
+It is built on `@react-native/eslint-config/flat`, which needed two fixes:
+
+1. **`eslint-plugin-ft-flow@2.0.1` crashes on eslint 9** —
+   `TypeError: context.getAllComments is not a function` while linting any `.js` file. RN's
+   config depends on `^2.0.1`, so `package.json` pins an override to `^3.0.11`.
+   (My earlier note that RN's config "still wants eslint 8" was wrong: 0.87.1 declares
+   `eslint: ^8.0.0 || ^9.0.0` and ships a `./flat` entry point.)
+2. **`eqeqeq` is `['error', 'always', { null: 'ignore' }]`**, not plain `'always'`. Upstream's
+   plain `'always'` would flag `x != null` in nine of its own components; the `null: 'ignore'`
+   exception is the idiomatic form of "neither null nor undefined", so the code is left alone
+   rather than rewritten.
+
+**Un-ported components are ignored dynamically.** `eslint.config.js` scans
+`src/components/*/` and ignores any directory whose `<Name>.tsx` does not contain
+`from 'react-native'`. That predicate is self-maintaining: porting a component moves it into
+lint scope automatically, so lint needs **no** per-component registration (unlike the three
+include lists).
 
 ## The porting contract (Web → RN)
 
@@ -206,7 +232,8 @@ fade-in is not perceptible.
 ## Verification
 
 ```bash
-npm run ci        # format:check + typecheck + test + build
+npm run ci        # format:check + lint + typecheck + test + build
+npm run lint      # eslint .
 npm run test      # jest
 npm run typecheck # tsc --noEmit  (only the ported subset)
 npm run build     # tsc --project tsconfig.build.json → dist/
