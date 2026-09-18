@@ -1,8 +1,12 @@
 {
+    // 注意：本 tsconfig 只覆盖**已移植到 RN** 的子集。
+    // `src/` 下还留着上游 Web 版的 33 个组件（import .less / react-dom / naive-icons），
+    // 它们不在 include 里，所以不会污染 typecheck。
+    // 每移植一个组件，往 include 里加一条。
     "compilerOptions": {
-        "target": "ES2020",
+        "target": "ESNext",
         "module": "ESNext",
-        "lib": ["ES2020", "DOM", "DOM.Iterable"],
+        "lib": ["ESNext"],
         "jsx": "react-jsx",
         "moduleResolution": "bundler",
         "strict": true,
@@ -11,13 +15,9 @@
         "forceConsistentCasingInFileNames": true,
         "resolveJsonModule": true,
         "isolatedModules": true,
-        "baseUrl": ".",
-        "paths": {
-            "@/*": ["./src/*"],
-            "@test/*": ["./test/*"]
-        },
-        "types": ["vitest/globals", "@testing-library/jest-dom", "node"]
+        "noEmit": true,
+        "types": ["jest"]
     },
-    "include": ["src", "demo", "test", "items.d.ts", "vite.config.demo.ts", "vitest.config.ts"],
-    "exclude": ["node_modules", "dist", "demo-dist", "coverage"]
+    "include": ["src/index.ts", "src/theme", "src/components/Divider"],
+    "exclude": ["node_modules", "dist"]
 }

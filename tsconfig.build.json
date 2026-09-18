@@ -1,21 +1,24 @@
 {
+    // `extends` 不继承 `include` / `exclude`，必须与 tsconfig.json 的已移植子集保持一致。
+    //
+    // 为什么这里不能用 `moduleResolution: "Node"`（node10）：
+    //   RN 0.87 的类型在 `react-native/types_generated/index.d.ts`，只通过
+    //   package.json 的 `exports` 映射暴露；node10 解析不读 `exports`，会报
+    //   `TS7016: Could not find a declaration file for module 'react-native'`。
+    //   `module: "node16"` 会读 `exports`，且因本包 package.json 未声明
+    //   `"type": "module"`，产出的仍是 CommonJS。
     "extends": "./tsconfig.json",
     "compilerOptions": {
-        "emitDeclarationOnly": true,
+        "noEmit": false,
+        "module": "node16",
+        "moduleResolution": "node16",
+        "outDir": "dist",
+        "rootDir": "src",
         "declaration": true,
-        "declarationDir": "dist/types",
-        "types": ["node"]
+        "declarationMap": true,
+        "sourceMap": true,
+        "types": []
     },
-    "include": ["src"],
-    "exclude": [
-        "src/**/*.test.ts",
-        "src/**/*.test.tsx",
-        "src/**/*.spec.ts",
-        "src/**/*.spec.tsx",
-        "test",
-        "vitest.config.ts",
-        "demo",
-        "node_modules",
-        "dist"
-    ]
+    "include": ["src/index.ts", "src/theme", "src/components/Divider"],
+    "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx", "node_modules", "dist"]
 }
