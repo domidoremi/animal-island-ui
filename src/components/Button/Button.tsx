@@ -275,6 +275,9 @@ export const Button: React.FC<ButtonProps> = ({
     ];
 
     return (
+        // 图标容器用 `aria-hidden` 而不是 `accessible={false}`：前者在 iOS/Android
+        // 上都会把整个子树移出无障碍树，后者只表示「这个 View 本身不是无障碍元素」，
+        // 其内部的 Text 仍会被读出来。装饰性图标要的是前者（与 Web 版一致）。
         <Pressable
             accessibilityRole="button"
             accessibilityState={{ disabled: disabled || loading, busy: loading }}
@@ -290,7 +293,7 @@ export const Button: React.FC<ButtonProps> = ({
                 <>
                     {loading ? (
                         <Animated.View
-                            accessible={false}
+                            aria-hidden
                             style={[styles.icon, { transform: [{ rotate }] }]}
                             testID={testID ? `${testID}-loading-icon` : undefined}
                         >
@@ -300,7 +303,7 @@ export const Button: React.FC<ButtonProps> = ({
                         </Animated.View>
                     ) : (
                         icon != null && (
-                            <View accessible={false} style={styles.icon}>
+                            <View aria-hidden style={styles.icon}>
                                 {icon}
                             </View>
                         )

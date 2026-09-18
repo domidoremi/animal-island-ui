@@ -15,6 +15,7 @@ module.exports = {
     testMatch: [
         '<rootDir>/src/components/Divider/*.test.tsx',
         '<rootDir>/src/components/Button/*.test.tsx',
+        '<rootDir>/src/components/Collapse/*.test.tsx',
         '<rootDir>/src/theme/*.test.ts',
     ],
     collectCoverageFrom: ['src/**/*.{ts,tsx}', '!src/**/*.test.{ts,tsx}'],

@@ -18,6 +18,13 @@
         "noEmit": true,
         "types": ["jest"]
     },
-    "include": ["src/index.ts", "src/theme", "src/icons", "src/components/Divider", "src/components/Button"],
+    "include": [
+        "src/index.ts",
+        "src/theme",
+        "src/icons",
+        "src/components/Divider",
+        "src/components/Button",
+        "src/components/Collapse"
+    ],
     "exclude": ["node_modules", "dist"]
 }

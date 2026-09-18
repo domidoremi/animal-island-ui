@@ -17,6 +17,16 @@ import { colors } from '../../theme/tokens';
 const child = (node: unknown) => node as TestInstance;
 
 /**
+ * 图标容器带 `aria-hidden`（装饰性内容），RNTL 默认把这类节点排除在查询之外，
+ * 所以查图标要显式带上 `includeHiddenElements`。
+ *
+ * 注意：RNTL 的**可访问名**计算并不理会 `aria-hidden`（实测 `aria-hidden` 与
+ * `accessible={false}` 算出来的名字都是 `"+ Q"`），所以这里不拿可访问名去断言
+ * 图标是否被排除 —— 那是 RN 运行时的行为，RNTL 没有建模。
+ */
+const HIDDEN = { includeHiddenElements: true } as const;
+
+/**
  * 模拟「手指按住」。
  *
  * Pressable 的 `pressed` 状态由 Pressability 驱动，而 Pressability 只把 responder
@@ -182,16 +192,16 @@ describe('Button', () => {
                 x
             </Button>
         );
-        expect(queryByTestId('ic')).toBeTruthy();
-        expect(queryByTestId('b-loading-icon')).toBeNull();
+        expect(queryByTestId('ic', HIDDEN)).toBeTruthy();
+        expect(queryByTestId('b-loading-icon', HIDDEN)).toBeNull();
 
         await rerender(
             <Button testID="b" icon={<View testID="ic" />} loading>
                 x
             </Button>
         );
-        expect(queryByTestId('ic')).toBeNull();
-        expect(queryByTestId('b-loading-icon')).toBeTruthy();
+        expect(queryByTestId('ic', HIDDEN)).toBeNull();
+        expect(queryByTestId('b-loading-icon', HIDDEN)).toBeTruthy();
     });
 
     it('无 icon 且非 loading 时不渲染图标容器', async () => {

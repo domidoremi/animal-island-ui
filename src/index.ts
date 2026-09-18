@@ -28,5 +28,8 @@ export type { IconProps } from './icons';
 export { Button } from './components/Button';
 export type { ButtonProps, ButtonType, ButtonSize } from './components/Button';
 
+export { Collapse } from './components/Collapse';
+export type { CollapseProps } from './components/Collapse';
+
 export { Divider } from './components/Divider';
 export type { DividerProps, DividerType } from './components/Divider';

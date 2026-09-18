@@ -19,6 +19,13 @@
         "sourceMap": true,
         "types": []
     },
-    "include": ["src/index.ts", "src/theme", "src/icons", "src/components/Divider", "src/components/Button"],
+    "include": [
+        "src/index.ts",
+        "src/theme",
+        "src/icons",
+        "src/components/Divider",
+        "src/components/Button",
+        "src/components/Collapse"
+    ],
     "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx", "node_modules", "dist"]
 }
