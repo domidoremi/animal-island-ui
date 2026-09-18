@@ -23,10 +23,23 @@
         "src/index.ts",
         "src/theme",
         "src/icons",
-        "src/components/Divider",
+        "src/assets/image/rn",
+        "src/components/BackTop",
+        "src/components/Background",
         "src/components/Button",
+        "src/components/Card",
         "src/components/Collapse",
-        "src/components/TimePicker"
+        "src/components/Cursor",
+        "src/components/Divider",
+        "src/components/Footer",
+        "src/components/Loading",
+        "src/components/Progress",
+        "src/components/Skeleton",
+        "src/components/Switch",
+        "src/components/Tag",
+        "src/components/Time",
+        "src/components/TimePicker",
+        "src/components/Title"
     ],
     "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx", "node_modules", "dist"]
 }

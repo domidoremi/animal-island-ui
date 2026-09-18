@@ -1,6 +1,6 @@
 {
     // 注意：本 tsconfig 只覆盖**已移植到 RN** 的子集。
-    // `src/` 下还留着上游 Web 版的 33 个组件（import .less / react-dom / naive-icons），
+    // `src/` 下还留着上游 Web 版的 18 个组件（import .less / react-dom / naive-icons），
     // 它们不在 include 里，所以不会污染 typecheck。
     // 每移植一个组件，往 include 里加一条。
     "compilerOptions": {
@@ -22,10 +22,23 @@
         "src/index.ts",
         "src/theme",
         "src/icons",
-        "src/components/Divider",
+        "src/assets/image/rn",
+        "src/components/BackTop",
+        "src/components/Background",
         "src/components/Button",
+        "src/components/Card",
         "src/components/Collapse",
-        "src/components/TimePicker"
+        "src/components/Cursor",
+        "src/components/Divider",
+        "src/components/Footer",
+        "src/components/Loading",
+        "src/components/Progress",
+        "src/components/Skeleton",
+        "src/components/Switch",
+        "src/components/Tag",
+        "src/components/Time",
+        "src/components/TimePicker",
+        "src/components/Title"
     ],
     "exclude": ["node_modules", "dist"]
 }
