@@ -17,7 +17,16 @@
 export * from './theme/tokens';
 
 // ============================================
+// 图标（RN 自建：上游的 naive-icons 是 DOM-only 库，RN 用不了）
+// ============================================
+export { DonutIcon, FishIcon, ImageIcon, BaseIcon, naivePalette } from './icons';
+export type { IconProps } from './icons';
+
+// ============================================
 // 基础 UI 组件
 // ============================================
+export { Button } from './components/Button';
+export type { ButtonProps, ButtonType, ButtonSize } from './components/Button';
+
 export { Divider } from './components/Divider';
 export type { DividerProps, DividerType } from './components/Divider';

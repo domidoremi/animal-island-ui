@@ -18,6 +18,6 @@
         "noEmit": true,
         "types": ["jest"]
     },
-    "include": ["src/index.ts", "src/theme", "src/components/Divider"],
+    "include": ["src/index.ts", "src/theme", "src/icons", "src/components/Divider", "src/components/Button"],
     "exclude": ["node_modules", "dist"]
 }

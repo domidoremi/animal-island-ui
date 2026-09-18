@@ -12,6 +12,10 @@
  */
 module.exports = {
     preset: '@react-native/jest-preset',
-    testMatch: ['<rootDir>/src/components/Divider/*.test.tsx', '<rootDir>/src/theme/*.test.ts'],
+    testMatch: [
+        '<rootDir>/src/components/Divider/*.test.tsx',
+        '<rootDir>/src/components/Button/*.test.tsx',
+        '<rootDir>/src/theme/*.test.ts',
+    ],
     collectCoverageFrom: ['src/**/*.{ts,tsx}', '!src/**/*.test.{ts,tsx}'],
 };

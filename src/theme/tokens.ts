@@ -4,11 +4,8 @@
  * 映射规则（Web → RN）：
  *   - 颜色：原值照搬（都是 hex / rgba，RN 通用）。
  *   - 尺寸/间距/圆角/字号：Less 的 `px` 在 RN 里就是无单位数字，数值照搬。
- *   - 阴影：CSS `box-shadow: x y blur spread rgba(...)` 拆成 RN 的
- *     `shadowColor` / `shadowOffset` / `shadowOpacity` / `shadowRadius`，
- *     并另给 Android 的 `elevation`。**注意这是近似**：RN 的 `shadowRadius`
- *     不等于 CSS 的 blur（iOS 上量级接近，Android 只有 elevation 这一个粗粒度旋钮），
- *     所以阴影是本轮移植里唯一「不能保证像素级一致」的一类 token。
+ *   - 阴影：RN 0.76+ 支持 CSS 风格的 `boxShadow` 字符串，**逐字照搬**（详见
+ *     `boxShadow` 的注释；Android 需要新架构）。
  *   - 字体：Web 版走 `@font-face` + woff2（`src/styles/fonts.less`），
  *     **woff2 是 Web 专有格式，RN 用不了**；RN 需要宿主 App 自行接入 ttf/otf
  *     （见 RN-PORT.md「未解决项」）。这里只留一个可覆盖的占位。
@@ -101,36 +98,23 @@ export const duration = {
 export const easing = [0.4, 0, 0.2, 1] as const;
 
 /**
- * CSS box-shadow → RN 阴影。
- * 原值：
+ * 阴影。CSS 原值：
  *   @shadow-sm:   0 2px 4px 0  rgba(61, 52, 40, 0.06)
  *   @shadow-base: 0 3px 10px 0 rgba(61, 52, 40, 0.1)
  *   @shadow-lg:   0 8px 24px 0 rgba(61, 52, 40, 0.14)
+ *
+ * RN 0.76+ 支持 CSS 风格的 `boxShadow` 字符串，所以这里**逐字照搬**，不做拆解。
+ * 这比拆成 `shadowColor`/`shadowOffset`/`shadowOpacity`/`shadowRadius` + Android
+ * `elevation` 精确得多 —— 后者无法表达本库 Button 的
+ * `0 5px 0 0 #bdaea0` 这类**零模糊硬偏移阴影**（elevation 只有模糊阴影）。
+ *
+ * ⚠️ 约束：`boxShadow` 在 Android 上**需要新架构**（RN 0.76 起为默认）。
+ * 旧架构下这些阴影会被忽略（不报错，只是没有阴影）。
  */
-const SHADOW_COLOR = '#3d3428'; // rgb(61, 52, 40)
-
-export const shadows = {
-    sm: {
-        shadowColor: SHADOW_COLOR,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 4,
-        elevation: 2,
-    },
-    base: {
-        shadowColor: SHADOW_COLOR,
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.1,
-        shadowRadius: 10,
-        elevation: 4,
-    },
-    lg: {
-        shadowColor: SHADOW_COLOR,
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.14,
-        shadowRadius: 24,
-        elevation: 8,
-    },
+export const boxShadow = {
+    sm: '0 2px 4px 0 rgba(61, 52, 40, 0.06)',
+    base: '0 3px 10px 0 rgba(61, 52, 40, 0.1)',
+    lg: '0 8px 24px 0 rgba(61, 52, 40, 0.14)',
 } as const;
 
 /**
@@ -150,7 +134,7 @@ export type Theme = {
     controlHeight: typeof controlHeight;
     duration: typeof duration;
     easing: typeof easing;
-    shadows: typeof shadows;
+    boxShadow: typeof boxShadow;
     fontFamily: string | undefined;
 };
 
@@ -164,6 +148,6 @@ export const defaultTheme: Theme = {
     controlHeight,
     duration,
     easing,
-    shadows,
+    boxShadow,
     fontFamily,
 };
