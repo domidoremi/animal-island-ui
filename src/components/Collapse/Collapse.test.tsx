@@ -8,14 +8,30 @@ import { colors, spacing } from '../../theme/tokens';
 /**
  * RN 版测试，对应 Web 版 `Collapse.test.tsx` 的 8 个用例。
  *
- * **被丢弃的用例**：
+ * **被丢弃 / 改写的用例**：
  *   - `className` 透传 —— RN 无 className（保留 style / testID 断言）。
- *   - a11y 的 `aria-controls` ↔ `panel.id` 双向关联、`panel` 暴露 `region` 角色 ——
- *     RN 既没有 region 角色，也没有 id 关联机制（Web 版的 `useId` 那套一并去掉）。
- *     改为断言 header 的 `accessibilityRole` 与 `accessibilityState.expanded`。
- *   - Web 版「折叠按钮以 question 文本作为可访问名」这条也不成立：RNTL 的可访问名
+ *   - a11y 的 `aria-controls` ↔ `panel.id` 关联 —— RN 没有 `aria-controls`
+ *     （也没有 `aria-haspopup`），这一半只能丢。
+ *     另一半（面板的 `role="region"` + `aria-labelledby` ↔ header 的 `nativeID`）
+ *     **RN 0.87 是支持的**，已还原并有单测覆盖。
+ *   - Web 版「折叠按钮以 question 文本作为可访问名」这条不成立：RNTL 的可访问名
  *     计算**不理会 `aria-hidden`**（实测把 `+` 装饰也算进去，得到 `"− Q"`），
  *     所以改为断言 `accessibilityState.expanded` 与 `+`/`−` 字形本身。
+ *
+ * **写 a11y 断言前必读的 RNTL 限制**（实测，非推断）：
+ *   - `getByRole` 的谓词先过 `isAccessibilityElement`；它对非 Text / TextInput /
+ *     Switch 的节点**只在显式传了 `accessible` 时才返回 true**。面板是裸
+ *     `<View role="region">`（刻意不加 `accessible`，理由见 Collapse.tsx），
+ *     所以 `queryByRole('region')` 恒为 `null`（连 `includeHiddenElements` 也救不了）
+ *     —— 面板只能断言 props 本身。
+ *   - header 能被 `getByRole('button')` 命中，是因为 `Pressable` 会自动补上
+ *     `accessible={accessible !== false}`。
+ *   - RN 的 `View` 会**吃掉并改写**一部分 aria-*：`aria-labelledby` →
+ *     `accessibilityLabelledBy`（按逗号切成数组）、`aria-hidden` →
+ *     `accessibilityElementsHidden` + `importantForAccessibility`、`id` → `nativeID`。
+ *     `role` 不在改写名单里，原样透传。
+ *     下面读的是 `Animated.View` 外层实例（**原始 props**），不是改写后的宿主节点，
+ *     所以看到的是 `role` / `aria-labelledby` 本身。
  */
 const child = (node: unknown) => node as TestInstance;
 
@@ -92,6 +108,32 @@ describe('Collapse', () => {
         expect(header.props.accessibilityState).toMatchObject({ expanded: false });
     });
 
+    it('面板暴露 region 角色，并通过 aria-labelledby 关联到 header 的 nativeID', async () => {
+        const { getByTestId, queryByRole } = await render(<Collapse testID="c" question="Q" answer="A" />);
+        const header = getByTestId('c-header');
+        const panel = getByTestId('c-panel');
+
+        // Web 版：<div role="region" id={panelId} aria-labelledby={headerId}>
+        //         <button id={headerId} aria-controls={panelId} aria-expanded=...>
+        // RN 侧只能还原「panel → header」这一半（`aria-controls` 无对应属性）。
+        expect(panel.props.role).toBe('region');
+
+        const headerId = header.props.nativeID;
+        expect(typeof headerId).toBe('string');
+        expect(headerId).toMatch(/^animal-collapse-[\w-]+-header$/);
+        expect(panel.props['aria-labelledby']).toBe(headerId);
+
+        // 反向：header 上**没有**指向面板的关联（RN 无 aria-controls）
+        expect(header.props['aria-controls']).toBeUndefined();
+        expect(header.props['aria-haspopup']).toBeUndefined();
+
+        // `getByRole('region')` 查不到 —— 面板没有 `accessible`，过不了 RNTL 的
+        // `isAccessibilityElement` 闸门（详见文件头注释）。这条断言把该限制钉住，
+        // 将来 RNTL 放宽规则时会失败提醒。
+        expect(queryByRole('region')).toBeNull();
+        expect(queryByRole('region', HIDDEN)).toBeNull();
+    });
+
     it('始终渲染 question 与 answer 内容', async () => {
         const { getByText, getByTestId } = await render(
             <Collapse testID="c" question="My question" answer={<View testID="ans" />} />
@@ -164,11 +206,13 @@ describe('Collapse', () => {
         expect(animatedNumber(styleOf(panel).height)).toBe(0);
     });
 
-    it('装饰元素（+/− 与小鱼）带 aria-hidden', async () => {
-        const { getByTestId } = await render(<Collapse testID="c" question="Q" answer="A" />);
-        // 折叠态下这些节点默认查不到（被排除），带上 includeHiddenElements 才能查到
-        expect(getByTestId('c-header').children.length).toBe(3);
-        expect(() => getByTestId('c-header', HIDDEN)).not.toThrow();
+    it('装饰元素（+/− 与小鱼）带 aria-hidden，默认被无障碍查询排除', async () => {
+        const { getByText, queryByText } = await render(<Collapse testID="c" question="Q" answer="A" />);
+        // 折叠态显示 `+`。它能被**默认**查询排除、只在 includeHiddenElements 下
+        // 才查得到，正好反证了祖先 `aria-hidden` 生效。
+        // （小鱼图标同样包在 aria-hidden 里，但它既无文本也无角色，无法直接断言。）
+        expect(queryByText('+')).toBeNull();
+        expect(getByText('+', HIDDEN)).toBeTruthy();
     });
 
     it('question / answer 为非字符串节点时原样渲染', async () => {

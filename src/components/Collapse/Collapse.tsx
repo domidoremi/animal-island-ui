@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import {
     Animated,
     Easing,
@@ -45,6 +45,10 @@ export const Collapse: React.FC<CollapseProps> = ({
     const [expanded, setExpanded] = useState(defaultExpanded);
     /** 内容自然高度（不含动画中的下内边距），由 onLayout 量得 */
     const [contentHeight, setContentHeight] = useState(0);
+
+    // RN 支持 `nativeID` + `aria-labelledby`，所以 Web 版这套 id 关联可以还原
+    // （React 19 的 useId 在 RN 里同样可用；只有 `aria-controls` 在 RN 里没有对应物）。
+    const headerId = `animal-collapse-${useId().replace(/:/g, '')}-header`;
 
     /**
      * 展开进度 0→1。
@@ -113,6 +117,7 @@ export const Collapse: React.FC<CollapseProps> = ({
             <Pressable
                 accessibilityRole="button"
                 accessibilityState={{ expanded, disabled }}
+                nativeID={headerId}
                 disabled={disabled}
                 onPress={toggle}
                 style={styles.header}
@@ -138,9 +143,12 @@ export const Collapse: React.FC<CollapseProps> = ({
                 </Animated.View>
             </Pressable>
 
-            {/* 展开区。Web 的 `role="region"` + `aria-labelledby` 在 RN 里没有对应物：
-                RN 没有 region 角色，也没有 id 关联机制（`useId` 那套一并去掉）。 */}
+            {/* 展开区。RN 0.87 支持 ARIA 风格的 `role` 与 `aria-labelledby`，所以
+                `role="region"` 与 header 的关联可以还原；只有 `aria-controls` 在 RN
+                里没有对应属性（RN 支持的 aria-* 见 ViewAccessibility.d.ts）。 */}
             <Animated.View
+                role="region"
+                aria-labelledby={headerId}
                 style={[styles.answerWrapper, { height: panelHeight }]}
                 testID={testID ? `${testID}-panel` : undefined}
             >
