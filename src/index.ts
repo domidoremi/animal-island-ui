@@ -2,7 +2,7 @@
  * animal-island-ui —— React Native 版入口。
  *
  * 注意：本文件在 `rn` 分支上是**增量**的。上游 Web 版有 34 个组件，
- * RN 版逐个移植，每移植一个就在这里加一行导出。当前 16 / 34。
+ * RN 版逐个移植，每移植一个就在这里加一行导出。当前 27 / 34。
  * 上游 Web 版的完整导出清单见 `main` 分支的 `src/index.ts`。
  *
  * 与 Web 版的两点结构性差异：
@@ -43,8 +43,20 @@ export type { ButtonProps, ButtonType, ButtonSize } from './components/Button';
 export { Card } from './components/Card';
 export type { CardProps, CardType, CardColor, CardPattern } from './components/Card';
 
+export { Carousel } from './components/Carousel';
+export type { CarouselProps } from './components/Carousel';
+
+export { Checkbox } from './components/Checkbox';
+export type { CheckboxProps, CheckboxOption, CheckboxSize } from './components/Checkbox';
+
+export { CodeBlock } from './components/CodeBlock';
+export type { CodeBlockProps } from './components/CodeBlock';
+
 export { Collapse } from './components/Collapse';
 export type { CollapseProps } from './components/Collapse';
+
+export { Countdown } from './components/Countdown';
+export type { CountdownProps, CountdownSize, CountdownVariant } from './components/Countdown';
 
 export { Cursor } from './components/Cursor';
 export type { CursorProps, CursorType } from './components/Cursor';
@@ -55,11 +67,26 @@ export type { DividerProps, DividerType } from './components/Divider';
 export { Footer } from './components/Footer';
 export type { FooterProps } from './components/Footer';
 
+export { Image } from './components/Image';
+export type { ImageProps, ImageColor } from './components/Image';
+
+export { Input } from './components/Input';
+export type { InputProps, InputSize, InputChangeEvent } from './components/Input';
+
 export { Loading } from './components/Loading';
 export type { LoadingProps } from './components/Loading';
 
+export { Pagination } from './components/Pagination';
+export type { PaginationProps } from './components/Pagination';
+
 export { Progress } from './components/Progress';
 export type { ProgressProps, ProgressSize } from './components/Progress';
+
+export { Radio } from './components/Radio';
+export type { RadioProps, RadioOption, RadioSize } from './components/Radio';
+
+export { Select } from './components/Select';
+export type { SelectProps, SelectOption } from './components/Select';
 
 export { Skeleton, SkeletonButton, SkeletonInput, SkeletonAvatar } from './components/Skeleton';
 export type {
@@ -73,6 +100,9 @@ export type {
 export { Switch } from './components/Switch';
 export type { SwitchProps, SwitchSize } from './components/Switch';
 
+export { Tabs } from './components/Tabs';
+export type { TabsProps, TabItem } from './components/Tabs';
+
 export { Tag } from './components/Tag';
 export type { TagProps, TagSize, TagVariant, TagColor } from './components/Tag';
 
@@ -84,3 +114,6 @@ export type { TimePickerProps, TimePickerSize, TimePickerStatus, TimePart } from
 
 export { Title } from './components/Title';
 export type { TitleProps, TitleSize, TitleColor } from './components/Title';
+
+export { Typewriter } from './components/Typewriter';
+export type { TypewriterProps } from './components/Typewriter';
