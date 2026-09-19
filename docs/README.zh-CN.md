@@ -1,5 +1,23 @@
 # Animal-Island-UI
 
+> [!IMPORTANT]
+> **本仓库是 fork 的 `rn` 分支：上游库的 React Native 移植版。**
+>
+> 上游（`guokaigdg/animal-island-ui`）是 **React DOM（Web）** 组件库。
+> 本分支把全部 **34 个组件**重新实现为 **React Native** 版本。以下所有内容
+> —— 徽章、安装命令、`animal-island-ui/style` 样式引入、用法示例 ——
+> 描述的都是**上游的 Web 包，在本分支上不适用**：
+>
+> - 没有 `animal-island-ui/style` 入口；RN 没有全局 CSS
+> - `className` 换成 `style` + `testID`
+> - 少数 props 在 Web 概念于 RN 无对应物时是**有文档的空操作**
+>   （`Cursor`、`Drawer.pushBackground`、`Form.scrollToField`、键盘导航）
+>
+> 移植契约、**12 条与上游的有意分歧**、以及**未被测试覆盖的部分**见
+> **[`RN-PORT.md`](../RN-PORT.md)**（中文版 [`docs/RN-PORT.zh-CN.md`](./RN-PORT.zh-CN.md)）。
+>
+> 未经改动的上游 Web 库在 [`main`](../../tree/main) 分支上。
+
 <br/>
 <div align="center">
     <img src="img/readme-logo.png" alt="animal-island-ui" style="border-radius: 24px; width: 125px; display: block; margin: 0 auto 24px;" />    

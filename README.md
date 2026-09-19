@@ -1,5 +1,25 @@
 # Animal-Island-UI
 
+> [!IMPORTANT]
+> **This repository is the `rn` branch of a fork: a React Native port of the upstream
+> library.**
+>
+> Upstream (`guokaigdg/animal-island-ui`) is a **React DOM (web)** component library.
+> This branch re-implements all **34 components** for **React Native**. Everything below
+> — the badges, the install command, the `animal-island-ui/style` CSS import, the usage
+> examples — describes **upstream's web package and does not apply here**:
+>
+> - there is no `animal-island-ui/style` entry point; RN has no global CSS
+> - `className` is replaced by `style` + `testID`
+> - a few props are documented no-ops where the web concept has no RN counterpart
+>   (`Cursor`, `Drawer.pushBackground`, `Form.scrollToField`, keyboard navigation)
+>
+> Read **[`RN-PORT.md`](./RN-PORT.md)** for the porting contract, the **12 deliberate
+> divergences from upstream**, and what is **not** covered by tests
+> (also available [in Chinese](./docs/RN-PORT.zh-CN.md)).
+>
+> The unmodified upstream web library lives on the [`main`](../../tree/main) branch.
+
 <br/>
 <div align="center">
     <img src="./docs/img/readme-logo.png" alt="animal-island-ui" style="border-radius: 24px; width: 125px; display: block; margin: 0 auto 24px;" />

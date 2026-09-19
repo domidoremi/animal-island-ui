@@ -71,6 +71,30 @@ eslint 被重新接回，但按 RN 的方式 —— 见「Linting」。因此在
 - `.githooks/pre-commit` **未启用**（`core.hooksPath` 未设置），所以没有东西会自动跑 `ci`
   —— 提交前请自己跑。
 
+## ⚠️ 本 fork 的默认分支是 `rn`
+
+fork `domidoremi/animal-island-ui` 的**默认分支是 `rn`**（上游 Web 库原封不动留在 `main`）。
+两件要知道的连带影响：
+
+1. **`gh repo sync` 现在作用于 `rn`，不是 `main`。** `--branch` 默认取目标仓库的默认分支，
+   所以裸跑
+
+    ```bash
+    gh repo sync domidoremi/animal-island-ui
+    ```
+
+    会试图把 **`rn`** 快进到上游的 `main`。由于历史已分叉，它会失败 —— 这本身无害，
+    但**加 `--force` 会 hard reset `rn`，摧毁整个移植**。
+    要同步上游镜像，务必显式指定分支：
+
+    ```bash
+    gh repo sync domidoremi/animal-island-ui -b main
+    ```
+
+2. **本分支的 `README.md` 是上游的 Web 版 README**，只在顶部加了一段提示。
+   它记载的安装命令与 `animal-island-ui/style` 引入**不适用于本分支**。
+   不要顺手「修好」其余部分 —— 与上游逐字节一致，才能让 fork 与上游可 diff。
+
 ## 工具链决策
 
 | 决策                                          | 原因                                                                                                                                              |

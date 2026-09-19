@@ -72,6 +72,31 @@ Rewriting `package.json` for RN **removed the Web toolchain** (vite, vitest, les
 - `.githooks/pre-commit` is **not active** (`core.hooksPath` is unset), so nothing runs `ci`
   automatically — run it yourself before committing.
 
+## ⚠️ This fork's default branch is `rn`
+
+The fork `domidoremi/animal-island-ui` has `rn` as its **default branch** (the upstream
+web library stays untouched on `main`). Two consequences worth knowing:
+
+1. **`gh repo sync` now targets `rn`, not `main`.** `--branch` defaults to the destination's
+   default branch, so a bare
+
+    ```bash
+    gh repo sync domidoremi/animal-island-ui
+    ```
+
+    tries to fast-forward **`rn`** to upstream's `main`. That fails (the histories diverged),
+    which is harmless — but **`--force` would hard-reset `rn` and destroy the entire port.**
+    To sync the upstream mirror, always name the branch explicitly:
+
+    ```bash
+    gh repo sync domidoremi/animal-island-ui -b main
+    ```
+
+2. **`README.md` here is upstream's web README** with an added notice at the top. The
+   install command and the `animal-island-ui/style` import it documents do **not** apply to
+   this branch. Do not "fix" the rest of it — keeping it byte-identical to upstream is what
+   makes the fork diffable against it.
+
 ## Toolchain decisions
 
 | Decision                                      | Why                                                                                                                                                          |
