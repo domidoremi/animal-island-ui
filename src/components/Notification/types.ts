@@ -6,6 +6,7 @@
 // ============================================
 
 import type { ReactNode } from 'react';
+import type { StyleProp, ViewStyle } from 'react-native';
 
 export type NotificationType = 'success' | 'info' | 'warning' | 'error';
 
@@ -36,10 +37,8 @@ export interface NotificationConfig {
     onClick?: () => void;
     /** 自定义关闭图标 */
     closeIcon?: ReactNode;
-    /** 自定义类名 */
-    className?: string;
-    /** 自定义样式 */
-    style?: React.CSSProperties;
+    /** 自定义样式（取代 Web 的 `className` + `style: CSSProperties`） */
+    style?: StyleProp<ViewStyle>;
 }
 
 export interface NotificationItem extends NotificationConfig {

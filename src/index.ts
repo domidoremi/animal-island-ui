@@ -82,6 +82,16 @@ export type { LoadingProps } from './components/Loading';
 export { Modal } from './components/Modal';
 export type { ModalProps, ModalVariant } from './components/Modal';
 
+export { Notification, NotificationHost, notificationOpen, notificationDestroy } from './components/Notification';
+export type {
+    NotificationStatic,
+    NotificationConfig,
+    NotificationItem,
+    NotificationType,
+    NotificationPosition,
+    NotificationPlacement,
+} from './components/Notification';
+
 export { Pagination } from './components/Pagination';
 export type { PaginationProps } from './components/Pagination';
 
@@ -105,6 +115,9 @@ export type {
 
 export { Switch } from './components/Switch';
 export type { SwitchProps, SwitchSize } from './components/Switch';
+
+export { Table } from './components/Table';
+export type { TableProps, TableColumn } from './components/Table';
 
 export { Tabs } from './components/Tabs';
 export type { TabsProps, TabItem } from './components/Tabs';

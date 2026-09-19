@@ -1,342 +1,336 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { screen, waitFor, act, within } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import { Notification, notificationDestroy } from './NotificationPortal';
-import styles from './notification.module.less';
+import React from 'react';
+import { Pressable, Text } from 'react-native';
+import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
+import type { TestInstance } from 'test-renderer';
+import { Notification, NotificationHost, notificationDestroy } from './NotificationPortal';
 
-const wait = (ms = 0) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+/**
+ * RN 版测试，对应 Web 版 `Notification.test.tsx` 的 20 个用例。
+ *
+ * ## 最大的结构差异：宿主组件
+ * 上游首次 `open()` 时自己往 `document.body` 挂一个 React 根，调用方什么都不用做。
+ * RN 没有 `document` / `createRoot`，**没有「凭空挂一个 React 根」的机制**，所以
+ * 必须由宿主 App 渲染一次 `<NotificationHost />`。命令式 API 的形状完全没变，
+ * 变的只有「谁来承载渲染」。每个用例都得先渲染宿主。
+ *
+ * **被丢弃的 Web 用例**：
+ *   - 「首次 open 后在 body 创建通知根容器」—— 没有 `document.body`，改成断言
+ *     「不渲染宿主时什么都不出现 / 渲染宿主后才出现」。
+ *   - 「键盘 Enter 触发 onClick」与 `tabIndex={0}` —— RN 没有 DOM 焦点与键盘事件。
+ *   - `.clickable:hover` 与 `:focus-visible` 的 outline —— RN 没有 hover / focus 样式。
+ *   - `@media (prefers-reduced-motion)` —— 无对应物。
+ *   - 「race: closeIcon onClick 立即置 dismissed」—— 依赖 DOM 的冒泡顺序
+ *     （span.onClick 先于 button.onClick）；RN 的 responder 系统没有这套顺序语义，
+ *     保留不了这个 race 的还原。但 store 层的「同 key 更新」契约照测。
+ *
+ * **测不到的**：滑入 / 滑出的实际观感（测试里 `useNativeDriver` 是 no-op）、
+ *   `max-width: calc(100vw - 32px)`（RN 不支持 `calc()`，退化成 `maxWidth: '100%'`）、
+ *   `pointerEvents` 在真机上的穿透行为。
+ */
 
-const getContainer = (): HTMLElement | null => document.querySelector('[data-animal-notification-root]');
-
-const waitForContainer = async (): Promise<HTMLElement> => {
-    return waitFor(() => {
-        const el = getContainer();
-        if (!el) throw new Error('notification root not mounted yet');
-        return el;
-    });
+const styleOf = (node: TestInstance): Record<string, unknown> => {
+    const merged: Record<string, unknown> = {};
+    const walk = (s: unknown) => {
+        if (Array.isArray(s)) s.forEach(walk);
+        else if (s && typeof s === 'object') Object.assign(merged, s);
+    };
+    walk((node.props as { style?: unknown }).style);
+    return merged;
 };
 
-const waitForGone = async (text: string): Promise<void> => {
-    await waitFor(
-        () => {
-            expect(screen.queryByText(text)).not.toBeInTheDocument();
-        },
-        { timeout: 2000 }
+/** `Animated.View` 不接受 `onPress`，可点击态走 responder；fireEvent.press 不生效 */
+const responderEvent = (registrationName: string) => ({
+    currentTarget: { measure: () => {} },
+    target: {},
+    preventDefault: () => {},
+    isDefaultPrevented: () => false,
+    stopPropagation: () => {},
+    isPropagationStopped: () => false,
+    persist: () => {},
+    isPersistent: () => false,
+    timeStamp: 0,
+    nativeEvent: {
+        changedTouches: [],
+        identifier: 0,
+        locationX: 0,
+        locationY: 0,
+        pageX: 0,
+        pageY: 0,
+        target: 0,
+        timestamp: Date.now(),
+        touches: [],
+    },
+    dispatchConfig: { registrationName },
+});
+
+// ⚠️ 必须只取宿主节点（`typeof n.type === 'string'`）：`container.queryAll` 会同时返回
+//    复合组件节点和它渲染出的宿主节点，直接按 testID 过滤会**每条通知数两遍**。
+const cardsOf = (container: TestInstance) =>
+    container.queryAll(
+        (n) =>
+            typeof n.type === 'string' &&
+            typeof n.props.testID === 'string' &&
+            n.props.testID.startsWith('n-item-') &&
+            // 关闭按钮的 testID 是 `<卡片>-close`，同前缀，必须排掉
+            !n.props.testID.endsWith('-close')
     );
-};
 
 describe('Notification', () => {
     beforeEach(async () => {
-        notificationDestroy();
-        await wait();
-        // 等待上轮所有退场动画结束(避免旧 timer 影响新用例)
-        await wait(300);
+        await act(async () => {
+            notificationDestroy();
+        });
     });
 
     afterEach(async () => {
-        notificationDestroy();
-        await wait(300);
+        await act(async () => {
+            notificationDestroy();
+        });
     });
 
-    describe('静态方法挂载与渲染', () => {
-        it('首次 open 后在 body 创建通知根容器', async () => {
-            expect(getContainer()).toBeNull();
-            act(() => {
+    describe('宿主组件', () => {
+        it('不渲染 NotificationHost 时，open 只改 store、屏幕什么都不出现', async () => {
+            const { queryByText } = await render(<Text>app</Text>);
+            await act(async () => {
                 Notification.info('hello');
             });
-            const root = await waitForContainer();
-            expect(root).not.toBeNull();
-            await waitFor(() => {
-                expect(screen.getByText('hello')).toBeInTheDocument();
-            });
+            expect(queryByText('hello')).toBeNull();
         });
 
+        it('渲染宿主后 open 才显示通知', async () => {
+            const { getByText } = await render(<NotificationHost testID="n" />);
+            await act(async () => {
+                Notification.info({ message: 'hello', duration: 0 });
+            });
+            expect(getByText('hello')).toBeTruthy();
+        });
+    });
+
+    describe('静态方法', () => {
         it('字符串简写会作为 message 渲染', async () => {
-            act(() => {
+            const { getByText } = await render(<NotificationHost testID="n" />);
+            await act(async () => {
                 Notification.success('简写消息');
             });
-            await waitForContainer();
-            await waitFor(() => {
-                expect(screen.getByText('简写消息')).toBeInTheDocument();
-            });
+            expect(getByText('简写消息')).toBeTruthy();
         });
 
         it('对象 config 渲染 message + description', async () => {
-            act(() => {
+            const { getByText } = await render(<NotificationHost testID="n" />);
+            await act(async () => {
                 Notification.info({ message: '标题', description: '详细描述内容' });
             });
-            await waitForContainer();
-            await waitFor(() => {
-                expect(screen.getByText('标题')).toBeInTheDocument();
-                expect(screen.getByText('详细描述内容')).toBeInTheDocument();
-            });
+            expect(getByText('标题')).toBeTruthy();
+            expect(getByText('详细描述内容')).toBeTruthy();
         });
 
-        it('不同 type 应用对应 class', async () => {
-            act(() => {
-                Notification.success('s');
-                Notification.error('e');
-                Notification.warning('w');
-                Notification.info('i');
+        it('不同 type 应用对应配色', async () => {
+            const { container } = await render(<NotificationHost testID="n" />);
+            await act(async () => {
+                Notification.success({ message: 's', duration: 0 });
+                Notification.error({ message: 'e', duration: 0 });
+                Notification.warning({ message: 'w', duration: 0 });
+                Notification.info({ message: 'i', duration: 0 });
             });
-            await waitForContainer();
-            await waitFor(() => {
-                const root = getContainer()!;
-                const items = root.querySelectorAll(`.${styles.notification}`);
-                expect(items.length).toBe(4);
-                expect(items[0].className).toContain(styles['type-success']);
-                expect(items[1].className).toContain(styles['type-error']);
-                expect(items[2].className).toContain(styles['type-warning']);
-                expect(items[3].className).toContain(styles['type-info']);
-            });
+            const cards = cardsOf(container);
+            expect(cards).toHaveLength(4);
+            expect(styleOf(cards[0]).backgroundColor).toBe('#f5fae9');
+            expect(styleOf(cards[1]).backgroundColor).toBe('#fde8e8');
+            expect(styleOf(cards[2]).backgroundColor).toBe('#fdf6d9');
+            expect(styleOf(cards[3]).backgroundColor).toBe('#ecf9f6');
         });
     });
 
     describe('位置分组', () => {
-        it('position=top 默认时通知挂到 top 组', async () => {
-            act(() => {
-                Notification.info({ message: 'top' });
+        it('position=top（默认）挂到 top 组', async () => {
+            const { getByTestId } = await render(<NotificationHost testID="n" />);
+            await act(async () => {
+                Notification.info({ message: 'top', duration: 0 });
             });
-            await waitForContainer();
-            await waitFor(() => {
-                const topGroup = document.querySelector(`.${styles['position-top']}`);
-                expect(topGroup).not.toBeNull();
-                expect(topGroup).toHaveAttribute('data-position', 'top');
-            });
+            const group = getByTestId('n-group-top');
+            expect(styleOf(group).top).toBe(24);
+            expect(styleOf(group).alignItems).toBe('center');
         });
 
         it('position=topRight 走 topRight 组', async () => {
-            act(() => {
-                Notification.info({ message: 'right', position: 'topRight' });
+            const { getByTestId } = await render(<NotificationHost testID="n" />);
+            await act(async () => {
+                Notification.info({ message: 'right', position: 'topRight', duration: 0 });
             });
-            await waitForContainer();
-            await waitFor(() => {
-                const group = document.querySelector(`.${styles['position-topRight']}`);
-                expect(group).not.toBeNull();
-            });
+            const group = getByTestId('n-group-topRight');
+            expect(styleOf(group).right).toBe(24);
+            expect(styleOf(group).alignItems).toBe('flex-end');
         });
 
-        it('position=bottom 走 bottom 组,placement=bottom', async () => {
-            act(() => {
-                Notification.info({ message: 'b', position: 'bottom' });
+        it('position=bottom 走 bottom 组，且列反向堆叠', async () => {
+            const { getByTestId } = await render(<NotificationHost testID="n" />);
+            await act(async () => {
+                Notification.info({ message: 'b', position: 'bottom', duration: 0 });
             });
-            await waitForContainer();
-            await waitFor(() => {
-                const group = document.querySelector(`.${styles['position-bottom']}`);
-                expect(group).not.toBeNull();
-                const card = group!.querySelector(`.${styles.notification}`) as HTMLElement;
-                expect(card.className).toContain(styles['placement-bottom']);
-            });
+            const group = getByTestId('n-group-bottom');
+            expect(styleOf(group).bottom).toBe(24);
+            // `.position-bottom { flex-direction: column-reverse }`
+            expect(styleOf(group).flexDirection).toBe('column-reverse');
         });
     });
 
     describe('关闭行为', () => {
-        it('点击关闭按钮触发退场后从 DOM 移除', async () => {
-            const user = userEvent.setup();
-            act(() => {
-                Notification.info({ message: 'close me' });
+        it('点击关闭按钮后退场并从树里移除', async () => {
+            const { queryByText, getByLabelText } = await render(<NotificationHost testID="n" />);
+            await act(async () => {
+                Notification.info({ message: 'close me', duration: 0 });
             });
-            await waitForContainer();
-            const closeBtn = await screen.findByLabelText('close');
-            // jest-dom v6: 显式 role 与可访问名校验
-            expect(closeBtn).toHaveRole('button');
-            expect(closeBtn).toHaveAccessibleName('close');
-            await user.click(closeBtn);
-            await waitForGone('close me');
+            const closeBtn = getByLabelText('close');
+            expect(closeBtn.props.accessibilityRole).toBe('button');
+            await fireEvent.press(closeBtn);
+            await waitFor(() => expect(queryByText('close me')).toBeNull(), { timeout: 3000 });
         });
 
-        it('duration 较短时自动关闭并触发 onClose', async () => {
-            const onClose = vi.fn();
-            act(() => {
-                Notification.info({ message: 'auto', duration: 0.5, onClose });
+        it('duration 到期自动关闭并触发 onClose', async () => {
+            const onClose = jest.fn();
+            const { queryByText, getByText } = await render(<NotificationHost testID="n" />);
+            await act(async () => {
+                Notification.info({ message: 'auto', duration: 0.2, onClose });
             });
-            await waitForContainer();
-            await waitFor(() => {
-                expect(screen.getByText('auto')).toBeInTheDocument();
-            });
-            await waitForGone('auto');
+            expect(getByText('auto')).toBeTruthy();
+            await waitFor(() => expect(queryByText('auto')).toBeNull(), { timeout: 3000 });
             expect(onClose).toHaveBeenCalled();
-        }, 3000);
+        });
 
         it('destroy() 关闭全部', async () => {
-            act(() => {
-                Notification.info('a');
-                Notification.success('b');
+            const { queryByText, getByText } = await render(<NotificationHost testID="n" />);
+            await act(async () => {
+                Notification.info({ message: 'a', duration: 0 });
+                Notification.success({ message: 'b', duration: 0 });
             });
-            await waitForContainer();
-            await waitFor(() => {
-                expect(screen.getByText('a')).toBeInTheDocument();
-                expect(screen.getByText('b')).toBeInTheDocument();
-            });
-            act(() => {
+            expect(getByText('a')).toBeTruthy();
+            expect(getByText('b')).toBeTruthy();
+            await act(async () => {
                 notificationDestroy();
             });
-            await waitForGone('a');
-            await waitForGone('b');
+            expect(queryByText('a')).toBeNull();
+            expect(queryByText('b')).toBeNull();
         });
 
         it('destroy(key) 只关闭指定 key', async () => {
-            act(() => {
-                Notification.info({ message: 'keep', key: 'k1' });
-                Notification.info({ message: 'remove', key: 'k2' });
+            const { queryByText, getByText } = await render(<NotificationHost testID="n" />);
+            await act(async () => {
+                Notification.info({ message: 'keep', key: 'k1', duration: 0 });
+                Notification.info({ message: 'remove', key: 'k2', duration: 0 });
             });
-            await waitForContainer();
-            await waitFor(() => {
-                expect(screen.getByText('keep')).toBeInTheDocument();
-                expect(screen.getByText('remove')).toBeInTheDocument();
-            });
-            act(() => {
+            await act(async () => {
                 notificationDestroy('k2');
             });
-            await waitForGone('remove');
-            expect(screen.getByText('keep')).toBeInTheDocument();
+            expect(queryByText('remove')).toBeNull();
+            expect(getByText('keep')).toBeTruthy();
         });
 
-        it('destroy() 同步触发被移除项的 onClose(与点 × / duration 到期契约一致)', async () => {
-            const onCloseA = vi.fn();
-            const onCloseB = vi.fn();
-            act(() => {
-                Notification.info({ message: 'a', onClose: onCloseA });
-                Notification.success({ message: 'b', onClose: onCloseB });
+        it('destroy() 同步触发被移除项的 onClose（与点 × / duration 到期契约一致）', async () => {
+            const onCloseA = jest.fn();
+            const onCloseB = jest.fn();
+            await render(<NotificationHost testID="n" />);
+            await act(async () => {
+                Notification.info({ message: 'a', duration: 0, onClose: onCloseA });
+                Notification.success({ message: 'b', duration: 0, onClose: onCloseB });
             });
-            await waitForContainer();
-            await waitFor(() => {
-                expect(screen.getByText('a')).toBeInTheDocument();
-                expect(screen.getByText('b')).toBeInTheDocument();
-            });
-            act(() => {
+            await act(async () => {
                 notificationDestroy();
             });
-            // destroy() 是同步路径,onClose 应立即触发(不等 250ms 退场动画)
+            // destroy() 是同步路径，onClose 应立即触发（不等 250ms 退场动画）
             expect(onCloseA).toHaveBeenCalledTimes(1);
             expect(onCloseB).toHaveBeenCalledTimes(1);
         });
 
-        it('destroy(key) 同步触发该项的 onClose,其它 key 不触发', async () => {
-            const onCloseK1 = vi.fn();
-            const onCloseK2 = vi.fn();
-            act(() => {
-                Notification.info({ message: 'k1 msg', key: 'k1', onClose: onCloseK1 });
-                Notification.info({ message: 'k2 msg', key: 'k2', onClose: onCloseK2 });
+        it('destroy(key) 同步触发该项的 onClose，其它 key 不触发', async () => {
+            const onCloseK1 = jest.fn();
+            const onCloseK2 = jest.fn();
+            await render(<NotificationHost testID="n" />);
+            await act(async () => {
+                Notification.info({ message: 'k1 msg', key: 'k1', duration: 0, onClose: onCloseK1 });
+                Notification.info({ message: 'k2 msg', key: 'k2', duration: 0, onClose: onCloseK2 });
             });
-            await waitForContainer();
-            act(() => {
+            await act(async () => {
                 notificationDestroy('k2');
             });
             expect(onCloseK2).toHaveBeenCalledTimes(1);
             expect(onCloseK1).not.toHaveBeenCalled();
         });
 
-        it('upload 场景:destroy 后同 key 后续 open 也不再创建(dismissed 闭包经 onClose 收到信号)', async () => {
-            // 完整还原用户描述的场景:点 "模拟上传进度" 后立刻点 "destroy 关闭全部",
-            // 之前 50% / 100% 还会出现 —— 因为 destroy 路径没走 onClose,dismissed 收不到信号。
-            // 修复后 destroy() 同步调 onClose,dismissed 被置 true,后续 open 全部 return。
+        it('upload 场景：destroy 后同 key 后续 open 不再创建（dismissed 闭包经 onClose 收到信号）', async () => {
             const uploadKey = 'upload-destroy';
             let dismissed = false;
-            const onCloseMock = vi.fn(() => {
+            const onCloseMock = jest.fn(() => {
                 dismissed = true;
             });
             const open = (msg: string) => {
                 if (dismissed) return;
-                Notification.info({
-                    message: msg,
-                    key: uploadKey,
-                    duration: 0,
-                    onClose: onCloseMock,
-                });
+                Notification.info({ message: msg, key: uploadKey, duration: 0, onClose: onCloseMock });
             };
 
-            act(() => {
+            const { queryByText, getByText } = await render(<NotificationHost testID="n" />);
+            await act(async () => {
                 open('上传中 0%');
             });
-            await waitForContainer();
-            await waitFor(() => {
-                expect(screen.getByText('上传中 0%')).toBeInTheDocument();
-            });
+            expect(getByText('上传中 0%')).toBeTruthy();
 
-            // 立刻 destroy 全部(模拟用户点 "destroy 关闭全部")
-            act(() => {
+            await act(async () => {
                 notificationDestroy();
             });
-            // onClose 已被 destroy 同步触发
             expect(onCloseMock).toHaveBeenCalledTimes(1);
             expect(dismissed).toBe(true);
-            await waitForGone('上传中 0%');
 
-            // 模拟后续 setTimeout 排队到 300ms / 600ms → dismissed 已 true → 全部 return
-            act(() => {
+            await act(async () => {
                 open('上传中 50%');
                 open('上传完成 100%');
             });
-            await wait(400);
-            expect(screen.queryByText('上传中 50%')).not.toBeInTheDocument();
-            expect(screen.queryByText('上传完成 100%')).not.toBeInTheDocument();
+            expect(queryByText('上传中 50%')).toBeNull();
+            expect(queryByText('上传完成 100%')).toBeNull();
         });
     });
 
     describe('onClick 与可点击态', () => {
-        it('配置 onClick 后,通知本体可点击触发回调', async () => {
-            const user = userEvent.setup();
-            const onClick = vi.fn();
-            act(() => {
-                Notification.info({ message: 'click me', onClick });
+        it('配置 onClick 后，点击通知本体触发回调', async () => {
+            const onClick = jest.fn();
+            const { getByText, container } = await render(<NotificationHost testID="n" />);
+            await act(async () => {
+                Notification.info({ message: 'click me', duration: 0, onClick });
             });
-            await waitForContainer();
-            const card = await screen.findByText('click me');
-            await user.click(card);
+            expect(getByText('click me')).toBeTruthy();
+            const card = cardsOf(container)[0];
+            // Animated.View 不接受 onPress，可点击态走 responder（见组件注释）
+            fireEvent(card, 'responderRelease', responderEvent('onResponderRelease'));
             expect(onClick).toHaveBeenCalled();
         });
 
-        it('onClick 设置后获得 role=button 与 tabIndex=0', async () => {
-            act(() => {
-                Notification.info({ message: 'kb', onClick: () => {} });
+        it('onClick 设置后卡片带 role=button；没设置时没有', async () => {
+            const { container } = await render(<NotificationHost testID="n" />);
+            await act(async () => {
+                Notification.info({ message: 'kb', duration: 0, onClick: () => {} });
+                Notification.info({ message: 'plain', key: 'p', duration: 0 });
             });
-            await waitForContainer();
-            const card = (await screen.findByText('kb')).closest(`.${styles.notification}`) as HTMLElement;
-            expect(card).toHaveAttribute('role', 'button');
-            expect(card).toHaveAttribute('tabindex', '0');
-            // jest-dom v6: 显式 role 与可访问名(text content)校验
-            expect(card).toHaveRole('button');
-            expect(card).toHaveAccessibleName('kb');
-        });
-
-        it('键盘 Enter 触发 onClick', async () => {
-            const user = userEvent.setup();
-            const onClick = vi.fn();
-            act(() => {
-                Notification.info({ message: 'kb', onClick });
-            });
-            await waitForContainer();
-            const card = (await screen.findByText('kb')).closest(`.${styles.notification}`) as HTMLElement;
-            card.focus();
-            await user.keyboard('{Enter}');
-            expect(onClick).toHaveBeenCalled();
+            const cards = cardsOf(container);
+            expect(cards[0].props.role).toBe('button');
+            expect(cards[0].props.accessible).toBe(true);
+            expect(cards[1].props.role).toBeUndefined();
         });
     });
 
     describe('key 更新', () => {
-        it('同 key 二次 open 走更新分支(仍只 1 条)', async () => {
-            act(() => {
-                Notification.info({ message: 'first', key: 'same' });
+        it('同 key 二次 open 走更新分支（仍只 1 条）', async () => {
+            const { container, queryByText, getByText } = await render(<NotificationHost testID="n" />);
+            await act(async () => {
+                Notification.info({ message: 'first', key: 'same', duration: 0 });
             });
-            await waitForContainer();
-            await waitFor(() => {
-                expect(screen.getByText('first')).toBeInTheDocument();
+            expect(getByText('first')).toBeTruthy();
+            await act(async () => {
+                Notification.info({ message: 'second', key: 'same', duration: 0 });
             });
-            act(() => {
-                Notification.info({ message: 'second', key: 'same' });
-            });
-            await waitFor(() => {
-                const root = getContainer()!;
-                const items = root.querySelectorAll(`.${styles.notification}`);
-                expect(items.length).toBe(1);
-                expect(screen.getByText('second')).toBeInTheDocument();
-                expect(screen.queryByText('first')).not.toBeInTheDocument();
-            });
+            expect(cardsOf(container)).toHaveLength(1);
+            expect(getByText('second')).toBeTruthy();
+            expect(queryByText('first')).toBeNull();
         });
 
-        it('用户关闭后,同 key 后续 open 不再创建(由调用方 dismissed 闭包控制)', async () => {
-            // 模拟"上传进度":同 key + onClose 设标志位,后续 setTimeout 排队的不再 open
+        it('用户关闭后，同 key 后续 open 不再创建（由调用方 dismissed 闭包控制）', async () => {
             const uploadKey = 'upload-test';
             let dismissed = false;
             const open = (msg: string) => {
@@ -351,108 +345,70 @@ describe('Notification', () => {
                 });
             };
 
-            const user = userEvent.setup();
-            act(() => {
+            const { queryByText, getByLabelText } = await render(<NotificationHost testID="n" />);
+            await act(async () => {
                 open('上传中 0%');
             });
-            await waitForContainer();
-            await waitFor(() => {
-                expect(screen.getByText('上传中 0%')).toBeInTheDocument();
-            });
+            await fireEvent.press(getByLabelText('close'));
+            await waitFor(() => expect(queryByText('上传中 0%')).toBeNull(), { timeout: 3000 });
 
-            // 用户点 × 关闭
-            const closeBtn = screen.getByLabelText('close');
-            await user.click(closeBtn);
-            await waitForGone('上传中 0%');
-
-            // 模拟后续 50% / 100% 的 setTimeout 排队到达 -> dismissed 已为 true,不再 open
-            act(() => {
+            await act(async () => {
                 open('上传中 50%');
                 open('上传完成 100%');
             });
-            // 等过 LEAVE_MS 也不会再出现
-            await wait(400);
-            expect(screen.queryByText('上传中 50%')).not.toBeInTheDocument();
-            expect(screen.queryByText('上传完成 100%')).not.toBeInTheDocument();
-        });
-
-        it('race: closeIcon onClick 立即置 dismissed,避免退场动画期(250ms)被同 key 复活', async () => {
-            // 这个测试专门覆盖一个 race:如果只在 onClose 里 set dismissed(那要等 250ms 退场动画),
-            // 那么在 (click, 退场结束) 这段时间内,任何 open 仍会把"leaving 态"的同 key 通知原地更新复活。
-            // 修复:closeIcon 的 onClick 同步触发,在父 button 的 handleCloseClick 之前就把 dismissed 置 true。
-            // 关键断言时机:click 之后立即(在 act 同步段里)open 'race-50' / 'race-100',
-            // 同步断言 DOM 里**没有**这两条。注意:不能 wait 之后再断言,
-            // —— 因为 250ms 后原 race-0 的退场定时器会从 store 移除整条 key,
-            // 旧实现下 race-50 / race-100 也会被一并清掉,400ms 后断言也会"误通过"。
-            //
-            // 真实浏览器中,closeIcon span 是 22×22 圆 button 内的唯一可见元素,
-            // 用户点 × 时 click target = span,先触发 span.onClick 再冒泡到 button.onClick。
-            // jsdom 中 userEvent.click(button) 直接 dispatch 在 button 上,target=button,
-            // span.onClick 不会触发——所以这里要 click closeIcon(span) 而不是 button,
-            // 才能真实还原用户操作。
-            const user = userEvent.setup();
-            const uploadKey = 'upload-race';
-            let dismissed = false;
-            const markDismissed = () => {
-                dismissed = true;
-            };
-            const open = (msg: string) => {
-                if (dismissed) return;
-                Notification.info({
-                    message: msg,
-                    key: uploadKey,
-                    duration: 0,
-                    closeIcon: <span onClick={markDismissed}>×</span>,
-                    onClose: () => {
-                        dismissed = true;
-                    },
-                });
-            };
-
-            act(() => {
-                open('race-0');
-            });
-            await waitForContainer();
-            await waitFor(() => {
-                expect(screen.getByText('race-0')).toBeInTheDocument();
-            });
-
-            // 还原真实浏览器行为:点 closeIcon span(它在 close button 里),
-            // span.onClick 同步置 dismissed=true,然后冒泡到 button.onClick → setLeaving(true)
-            const closeBtn = screen.getByLabelText('close');
-            const closeIcon = within(closeBtn).getByText('×');
-            await user.click(closeIcon);
-
-            // 立刻(不等退场结束)open 'race-50' / 'race-100'——dismissed 已是 true,直接 return
-            act(() => {
-                open('race-50');
-                open('race-100');
-            });
-            // 【关键】同步断言:这俩文案此刻不应在 DOM 里。
-            // 旧实现(只在 onClose 置位)下:open 已把 store 里的 leaving 项原地更新成 race-50/100,
-            // 此处 queryByText 会找到它们,断言失败。
-            expect(screen.queryByText('race-50')).not.toBeInTheDocument();
-            expect(screen.queryByText('race-100')).not.toBeInTheDocument();
-            // race-0 此刻仍在退场动画中,DOM 还在(leaving class)
-            // 等退场彻底结束后再确认它也消失
-            await waitForGone('race-0');
-            expect(screen.queryByText('race-50')).not.toBeInTheDocument();
-            expect(screen.queryByText('race-100')).not.toBeInTheDocument();
+            expect(queryByText('上传中 50%')).toBeNull();
+            expect(queryByText('上传完成 100%')).toBeNull();
         });
     });
 
     describe('btn slot', () => {
         it('配置 btn 后渲染自定义操作按钮', async () => {
-            act(() => {
+            const { getByTestId } = await render(<NotificationHost testID="n" />);
+            await act(async () => {
                 Notification.info({
                     message: 'with action',
-                    btn: <button data-testid="custom-btn">Action</button>,
+                    duration: 0,
+                    btn: (
+                        <Pressable testID="custom-btn">
+                            <Text>Action</Text>
+                        </Pressable>
+                    ),
                 });
             });
-            await waitForContainer();
-            await waitFor(() => {
-                expect(screen.getByTestId('custom-btn')).toBeInTheDocument();
-            });
+            expect(getByTestId('custom-btn')).toBeTruthy();
         });
+
+        it('自定义 closeIcon 渲染在关闭按钮里', async () => {
+            const { getByTestId, getByLabelText } = await render(<NotificationHost testID="n" />);
+            await act(async () => {
+                Notification.info({
+                    message: 'custom close',
+                    duration: 0,
+                    closeIcon: <Text testID="custom-close">X</Text>,
+                });
+            });
+            expect(getByTestId('custom-close')).toBeTruthy();
+            expect(getByLabelText('close')).toBeTruthy();
+        });
+    });
+
+    it('style 透传到卡片', async () => {
+        const { container } = await render(<NotificationHost testID="n" />);
+        await act(async () => {
+            Notification.info({ message: 'styled', duration: 0, style: { borderWidth: 4 } });
+        });
+        expect(styleOf(cardsOf(container)[0]).borderWidth).toBe(4);
+    });
+
+    it('iconWrap 是 aria-hidden（装饰性图标不进无障碍树）', async () => {
+        const { container } = await render(<NotificationHost testID="n" />);
+        await act(async () => {
+            Notification.info({ message: 'a11y', duration: 0 });
+        });
+        const iconWraps = container.queryAll((n) => n.props['aria-hidden'] === true && n.props.style !== undefined);
+        expect(iconWraps.length).toBeGreaterThan(0);
+        // 卡片自身不是隐藏节点
+        expect(cardsOf(container)[0].props['aria-hidden']).toBeUndefined();
+        expect(cardsOf(container)).toHaveLength(1);
     });
 });
