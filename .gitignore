@@ -42,6 +42,8 @@ pnpm-debug.log*
 coverage/
 # 例外：徽章元数据要 commit 给 shields.io 拉取
 !coverage/badges/
+# Jest transform 缓存（刻意放在项目内，见 jest.config.js 的说明）
+.jest-cache/
 
 # Misc
 *.bak

@@ -1,8 +1,15 @@
 {
-    // 注意：本 tsconfig 只覆盖**已移植到 RN** 的子集。
-    // `src/` 下还留着上游 Web 版的 7 个组件（import .less / react-dom / naive-icons），
-    // 它们不在 include 里，所以不会污染 typecheck。
-    // 每移植一个组件，往 include 里加一条。
+    // 本 tsconfig 只覆盖**已移植到 RN** 的子集。
+    //
+    // 2026-09-19：34 / 34 组件已全部移植，`src/` 下不再有引用 .less / react-dom /
+    // naive-icons 的 .ts(x)。已实测把 include 换成 `["src"]` 时 `typecheck` 与
+    // `build` 都通过、dist 产物 400 个文件**完全一致**，所以这份穷举清单在功能上
+    // 已经等价于 `["src"]`。
+    //
+    // 之所以暂不简化：它不是「白名单」，而是**被测范围的显式声明**，删掉后任何人
+    // 往 src 里加文件都会静默进入门禁。是否简化属于基建决策，待定。
+    // 在此之前，每移植/新增一个组件仍需往这里加一条（另两处见 tsconfig.build.json
+    // 与 jest.config.js）。
     "compilerOptions": {
         "target": "ESNext",
         "module": "ESNext",
