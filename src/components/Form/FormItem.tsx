@@ -1,15 +1,39 @@
-import React, { useContext, useEffect, useState, useCallback, useMemo } from 'react';
-import classNames from 'classnames';
-import styles from './Form.module.less';
+/**
+ * Form.Item —— React Native 版。
+ *
+ * 与上游 Web 版的差异：
+ *
+ * 1. **`<label htmlFor>` → `nativeID` + `aria-labelledby`**。RN 没有 `<label>` 元素，
+ *    标签与控件的关联只能靠无障碍属性：label 拿到 `nativeID`，控件拿到
+ *    `aria-labelledby`（RN 0.87 会把它转成 `accessibilityLabelledBy`）。
+ * 2. **`aria-errormessage` 删除**。RN 0.87 的 `View.js` 只改写 13 个 `aria-*`，
+ *    里面没有 `errormessage`（也没有 `describedby` / `controls` / `haspopup`）。
+ *    错误文案与控件之间的程序化关联在 RN 上**无法表达**，只能靠视觉相邻。
+ * 3. **`data-field-name` → `testID`**。它原本就是给 `scrollToField` 的 DOM 查询用的，
+ *    而 `scrollToField` 在 RN 已变成空操作；保留成 `testID` 至少还能被测试定位。
+ * 4. **CSS Grid 的 24 列 `labelCol` / `wrapperCol` → flex 权重**。RN 没有 grid，
+ *    `span: 8` 折算成 `flex: 8/24`，`offset` 折算成一段等宽的占位 `View`。
+ *    （24 是上游 `buildGridStyle` 里写死的默认值。）
+ * 5. **裸字符串子节点自动包一层 `<Text>`**。上游允许 `<Form.Item>纯文本</Form.Item>`，
+ *    RN 里裸字符串会直接抛 `Invariant Violation`；`Table.tsx` 的 `asNode` 是同一处处理。
+ * 6. `defaultGetValueFromEvent` **原样保留**：它读的 `{ target: { value } }` 正是本仓
+ *    已移植的 `Input` 发出的 `InputChangeEvent` 形状，不需要改。
+ */
+
+import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { FormContext } from './context';
 import { stringifyNamePath } from './types';
 import type { FormItemProps, NamePath, Rules, StoreValue } from './types';
 
 /**
- * 从原生 event 对象中取目标值。覆盖典型控件：
- *  - input / textarea：event.target.value
- *  - checkbox：event.target.checked（仅当 target.type === 'checkbox'）
- *  - 自定义组件：直接返回 event 本身
+ * 从事件对象中取目标值。与上游 `defaultGetValueFromEvent` 逐行一致。
+ *
+ * 覆盖典型控件：
+ *  - 本仓 RN 版 `Input`：`{ target: { value } }`（`InputChangeEvent`）
+ *  - 自定义组件：直接返回事件本身，或读事件上的 `value`
+ *  - Web 的 `target.type === 'checkbox' | 'radio'` 分支**保留**：`Checkbox` / `Radio`
+ *    的 RN 版若仍在 `onChange` 里传 `{ target: { checked } }`，这里照样能读出来。
  */
 function defaultGetValueFromEvent(event: unknown): StoreValue {
     if (event === null || event === undefined) return event;
@@ -20,7 +44,7 @@ function defaultGetValueFromEvent(event: unknown): StoreValue {
         if (target.type === 'checkbox' || target.type === 'radio') {
             if ('checked' in target) return target.checked;
         }
-        // 普通 input/textarea：优先 value（即使没显式赋值，DOM 上也常带 checked 字段，不能靠 in 判断）
+        // 普通 input：优先 value
         if ('value' in target && target.value !== undefined) return target.value;
     }
     // 自定义组件可能直接传 value
@@ -30,7 +54,41 @@ function defaultGetValueFromEvent(event: unknown): StoreValue {
     return event;
 }
 
-const prefixCls = 'island-form-item';
+/** 上游 `buildGridStyle` 里写死的 24 列 */
+const GRID_COLUMNS = 24;
+
+/**
+ * 这些颜色是 `Form.module.less` 的**局部**变量，与 `src/styles/variables.less`
+ * 不同源（那边是 `#6fba2c` / `#f5c31c` / `#e05a5a`，这边是 antd 默认色）。
+ * 逐字照搬 Less 里的值，不做统一。
+ */
+const LABEL_COLOR = 'rgba(0, 0, 0, 0.85)';
+const HELP_COLOR = 'rgba(0, 0, 0, 0.45)';
+const ERROR_COLOR = '#ff4d4f';
+const WARNING_COLOR = '#faad14';
+const SUCCESS_COLOR = '#52c41a';
+const VALIDATING_COLOR = '#1677ff';
+const HELP_FONT_SIZE = 12;
+const LABEL_LINE_HEIGHT = 1.6;
+
+/** 校验状态 → 提示文字色（`.island-form-item-explain-error` 等） */
+const STATUS_COLOR: Record<string, string> = {
+    error: ERROR_COLOR,
+    warning: WARNING_COLOR,
+    success: SUCCESS_COLOR,
+    validating: VALIDATING_COLOR,
+};
+
+/**
+ * 24 列的 `span` / `offset` 折算成 RN 的 flex 权重。
+ *
+ * 上游 `gridColumn: `${startCol + offset} / span ${span}`` 有两层含义：
+ * 起始列由 `offset` 推移，宽度由 `span` 决定。RN 的 flex 只能表达权重，
+ * 所以 `offset` 折成一段 `flex: offset/24` 的**占位 View**，`span` 折成 `flex: span/24`。
+ * 无 `labelCol` / `wrapperCol` 时返回 undefined，交回默认布局（与上游 `if (!col) return {}` 一致）。
+ */
+const flexWeightOf = (span: number | undefined): number | undefined =>
+    span === undefined ? undefined : span / GRID_COLUMNS;
 
 export const FormItem: React.FC<FormItemProps> = (props) => {
     const {
@@ -52,8 +110,9 @@ export const FormItem: React.FC<FormItemProps> = (props) => {
         colon,
         requiredMark,
         layout: itemLayout,
-        className,
+        style,
         children,
+        testID,
     } = props;
 
     const ctx = useContext(FormContext);
@@ -63,7 +122,6 @@ export const FormItem: React.FC<FormItemProps> = (props) => {
 
     const {
         form,
-        prefixCls: formPrefixCls,
         layout: ctxLayout,
         labelAlign,
         labelCol: ctxLabelCol,
@@ -72,6 +130,8 @@ export const FormItem: React.FC<FormItemProps> = (props) => {
         disabled: ctxDisabled,
         colon: ctxColon,
         requiredMark: ctxRequiredMark,
+        labelFontSize,
+        horizontalGap,
     } = ctx;
 
     // 字段在 form 中的字符串 key
@@ -147,18 +207,12 @@ export const FormItem: React.FC<FormItemProps> = (props) => {
             const finalValue = normalize ? normalize(rawValue, prevValue, form.getFieldsValue(true)) : rawValue;
             form.setFieldValue(name as never, finalValue);
         };
-        // 把 form field key 作为 input id，和上面 label.htmlFor={fieldKey} 自动配对
-        // 用户已显式传 id 时不覆盖（与 disabled/size/status 透传策略一致）
-        if (childProps.id === undefined) {
-            childProps.id = fieldKey;
+        // Web 版这里写的是 `childProps.id = fieldKey`（DOM 的 `id`，配合 `<label htmlFor>`）；
+        // RN 用 `nativeID`，label 一端改用 `aria-labelledby` 指回来（见文件头第 1 点）。
+        if (childProps.nativeID === undefined) {
+            childProps.nativeID = fieldKey;
         }
-    }
-
-    // a11y 契约：错误态下把 child input 与错误文案节点用 aria-errormessage 关联，
-    // 屏幕阅读器会自动播报错误（仅当用户未显式覆盖时透传，与 id/disabled 策略一致）
-    const helpId = fieldKey ? `${fieldKey}_help` : undefined;
-    if (helpId && childIsElement && childProps['aria-errormessage'] === undefined) {
-        childProps['aria-errormessage'] = computedStatus === 'error' ? helpId : undefined;
+        childProps['aria-labelledby'] = `${fieldKey}_label`;
     }
 
     // disabled 透传
@@ -174,71 +228,63 @@ export const FormItem: React.FC<FormItemProps> = (props) => {
         childProps.status = 'error';
     }
 
-    const renderChildren = fieldKey && childIsElement ? React.cloneElement(children, childProps) : children;
+    const injected = fieldKey && childIsElement ? React.cloneElement(children, childProps) : children;
+    /**
+     * 裸字符串 / 数字在 RN 里必须包一层 `<Text>` 才能渲染，否则直接抛
+     * `Invariant Violation: Text strings must be rendered within a <Text> component`。
+     *
+     * 上游 Web 版允许 `<Form.Item label="展示项">纯文本</Form.Item>`（HTML 里裸文本合法）；
+     * RN 要保住这个用法，只能在这里补一层。`Table.tsx` 的 `asNode` 是同一处处理。
+     */
+    const renderChildren =
+        typeof injected === 'string' || typeof injected === 'number' ? <Text>{injected}</Text> : injected;
 
     // 布局：inline 模式下 FormItem 退化为 vertical（每个 item 独占一行）
     const itemLayoutTyped = (itemLayout ?? ctxLayout) as 'horizontal' | 'vertical' | 'inline';
-    const layout: 'horizontal' | 'vertical' | 'inline' = itemLayoutTyped === 'inline' ? 'vertical' : itemLayoutTyped;
+    const layout: 'horizontal' | 'vertical' = itemLayoutTyped === 'inline' ? 'vertical' : itemLayoutTyped;
     const mergedLabelCol = labelCol ?? ctxLabelCol;
     const mergedWrapperCol = wrapperCol ?? ctxWrapperCol;
     const showColon = colon ?? ctxColon;
 
-    // CSS Grid 模板：form-item 是 24 列 grid，label 占 labelCol.span，wrapper 接在 label 后面
-    const buildGridStyle = (col: { span?: number; offset?: number } | undefined, startCol = 1): React.CSSProperties => {
-        if (!col) return {};
-        const span = col.span ?? 24;
-        const offset = col.offset ?? 0;
-        return {
-            gridColumn: `${startCol + offset} / span ${span}`,
-        };
-    };
+    const labelFlex = flexWeightOf(mergedLabelCol?.span);
+    const labelOffsetFlex = flexWeightOf(mergedLabelCol?.offset ?? 0);
+    const wrapperFlex = flexWeightOf(mergedWrapperCol?.span);
+    const wrapperOffsetFlex = flexWeightOf(mergedWrapperCol?.offset ?? 0);
 
-    // wrapper 的起始列 = label 结束列 + 1（即 labelCol.span + labelCol.offset + 1）
-    const labelEndCol = (mergedLabelCol?.span ?? 0) + (mergedLabelCol?.offset ?? 0);
-    const labelColStyle = buildGridStyle(mergedLabelCol, 1);
-    const wrapperColStyle = buildGridStyle(mergedWrapperCol, labelEndCol + 1);
-
-    const rootCls = classNames(
-        formPrefixCls ? styles[`${formPrefixCls}-item`] : styles[prefixCls],
-        styles[`${prefixCls}-${layout}`],
-        styles[`${prefixCls}-${size}`],
-        {
-            [styles[`${prefixCls}-has-error`]]: computedStatus === 'error',
-            [styles[`${prefixCls}-has-warning`]]: computedStatus === 'warning',
-            [styles[`${prefixCls}-has-success`]]: computedStatus === 'success',
-            [styles[`${prefixCls}-is-validating`]]: computedStatus === 'validating',
-            [styles[`${prefixCls}-required`]]: showRequiredMark,
-        },
-        className
-    );
+    const controlStyle: StyleProp<ViewStyle> = [
+        styles.control,
+        wrapperFlex !== undefined && { flex: wrapperFlex },
+        style,
+    ];
 
     const labelNode =
         label !== undefined ? (
-            <label
-                htmlFor={fieldKey ?? undefined}
-                className={classNames(styles[`${prefixCls}-label`], {
-                    [styles[`${prefixCls}-label-required`]]: showRequiredMark,
-                    [styles[`${prefixCls}-label-colon`]]: showColon && label !== '',
-                })}
-                style={{ ...labelColStyle, textAlign: labelAlign }}
+            <Text
+                nativeID={`${fieldKey}_label`}
+                style={[
+                    styles.label,
+                    { fontSize: labelFontSize, lineHeight: Math.round(labelFontSize * LABEL_LINE_HEIGHT) },
+                    { textAlign: labelAlign },
+                    labelFlex !== undefined && { flex: labelFlex },
+                    showRequiredMark && styles.labelRequired,
+                ]}
+                testID={testID ? `${testID}-label` : undefined}
             >
                 {label}
-            </label>
+                {showColon && label !== '' ? ':' : null}
+            </Text>
         ) : null;
 
     const helpNode =
         showHelp !== undefined ? (
-            <div
-                id={helpId}
-                className={classNames(styles[`${prefixCls}-explain`], {
-                    [styles[`${prefixCls}-explain-error`]]: computedStatus === 'error',
-                })}
-            >
+            <View style={styles.explain} testID={testID ? `${testID}-help` : undefined}>
                 {hasFeedback && computedStatus === 'error' ? (
-                    <span className={styles[`${prefixCls}-feedback-icon`]}>✕</span>
+                    <Text style={[styles.feedbackIcon, { color: STATUS_COLOR[computedStatus] }]}>✕</Text>
                 ) : null}
-                {showHelp}
-            </div>
+                <Text style={[styles.explainText, { color: STATUS_COLOR[computedStatus] ?? HELP_COLOR }]}>
+                    {showHelp}
+                </Text>
+            </View>
         ) : null;
 
     if (noStyle) {
@@ -250,14 +296,72 @@ export const FormItem: React.FC<FormItemProps> = (props) => {
         );
     }
 
-    // layout 在此只能是 'horizontal' | 'vertical'（'inline' 已在前面折叠成 'vertical'）
     return (
-        <div className={rootCls} data-field-name={fieldKey ?? undefined}>
+        <View
+            style={[
+                styles.item,
+                layout === 'horizontal' ? [styles.itemHorizontal, { gap: horizontalGap }] : styles.itemVertical,
+            ]}
+            testID={testID ?? (fieldKey ? `form-item-${fieldKey}` : undefined)}
+        >
+            {labelOffsetFlex ? <View style={{ flex: labelOffsetFlex }} /> : null}
             {labelNode}
-            <div className={styles[`${prefixCls}-control`]} style={wrapperColStyle}>
-                <div className={styles[`${prefixCls}-control-input`]}>{renderChildren}</div>
+            <View style={controlStyle} testID={testID ? `${testID}-control` : undefined}>
+                {wrapperOffsetFlex ? <View style={{ flex: wrapperOffsetFlex }} /> : null}
+                <View style={styles.controlInput}>{renderChildren}</View>
                 {helpNode}
-            </div>
-        </div>
+            </View>
+        </View>
     );
 };
+
+FormItem.displayName = 'FormItem';
+
+const styles = StyleSheet.create({
+    // `.island-form-item`
+    item: {
+        margin: 0,
+        padding: 0,
+    },
+    itemHorizontal: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+    },
+    itemVertical: {
+        flexDirection: 'column',
+        alignItems: 'stretch',
+    },
+    // `.island-form-item-label`
+    label: {
+        color: LABEL_COLOR,
+    },
+    // `.island-form-item-label-required::before { color: @required-color }`
+    //
+    // ⚠️ 上游的必填星号是 `::before { content: '*' }` 伪元素，RN 没有伪元素，
+    // 所以改成把 `*` 直接拼进 label 文本（见 labelNode）。这里只保留颜色。
+    labelRequired: {
+        color: ERROR_COLOR,
+    },
+    // `.island-form-item-control`
+    control: {
+        flexShrink: 1,
+    },
+    // `.island-form-item-control-input`
+    controlInput: {
+        alignSelf: 'stretch',
+    },
+    // `.island-form-item-explain`
+    explain: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+    },
+    explainText: {
+        fontSize: HELP_FONT_SIZE,
+        color: HELP_COLOR,
+    },
+    // `.island-form-item-feedback-icon`
+    feedbackIcon: {
+        fontSize: 12,
+    },
+});

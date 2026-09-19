@@ -1,5 +1,59 @@
-import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
-import styles from './date-picker.module.less';
+/**
+ * DatePicker —— React Native 版。
+ *
+ * 与上游 Web 版（`main` 分支 `src/components/DatePicker/DatePicker.tsx`）的差异见
+ * `RN-PORT.md` 的「移植契约」与「有意分歧」两节。本组件特有的三点：
+ *
+ * 1. **面板进 Modal**。上游是绝对定位的子元素，RN 下会被任何 `overflow: hidden`
+ *    祖先（含所有 `ScrollView`）裁掉，且没有 `mousedown` 可做外部点击关闭。
+ *    这里照 `TimePicker` / `Select` 的先例改为透明 `Modal` + 背景 `Pressable`。
+ * 2. **键盘交互整体丢弃**。上游 `handleKeyDown` 覆盖 Enter/Space/Esc/方向键/PageUp/PageDown
+ *    共 6 类按键，RN 没有 DOM 键盘事件，也没有可以承载 `onKeyDown` 的宿主组件。
+ *    「Esc 关闭」退化为 `Modal.onRequestClose`（Android 返回键 / iOS 下滑关闭手势）。
+ * 3. **`focusedDate` 状态整体移除**。上游它是键盘导航的当前焦点日期，唯一的读者就是
+ *    `handleKeyDown`；RN 没有键盘导航，留着只会变成「只写不读」的死状态。
+ *
+ * 4. **hover 预览改为按下预览**。上游范围模式用 `onMouseEnter/onMouseLeave` 做区间预览，
+ *    RN 没有指针悬停，映射到 `onPressIn` / `onPressOut` —— 手指按下时预览，
+ *    抬起时撤销。这是触屏上最接近的对应物，语义与上游一致。
+ *
+ * 面板定位与日期算术全部在 `calendar.ts`（单测见 `calendar.test.ts`）。
+ */
+
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import {
+    Animated,
+    Easing,
+    Modal,
+    Pressable,
+    StyleSheet,
+    Text,
+    View,
+    useWindowDimensions,
+    type StyleProp,
+    type ViewInstance,
+    type ViewStyle,
+} from 'react-native';
+import { Path, Rect as SvgRect, Svg } from 'react-native-svg';
+import {
+    MONTHS,
+    PANEL_WIDTH,
+    PANEL_WIDTH_RANGE,
+    WEEKDAYS,
+    buildCells,
+    buildYearCells,
+    cellRangeRole,
+    computePanelPosition,
+    effectiveRange,
+    formatDate,
+    isSameDay,
+    parseRange,
+    parseValue,
+    toMonthValue,
+    toValue,
+    yearDecade,
+    type PanelPosition,
+} from './calendar';
 
 export type DatePickerSize = 'small' | 'middle' | 'large';
 
@@ -11,13 +65,13 @@ export type DatePickerValue = string | [string, string] | null;
 export interface DatePickerProps {
     /** 范围选择模式：联动选择开始日期与结束日期 */
     range?: boolean;
-    /** 选择粒度：date 选择日期（YYYY-MM-DD），month 选择月份（YYYY-MM），面板直接打开月份网格 */
+    /** 选择粒度：date 选择日期（YYYY-MM-DD），month 选择月份（YYYY-MM） */
     picker?: 'date' | 'month';
-    /** 当前选中值（受控）；日期模式为 YYYY-MM-DD，范围模式为 [开始, 结束]，清空为 null */
+    /** 当前选中值（受控） */
     value?: DatePickerValue;
-    /** 默认选中值（非受控）；日期模式为 YYYY-MM-DD，范围模式为 [开始, 结束] */
+    /** 默认选中值（非受控） */
     defaultValue?: string | [string, string];
-    /** 值变化回调；日期模式返回 YYYY-MM-DD，范围模式返回 [开始, 结束]，清空返回 null */
+    /** 值变化回调 */
     onChange?: (value: DatePickerValue) => void;
     /** 占位文本 */
     placeholder?: string;
@@ -29,7 +83,7 @@ export interface DatePickerProps {
     size?: DatePickerSize;
     /** 校验状态 */
     status?: DatePickerStatus;
-    /** 展示格式，支持 YYYY / MM / DD / M / D 占位符，默认 YYYY-MM-DD */
+    /** 展示格式，支持 YYYY / MM / DD / M / D 占位符 */
     format?: string;
     /** 禁用日期判断函数，返回 true 的日期不可选 */
     disabledDate?: (date: Date) => boolean;
@@ -39,60 +93,98 @@ export interface DatePickerProps {
     onOpenChange?: (open: boolean) => void;
     /** 面板底部是否显示「今天」快捷按钮 */
     showToday?: boolean;
-    /** 对外暴露的无障碍标签（无可见 label 时使用） */
+    /** 无障碍标签（无可见 label 时使用） */
     'aria-label'?: string;
     /** 关联外部可见 label 的 id */
     'aria-labelledby'?: string;
-    /** 额外类名 */
-    className?: string;
-    /** 行内样式 */
-    style?: React.CSSProperties;
+    /**
+     * 自定义样式（作用于最外层容器）。
+     *
+     * Web 版这里是 `className` + `style: React.CSSProperties`；RN 两个都不存在，
+     * 统一并成一个 `style`。
+     */
+    style?: StyleProp<ViewStyle>;
+    /** 测试标识 */
+    testID?: string;
 }
 
-const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六'];
-const MONTHS = ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月'];
-
-const pad = (n: number) => `${n}`.padStart(2, '0');
-
-/** 将 YYYY-MM-DD 字符串解析为本地时间 Date，非法输入返回 null */
-const parseValue = (value: string | null | undefined): Date | null => {
-    if (!value) return null;
-    const match = /^(\d{4})-(\d{1,2})(?:-(\d{1,2}))?$/.exec(value);
-    if (!match || Number(match[2]) > 12) return null;
-    const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3] ?? 1));
-    return Number.isNaN(date.getTime()) ? null : date;
-};
-
-/** 将 Date 序列化为 YYYY-MM-DD */
-const toValue = (date: Date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-
-/** 将 Date 序列化为 YYYY-MM（月份选择模式的值） */
-const toMonthValue = (date: Date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}`;
-
-/** 按模板格式化日期，支持 YYYY / MM / DD / M / D 占位符 */
-const formatDate = (date: Date, format: string) =>
-    format
-        .replace('YYYY', `${date.getFullYear()}`)
-        .replace('MM', pad(date.getMonth() + 1))
-        .replace('DD', pad(date.getDate()))
-        .replace('M', `${date.getMonth() + 1}`)
-        .replace('D', `${date.getDate()}`);
-
-const isSameDay = (a: Date, b: Date) =>
-    a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
-
-const isSameMonth = (a: Date, b: Date) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth();
-
-/** 解析范围值 [开始, 结束]，任一端非法或非数组均返回 null */
-const parseRange = (value: DatePickerValue): [Date, Date] | null => {
-    if (!value || typeof value === 'string') return null;
-    const start = parseValue(value[0]);
-    const end = parseValue(value[1]);
-    return start && end ? [start, end] : null;
-};
-
-/** 关闭退场动画时长，与 .panel 的 0.2s 过渡保持一致，动画结束后再卸载面板 */
+/** 关闭退场动画时长 —— 与上游 `.panel` 的 0.2s 过渡一致 */
 const CLOSE_ANIMATION_MS = 200;
+
+/** 尺寸规格：对应 `.trigger-small / -middle / -large` */
+const SIZE_SPEC = {
+    small: { height: 32, paddingHorizontal: 14, fontSize: 12 },
+    middle: { height: 40, paddingHorizontal: 18, fontSize: 14 },
+    large: { height: 48, paddingHorizontal: 22, fontSize: 16 },
+} as const;
+
+/**
+ * 触发区的三种阴影，取自 Less：
+ *   `.trigger-open`  → 0 3px 0 0 #e0b800, 0 0 0 3px rgba(255, 204, 0, 0.15)
+ *   `.trigger-error` → 0 3px 0 0 #c94444
+ *   `.trigger-warning` → 0 3px 0 0 #dba90e
+ *
+ * 优先级 **status > open**：CSS 里 `.trigger-open`（L44）先于 `.trigger-error`（L50），
+ * 同特异性时后者胜出。这里照同样的顺序覆盖。
+ */
+const SHADOW_OPEN = '0 3px 0 0 #e0b800, 0 0 0 3px rgba(255, 204, 0, 0.15)';
+const SHADOW_ERROR = '0 3px 0 0 #c94444';
+const SHADOW_WARNING = '0 3px 0 0 #dba90e';
+
+/** `.wrapper-disabled .trigger { background: #ece8dc }`；常态底是 `#fffbe7` */
+const TRIGGER_BG = '#fffbe7';
+const DISABLED_BG = '#ece8dc';
+
+/** `.value { color: #8a7b66 }` / `.placeholder { color: #c4b89e }` */
+const VALUE_COLOR = '#8a7b66';
+const PLACEHOLDER_COLOR = '#c4b89e';
+
+/** `.calendarIcon / .navBtn { color: #a0936e }` */
+const ICON_COLOR = '#a0936e';
+
+/** 面板里除 token 外的硬编码色（Less 里就是硬编码，非变量） */
+const PANEL_BG = '#fffdf7';
+const PANEL_BORDER = '#e8dcc8';
+const DAY_COLOR = '#725d42';
+const DAY_OUTSIDE_COLOR = '#c4b89e';
+const DAY_DISABLED_COLOR = '#d4c9b4';
+const SELECTED_BG = '#19c8b9';
+const RANGE_BG = '#ffc107';
+const TODAY_RING = '#19c8b9';
+
+/**
+ * 面板兜底位置。
+ *
+ * `measureInWindow` 在 jest preset 里被 mock 成**永不回调的空实现**，所以测试环境
+ * 永远落在这里。先设兜底再用回调升级，既让测试能渲染，也避免了真机上首帧闪烁。
+ */
+const FALLBACK_PANEL_POSITION: PanelPosition = { top: 0, left: 0 };
+
+const EASE = Easing.bezier(0.4, 0, 0.2, 1);
+
+/** 日历图标（上游是内联 `<svg>`，14×14，`stroke="currentColor"`） */
+const CalendarIcon: React.FC = () => (
+    <Svg width={14} height={14} viewBox="0 0 14 14" fill="none">
+        <SvgRect x={1.5} y={2.5} width={11} height={10} rx={2} stroke={ICON_COLOR} strokeWidth={1.4} />
+        <Path d="M1.5 5.5h11" stroke={ICON_COLOR} strokeWidth={1.4} />
+        <Path d="M4.7 1v2.4M9.3 1v2.4" stroke={ICON_COLOR} strokeWidth={1.4} strokeLinecap="round" />
+    </Svg>
+);
+
+/** 左右翻页箭头（上游内联 `<svg>`，12×12） */
+const ChevronIcon: React.FC<{ direction: 'left' | 'right' }> = ({ direction }) => (
+    <Svg width={12} height={12} viewBox="0 0 12 12" fill="none">
+        <Path
+            d={direction === 'left' ? 'M7.5 2.5L4 6l3.5 3.5' : 'M4.5 2.5L8 6l-3.5 3.5'}
+            stroke={ICON_COLOR}
+            strokeWidth={1.5}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        />
+    </Svg>
+);
+
+type PanelDate = { date: Date; label: string };
 
 export const DatePicker: React.FC<DatePickerProps> = ({
     value,
@@ -112,8 +204,8 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     showToday = true,
     'aria-label': ariaLabel,
     'aria-labelledby': ariaLabelledBy,
-    className,
     style,
+    testID,
 }) => {
     const [innerValue, setInnerValue] = useState<DatePickerValue>(defaultValue ?? null);
     const [innerOpen, setInnerOpen] = useState(false);
@@ -121,21 +213,19 @@ export const DatePicker: React.FC<DatePickerProps> = ({
         () => parseValue(typeof defaultValue === 'string' ? defaultValue : null) ?? new Date()
     );
     const [mode, setMode] = useState<'date' | 'month' | 'year'>('date');
-    const [focusedDate, setFocusedDate] = useState(
-        () => parseValue(typeof defaultValue === 'string' ? defaultValue : null) ?? new Date()
-    );
     const [rangeStart, setRangeStart] = useState<Date | null>(null);
     const [rangeEnd, setRangeEnd] = useState<Date | null>(null);
     const [hoverDate, setHoverDate] = useState<Date | null>(null);
     /** 单日期模式待选日期（点选后尚未确认） */
     const [pendingDate, setPendingDate] = useState<Date | null>(null);
-    const [panelStyle, setPanelStyle] = useState<React.CSSProperties>({});
-    const [mounted, setMounted] = useState(false);
-    const [closing, setClosing] = useState(false);
-    const closingRef = useRef(false);
-    const closeTimerRef = useRef<number | null>(null);
-    const wrapperRef = useRef<HTMLDivElement>(null);
-    const triggerRef = useRef<HTMLDivElement>(null);
+    const [panelPosition, setPanelPosition] = useState<PanelPosition>(FALLBACK_PANEL_POSITION);
+
+    const triggerRef = useRef<ViewInstance>(null);
+    const closeTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+    /** 面板进场 / 退场：上游是 CSS transition，RN 用一个 Animated.Value 双向跑 */
+    const progress = useRef(new Animated.Value(0)).current;
+
+    const windowSize = useWindowDimensions();
 
     const isControlled = value !== undefined;
     const currentValue: DatePickerValue = isControlled ? (value ?? null) : innerValue;
@@ -143,14 +233,18 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     const selectedRange = range ? parseRange(currentValue) : null;
     const open = openProp !== undefined ? openProp : innerOpen;
 
-    const idPrefix = `animal-date-picker-${useId().replace(/:/g, '')}`;
-    const panelId = `${idPrefix}-panel`;
-
     // 面板展开时重置视图所用到的当前值引用，避免值变化本身触发重置
     const valueRef = useRef(currentValue);
     useEffect(() => {
         valueRef.current = currentValue;
     }, [currentValue]);
+
+    useEffect(
+        () => () => {
+            if (closeTimerRef.current !== undefined) clearTimeout(closeTimerRef.current);
+        },
+        []
+    );
 
     const setOpen = useCallback(
         (next: boolean) => {
@@ -160,92 +254,57 @@ export const DatePicker: React.FC<DatePickerProps> = ({
         [openProp, onOpenChange]
     );
 
-    // 统一关闭入口：先播放退场动效，动画结束后再卸载面板
-    const closePanel = useCallback(() => {
-        if (closingRef.current) return;
-        closingRef.current = true;
-        setClosing(true);
-        closeTimerRef.current = window.setTimeout(() => {
-            closingRef.current = false;
-            setClosing(false);
-            setOpen(false);
-            setMounted(false);
-            setRangeStart(null);
-            setRangeEnd(null);
-            setHoverDate(null);
-            setPendingDate(null);
-        }, CLOSE_ANIMATION_MS);
-    }, [setOpen]);
-
-    // 组件卸载时清理未触发的关闭定时器
-    useEffect(
-        () => () => {
-            if (closeTimerRef.current !== null) window.clearTimeout(closeTimerRef.current);
-        },
-        []
-    );
-
     // 每次展开时把面板视图重置到当前选中值（无选中则回到今天）
     useEffect(() => {
         if (!open) return;
-        // 重新展开：取消未完成的退场动画
-        if (closeTimerRef.current !== null) {
-            window.clearTimeout(closeTimerRef.current);
-            closeTimerRef.current = null;
+        if (closeTimerRef.current !== undefined) {
+            clearTimeout(closeTimerRef.current);
+            closeTimerRef.current = undefined;
         }
-        closingRef.current = false;
-        setClosing(false);
         const current = valueRef.current;
         const base = range
             ? (parseRange(current)?.[0] ?? new Date())
             : (parseValue(typeof current === 'string' ? current : null) ?? new Date());
         setViewDate(base);
-        setFocusedDate(base);
         setMode(picker === 'month' && !range ? 'month' : 'date');
         setRangeStart(null);
         setRangeEnd(null);
         setHoverDate(null);
         setPendingDate(null);
-    }, [open, range, picker]);
-
-    // 点击面板外部关闭
-    useEffect(() => {
-        const handleClickOutside = (e: MouseEvent) => {
-            if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
-                closePanel();
-            }
-        };
-        if (open) {
-            document.addEventListener('mousedown', handleClickOutside);
+        setPanelPosition(FALLBACK_PANEL_POSITION);
+        progress.setValue(0);
+        Animated.timing(progress, {
+            toValue: 1,
+            duration: CLOSE_ANIMATION_MS,
+            easing: EASE,
+            useNativeDriver: true,
+        }).start();
+        const trigger = triggerRef.current;
+        if (trigger && typeof trigger.measureInWindow === 'function') {
+            trigger.measureInWindow((x, y, width, height) => {
+                setPanelPosition(computePanelPosition({ x, y, width, height }, windowSize, range));
+            });
         }
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [open, closePanel]);
+    }, [open, range, picker, windowSize, progress]);
 
-    // 面板定位：优先向下展开，下方空间不足且上方更宽裕时向上翻转
-    useEffect(() => {
-        if (open && wrapperRef.current) {
-            const rect = wrapperRef.current.getBoundingClientRect();
-            const viewportHeight = window.innerHeight;
-            const panelHeight = 340;
-            const newStyle: React.CSSProperties = { position: 'absolute', left: 0 };
-            if (rect.bottom + panelHeight > viewportHeight && rect.top > viewportHeight - rect.bottom) {
-                newStyle.bottom = '100%';
-                newStyle.marginBottom = '6px';
-            } else {
-                newStyle.top = '100%';
-                newStyle.marginTop = '6px';
-            }
-            // 右侧空间不足时右对齐
-            if (rect.left + (range ? 620 : 300) > window.innerWidth) {
-                newStyle.right = 0;
-                newStyle.left = 'auto';
-            }
-            setPanelStyle(newStyle);
-            requestAnimationFrame(() => setMounted(true));
-        } else if (!open) {
-            setMounted(false);
-        }
-    }, [open, range]);
+    /** 统一关闭入口：先播退场动画，结束后再卸载 */
+    const closePanel = useCallback(() => {
+        if (closeTimerRef.current !== undefined) return;
+        Animated.timing(progress, {
+            toValue: 0,
+            duration: CLOSE_ANIMATION_MS,
+            easing: EASE,
+            useNativeDriver: true,
+        }).start();
+        closeTimerRef.current = setTimeout(() => {
+            closeTimerRef.current = undefined;
+            setOpen(false);
+            setRangeStart(null);
+            setRangeEnd(null);
+            setHoverDate(null);
+            setPendingDate(null);
+        }, CLOSE_ANIMATION_MS);
+    }, [progress, setOpen]);
 
     // 点选日期：仅更新待选值，点击「确定」后才提交并关闭
     const selectDate = useCallback(
@@ -255,13 +314,11 @@ export const DatePicker: React.FC<DatePickerProps> = ({
                 setPendingDate(date);
                 return;
             }
-            // 范围模式：第一次点击确定开始日期，第二次点击确定结束日期
             if (!rangeStart) {
                 setRangeStart(date);
                 return;
             }
             if (date < rangeStart) {
-                // 第二次点击早于开始日期：以它作为新的开始日期
                 setRangeStart(date);
                 return;
             }
@@ -270,11 +327,9 @@ export const DatePicker: React.FC<DatePickerProps> = ({
         [disabledDate, range, rangeStart]
     );
 
-    const handleClear = (e: React.MouseEvent) => {
-        e.stopPropagation();
+    const handleClear = () => {
         if (!isControlled) setInnerValue(null);
         onChange?.(null);
-        triggerRef.current?.focus();
     };
 
     const shiftView = (yearDelta: number, monthDelta = 0) => {
@@ -284,16 +339,13 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     const handleToday = () => {
         const today = new Date();
         if (!range) {
-            // 单日期模式：跳转到今天所在月份，并把今天设为待选日期
             setViewDate(new Date(today.getFullYear(), today.getMonth(), 1));
-            setFocusedDate(today);
             setMode(picker === 'month' ? 'month' : 'date');
             setPendingDate(today);
             return;
         }
         // 范围模式：「今天」仅负责把视图跳转到今天所在月份
         setViewDate(new Date(today.getFullYear(), today.getMonth(), 1));
-        setFocusedDate(today);
         setRangeStart(null);
         setRangeEnd(null);
     };
@@ -307,7 +359,6 @@ export const DatePicker: React.FC<DatePickerProps> = ({
                 onChange?.(next);
             }
             closePanel();
-            triggerRef.current?.focus();
             return;
         }
         if (rangeStart && rangeEnd) {
@@ -316,520 +367,350 @@ export const DatePicker: React.FC<DatePickerProps> = ({
             onChange?.(next);
         }
         closePanel();
-        triggerRef.current?.focus();
-    };
-
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-        if (disabled) return;
-        const { key } = e;
-        if (!open) {
-            if (key === 'Enter' || key === ' ' || key === 'ArrowDown' || key === 'ArrowUp') {
-                e.preventDefault();
-                setOpen(true);
-            }
-            return;
-        }
-        if (key === 'Escape') {
-            e.preventDefault();
-            closePanel();
-            triggerRef.current?.focus();
-            return;
-        }
-        if (key === 'Enter' || key === ' ') {
-            e.preventDefault();
-            if (mode === 'date') {
-                if (disabledDate?.(focusedDate)) return;
-                if (range) {
-                    // 范围模式：回车依次确定开始日期与结束日期（待选）
-                    if (!rangeStart) {
-                        setRangeStart(focusedDate);
-                    } else if (focusedDate < rangeStart) {
-                        setRangeStart(focusedDate);
-                    } else {
-                        setRangeEnd(focusedDate);
-                    }
-                    return;
-                }
-                setPendingDate(focusedDate);
-            } else if (mode === 'month') {
-                if (picker === 'month' && !range) {
-                    // 月份选择模式：回车设为待选月份
-                    setPendingDate(new Date(viewDate.getFullYear(), viewDate.getMonth(), 1));
-                } else {
-                    setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth(), 1));
-                    setFocusedDate(new Date(viewDate.getFullYear(), viewDate.getMonth(), 1));
-                    setMode('date');
-                }
-            } else {
-                setFocusedDate(new Date(viewDate.getFullYear(), viewDate.getMonth(), 1));
-                setMode('month');
-            }
-            return;
-        }
-        if (key === 'ArrowLeft' || key === 'ArrowRight' || key === 'ArrowUp' || key === 'ArrowDown') {
-            e.preventDefault();
-            const delta = key === 'ArrowLeft' ? -1 : key === 'ArrowRight' ? 1 : key === 'ArrowUp' ? -7 : 7;
-            if (mode === 'date') {
-                const next = new Date(focusedDate.getFullYear(), focusedDate.getMonth(), focusedDate.getDate() + delta);
-                setFocusedDate(next);
-                if (!isSameMonth(next, viewDate)) setViewDate(new Date(next.getFullYear(), next.getMonth(), 1));
-            } else if (mode === 'month') {
-                const next = new Date(viewDate.getFullYear(), viewDate.getMonth() + delta, 1);
-                setViewDate(next);
-                setFocusedDate(next);
-            } else {
-                const next = new Date(viewDate.getFullYear() + delta, viewDate.getMonth(), 1);
-                setViewDate(next);
-                setFocusedDate(next);
-            }
-            return;
-        }
-        if (key === 'PageUp' || key === 'PageDown') {
-            e.preventDefault();
-            const delta = key === 'PageUp' ? -1 : 1;
-            if (mode === 'date') {
-                const next = new Date(viewDate.getFullYear(), viewDate.getMonth() + delta, 1);
-                setViewDate(next);
-                setFocusedDate(new Date(next.getFullYear(), next.getMonth(), focusedDate.getDate()));
-            } else if (mode === 'month') {
-                const next = new Date(viewDate.getFullYear() + delta, viewDate.getMonth(), 1);
-                setViewDate(next);
-                setFocusedDate(next);
-            } else {
-                const next = new Date(viewDate.getFullYear() + delta * 10, viewDate.getMonth(), 1);
-                setViewDate(next);
-                setFocusedDate(next);
-            }
-        }
-    };
-
-    // 构建日期网格：固定 6 行 × 7 列，首尾补齐上/下月日期
-    const buildCells = (vDate: Date): Date[] => {
-        const vYear = vDate.getFullYear();
-        const vMonth = vDate.getMonth();
-        const cells: Date[] = [];
-        const startWeekday = new Date(vYear, vMonth, 1).getDay();
-        const daysInMonth = new Date(vYear, vMonth + 1, 0).getDate();
-        const daysInPrevMonth = new Date(vYear, vMonth, 0).getDate();
-        for (let i = startWeekday - 1; i >= 0; i--) cells.push(new Date(vYear, vMonth - 1, daysInPrevMonth - i));
-        for (let d = 1; d <= daysInMonth; d++) cells.push(new Date(vYear, vMonth, d));
-        for (let d = 1; cells.length < 42; d++) cells.push(new Date(vYear, vMonth + 1, d));
-        return cells;
     };
 
     const today = new Date();
 
-    // 渲染某个月份的星期表头 + 日期网格（范围模式左右面板共用）
-    const renderDayGrid = (vDate: Date) => {
+    /** 渲染某个月份的星期表头 + 日期网格（范围模式左右面板共用） */
+    const renderDayGrid = (vDate: Date, panelIndex: number) => {
         const vMonth = vDate.getMonth();
+        const rangeHighlight = range
+            ? effectiveRange({ rangeStart, rangeEnd, hoverDate, selectedRange })
+            : { start: null, end: null };
         return (
-            <>
-                <div className={styles.weekRow}>
+            <View>
+                <View style={styles.weekRow}>
                     {WEEKDAYS.map((w) => (
-                        <div key={w} className={styles.weekCell}>
+                        <Text key={w} style={styles.weekCell}>
                             {w}
-                        </div>
+                        </Text>
                     ))}
-                </div>
-                <div className={styles.grid}>
+                </View>
+                <View style={styles.grid}>
                     {buildCells(vDate).map((cell) => {
                         const disabledCell = disabledDate?.(cell) === true;
                         const isToday = isSameDay(cell, today);
                         const outside = cell.getMonth() !== vMonth;
                         let selected = false;
-                        let rangeStartCell = false;
-                        let rangeEndCell = false;
-                        let inRange = false;
+                        let role = { isStart: false, isEnd: false, inRange: false };
                         if (range) {
-                            // 有效范围端点：进行中的选择（预览）优先于已选范围
-                            let effStart: Date | null = null;
-                            let effEnd: Date | null = null;
-                            if (rangeStart) {
-                                if (rangeEnd) {
-                                    // 已选定开始与结束：以待选范围高亮
-                                    effStart = rangeStart;
-                                    effEnd = rangeEnd;
-                                } else if (hoverDate && hoverDate < rangeStart) {
-                                    // 反向预览：悬停日期作为新的潜在起点
-                                    effStart = hoverDate;
-                                    effEnd = rangeStart;
-                                } else {
-                                    effStart = rangeStart;
-                                    effEnd = hoverDate && hoverDate > rangeStart ? hoverDate : rangeStart;
-                                }
-                            } else if (selectedRange) {
-                                effStart = selectedRange[0];
-                                effEnd = selectedRange[1];
-                            }
-                            if (effStart && effEnd) {
-                                rangeStartCell = isSameDay(cell, effStart);
-                                rangeEndCell = isSameDay(cell, effEnd);
-                                inRange = cell > effStart && cell < effEnd;
-                            }
+                            role = cellRangeRole(cell, rangeHighlight);
                         } else {
                             const activeDate = pendingDate ?? selectedDate;
                             selected = !!activeDate && isSameDay(cell, activeDate);
                         }
-                        const cls = [
-                            styles.dayCell,
-                            outside && styles.dayCellOutside,
-                            // 范围模式不圈出今天
-                            !range && isToday && styles.dayCellToday,
-                            selected && styles.dayCellSelected,
-                            rangeStartCell && styles.dayCellRangeStart,
-                            rangeEndCell && styles.dayCellRangeEnd,
-                            inRange && styles.dayCellInRange,
-                            disabledCell && styles.dayCellDisabled,
-                        ]
-                            .filter(Boolean)
-                            .join(' ');
+                        // `ViewStyle` 的属性是 readonly，条件赋值必须先攒到普通对象里
+                        const face: Record<string, unknown> = {};
+                        if (outside) face.color = DAY_OUTSIDE_COLOR;
+                        if (!range && isToday) face.color = TODAY_RING;
+                        if (selected) {
+                            face.backgroundColor = SELECTED_BG;
+                            face.color = '#fff';
+                        }
+                        if (role.inRange) {
+                            face.backgroundColor = RANGE_BG;
+                            face.color = '#fff';
+                        }
+                        if (role.isStart || role.isEnd) {
+                            face.backgroundColor = RANGE_BG;
+                            face.color = '#fff';
+                        }
+                        if (disabledCell) {
+                            face.backgroundColor = 'transparent';
+                            face.color = DAY_DISABLED_COLOR;
+                        }
                         return (
-                            <button
-                                key={cell.getTime()}
-                                type="button"
-                                className={cls}
-                                aria-label={`${cell.getFullYear()}年${cell.getMonth() + 1}月${cell.getDate()}日`}
-                                aria-disabled={disabledCell || undefined}
+                            <Pressable
+                                key={`${panelIndex}-${cell.getTime()}`}
+                                accessibilityRole="button"
+                                accessibilityState={{ disabled: disabledCell, selected }}
+                                accessibilityLabel={`${cell.getFullYear()}年${cell.getMonth() + 1}月${cell.getDate()}日`}
                                 disabled={disabledCell}
-                                onClick={() => selectDate(cell)}
-                                onMouseEnter={() => range && setHoverDate(cell)}
-                                onMouseLeave={() => range && setHoverDate(null)}
-                                onMouseDown={(e) => e.preventDefault()}
+                                onPress={() => selectDate(cell)}
+                                // hover 预览 → 按下预览（见文件头第 3 点）
+                                onPressIn={() => range && setHoverDate(cell)}
+                                onPressOut={() => range && setHoverDate(null)}
+                                style={[styles.dayCell, face as ViewStyle]}
+                                testID={testID ? `${testID}-day-${toValue(cell)}` : undefined}
                             >
-                                {cell.getDate()}
-                            </button>
+                                <Text style={[styles.dayText, face as ViewStyle]}>{cell.getDate()}</Text>
+                            </Pressable>
                         );
                     })}
-                </div>
-            </>
+                </View>
+            </View>
         );
     };
 
     const year = viewDate.getFullYear();
     const month = viewDate.getMonth();
-    const startYear = Math.floor(year / 10) * 10;
-    const yearCells = Array.from({ length: 12 }, (_, i) => startYear - 1 + i);
+    const yearCells = buildYearCells(year);
+    const [decadeStart, decadeEnd] = yearDecade(year);
 
-    const triggerCls = [
-        styles.trigger,
-        styles[`trigger-${size}`],
-        status && styles[`trigger-${status}`],
-        open && styles['trigger-open'],
-    ]
-        .filter(Boolean)
-        .join(' ');
+    // 触发区样式：`.trigger` 打底，status 覆盖 open（见 SHADOW_* 处的说明）
+    const triggerFace: Record<string, unknown> = {
+        height: SIZE_SPEC[size].height,
+        paddingHorizontal: SIZE_SPEC[size].paddingHorizontal,
+        backgroundColor: disabled ? DISABLED_BG : TRIGGER_BG,
+    };
+    if (!disabled) {
+        if (open) triggerFace.boxShadow = SHADOW_OPEN;
+        if (status === 'error') triggerFace.boxShadow = SHADOW_ERROR;
+        if (status === 'warning') triggerFace.boxShadow = SHADOW_WARNING;
+    }
+
+    const hasClear = allowClear && !!currentValue && !disabled;
+
+    /** 触发区文案：范围模式两端，其余单值 */
+    const renderTriggerContent = () => {
+        const textStyle = { fontSize: SIZE_SPEC[size].fontSize };
+        if (range) {
+            if (open && rangeStart) {
+                return (
+                    <>
+                        <Text style={[styles.value, textStyle]}>{formatDate(rangeStart, format)}</Text>
+                        <View aria-hidden style={styles.rangeDivider} />
+                        <Text style={[rangeEnd ? styles.value : styles.placeholder, textStyle]}>
+                            {rangeEnd ? formatDate(rangeEnd, format) : placeholder}
+                        </Text>
+                    </>
+                );
+            }
+            if (selectedRange) {
+                return (
+                    <>
+                        <Text style={[styles.value, textStyle]}>{formatDate(selectedRange[0], format)}</Text>
+                        <View aria-hidden style={styles.rangeDivider} />
+                        <Text style={[styles.value, textStyle]}>{formatDate(selectedRange[1], format)}</Text>
+                    </>
+                );
+            }
+            return <Text style={[styles.placeholder, textStyle]}>{placeholder}</Text>;
+        }
+        const shown = open && pendingDate ? pendingDate : selectedDate;
+        const isPlaceholder = !currentValue && !shown;
+        return (
+            <Text style={[isPlaceholder ? styles.placeholder : styles.value, textStyle]}>
+                {shown ? formatDate(shown, format) : placeholder}
+            </Text>
+        );
+    };
 
     return (
-        <div
-            ref={wrapperRef}
-            className={[styles.wrapper, disabled && styles['wrapper-disabled'], className].filter(Boolean).join(' ')}
-            style={style}
-            onKeyDown={handleKeyDown}
-            onBlur={(e) => {
-                // 仅当焦点明确移出 wrapper（如 Tab 到外部元素）时关闭；
-                // 点击面板空白区域（relatedTarget 为 null）不关闭，外部点击由 mousedown 监听处理
-                if (open && e.relatedTarget && !e.currentTarget.contains(e.relatedTarget as Node)) {
-                    closePanel();
-                }
-            }}
-        >
-            <div
+        <View style={[styles.wrapper, disabled && styles.wrapperDisabled, style]} testID={testID}>
+            <Pressable
                 ref={triggerRef}
                 role="combobox"
                 aria-expanded={open}
-                aria-haspopup="dialog"
-                aria-controls={open ? panelId : undefined}
                 aria-disabled={disabled || undefined}
                 aria-label={ariaLabel}
                 aria-labelledby={ariaLabelledBy}
-                tabIndex={disabled ? -1 : 0}
-                className={triggerCls}
-                onClick={() => !disabled && !closing && setOpen(!open)}
+                disabled={disabled}
+                onPress={() => setOpen(!open)}
+                style={[styles.trigger, triggerFace as ViewStyle]}
+                testID={testID ? `${testID}-trigger` : undefined}
             >
-                {range ? (
-                    open && rangeStart ? (
-                        // 正在选择：实时显示待选的开始与结束日期
-                        <>
-                            <span className={styles.value}>{formatDate(rangeStart, format)}</span>
-                            <span className={styles.rangeDivider} aria-hidden />
-                            <span className={rangeEnd ? styles.value : styles.placeholder}>
-                                {rangeEnd ? formatDate(rangeEnd, format) : placeholder}
-                            </span>
-                        </>
-                    ) : selectedRange ? (
-                        <>
-                            <span className={styles.value}>{formatDate(selectedRange[0], format)}</span>
-                            <span className={styles.rangeDivider} aria-hidden />
-                            <span className={styles.value}>{formatDate(selectedRange[1], format)}</span>
-                        </>
-                    ) : (
-                        <span className={styles.placeholder}>{placeholder}</span>
-                    )
-                ) : (
-                    <span className={currentValue || (open && pendingDate) ? styles.value : styles.placeholder}>
-                        {open && pendingDate
-                            ? formatDate(pendingDate, format)
-                            : selectedDate
-                              ? formatDate(selectedDate, format)
-                              : placeholder}
-                    </span>
-                )}
-                {allowClear && currentValue && !disabled && (
-                    <button
-                        type="button"
-                        className={styles.clear}
-                        aria-label="清除日期"
-                        onClick={handleClear}
-                        onMouseDown={(e) => e.preventDefault()}
+                {renderTriggerContent()}
+                {hasClear && (
+                    <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel="清除日期"
+                        onPress={handleClear}
+                        style={styles.clear}
+                        testID={testID ? `${testID}-clear` : undefined}
                     >
-                        ×
-                    </button>
+                        <Text style={styles.clearText}>×</Text>
+                    </Pressable>
                 )}
-                <span className={styles.calendarIcon} aria-hidden>
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                        <rect x="1.5" y="2.5" width="11" height="10" rx="2" stroke="currentColor" strokeWidth="1.4" />
-                        <path d="M1.5 5.5h11" stroke="currentColor" strokeWidth="1.4" />
-                        <path d="M4.7 1v2.4M9.3 1v2.4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-                    </svg>
-                </span>
-            </div>
-            {open && (
-                <div
-                    id={panelId}
+                <View aria-hidden style={styles.calendarIcon} testID={testID ? `${testID}-calendar` : undefined}>
+                    <CalendarIcon />
+                </View>
+            </Pressable>
+            <Modal transparent visible={open} animationType="none" onRequestClose={closePanel}>
+                <Pressable
+                    style={StyleSheet.absoluteFill}
+                    onPress={closePanel}
+                    testID={testID ? `${testID}-backdrop` : undefined}
+                />
+                <Animated.View
                     role="dialog"
                     aria-label={range ? '选择日期范围' : '选择日期'}
-                    className={`${styles.panel} ${range ? styles.panelRange : ''} ${
-                        closing ? styles.panelClosing : mounted ? styles.panelVisible : ''
-                    }`}
-                    style={panelStyle}
+                    onStartShouldSetResponder={() => true}
+                    style={[
+                        styles.panel,
+                        range && styles.panelRange,
+                        panelPosition,
+                        {
+                            opacity: progress,
+                            transform: [
+                                {
+                                    translateY: progress.interpolate({
+                                        inputRange: [0, 1],
+                                        outputRange: [-6, 0],
+                                    }),
+                                },
+                            ],
+                        },
+                    ]}
+                    testID={testID ? `${testID}-panel` : undefined}
                 >
                     {range ? (
                         <>
-                            <div className={styles.rangePanels}>
-                                {[viewDate, new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1)].map(
-                                    (panelDate, idx) => (
-                                        <div key={panelDate.getTime()} className={styles.rangePanel}>
-                                            <div className={styles.header}>
-                                                <div className={styles.headerGroup}>
-                                                    {idx === 0 && (
-                                                        <button
-                                                            type="button"
-                                                            className={styles.navBtn}
-                                                            aria-label="上一年"
-                                                            onClick={() => shiftView(-1, 0)}
-                                                            onMouseDown={(e) => e.preventDefault()}
+                            <View style={styles.rangePanels}>
+                                {[
+                                    { date: viewDate, label: 'left' },
+                                    {
+                                        date: new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1),
+                                        label: 'right',
+                                    },
+                                ].map((panel: PanelDate, idx) => (
+                                    <View key={panel.label} style={styles.rangePanel}>
+                                        <View style={styles.header}>
+                                            <View style={styles.headerGroup}>
+                                                {idx === 0 && (
+                                                    <>
+                                                        <Pressable
+                                                            accessibilityRole="button"
+                                                            accessibilityLabel="上一年"
+                                                            onPress={() => shiftView(-1, 0)}
+                                                            style={styles.navBtn}
+                                                            testID={testID ? `${testID}-prev-year` : undefined}
                                                         >
-                                                            <svg
-                                                                className={styles.navIcon}
-                                                                viewBox="0 0 12 12"
-                                                                fill="none"
-                                                                aria-hidden
-                                                            >
-                                                                <path
-                                                                    d="M7.5 2.5L4 6l3.5 3.5"
-                                                                    stroke="currentColor"
-                                                                    strokeWidth="1.5"
-                                                                    strokeLinecap="round"
-                                                                    strokeLinejoin="round"
-                                                                />
-                                                            </svg>
-                                                        </button>
-                                                    )}
-                                                    {idx === 0 && (
-                                                        <button
-                                                            type="button"
-                                                            className={styles.navBtn}
-                                                            aria-label="上个月"
-                                                            onClick={() => shiftView(0, -1)}
-                                                            onMouseDown={(e) => e.preventDefault()}
+                                                            <ChevronIcon direction="left" />
+                                                        </Pressable>
+                                                        <Pressable
+                                                            accessibilityRole="button"
+                                                            accessibilityLabel="上个月"
+                                                            onPress={() => shiftView(0, -1)}
+                                                            style={styles.navBtn}
+                                                            testID={testID ? `${testID}-prev-month` : undefined}
                                                         >
-                                                            <svg
-                                                                width="12"
-                                                                height="12"
-                                                                viewBox="0 0 12 12"
-                                                                fill="none"
-                                                                aria-hidden
-                                                            >
-                                                                <path
-                                                                    d="M7.5 2.5L4 6l3.5 3.5"
-                                                                    stroke="currentColor"
-                                                                    strokeWidth="1.5"
-                                                                    strokeLinecap="round"
-                                                                    strokeLinejoin="round"
-                                                                />
-                                                            </svg>
-                                                        </button>
-                                                    )}
-                                                </div>
-                                                <span className={styles.yearLabel}>
-                                                    {panelDate.getFullYear()}年{panelDate.getMonth() + 1}月
-                                                </span>
-                                                <div className={styles.headerGroup}>
-                                                    {idx === 1 && (
-                                                        <button
-                                                            type="button"
-                                                            className={styles.navBtn}
-                                                            aria-label="下个月"
-                                                            onClick={() => shiftView(0, 1)}
-                                                            onMouseDown={(e) => e.preventDefault()}
+                                                            <ChevronIcon direction="left" />
+                                                        </Pressable>
+                                                    </>
+                                                )}
+                                            </View>
+                                            <Text style={styles.yearLabel}>
+                                                {panel.date.getFullYear()}年{panel.date.getMonth() + 1}月
+                                            </Text>
+                                            <View style={styles.headerGroup}>
+                                                {idx === 1 && (
+                                                    <>
+                                                        <Pressable
+                                                            accessibilityRole="button"
+                                                            accessibilityLabel="下个月"
+                                                            onPress={() => shiftView(0, 1)}
+                                                            style={styles.navBtn}
+                                                            testID={testID ? `${testID}-next-month` : undefined}
                                                         >
-                                                            <svg
-                                                                width="12"
-                                                                height="12"
-                                                                viewBox="0 0 12 12"
-                                                                fill="none"
-                                                                aria-hidden
-                                                            >
-                                                                <path
-                                                                    d="M4.5 2.5L8 6l-3.5 3.5"
-                                                                    stroke="currentColor"
-                                                                    strokeWidth="1.5"
-                                                                    strokeLinecap="round"
-                                                                    strokeLinejoin="round"
-                                                                />
-                                                            </svg>
-                                                        </button>
-                                                    )}
-                                                    {idx === 1 && (
-                                                        <button
-                                                            type="button"
-                                                            className={styles.navBtn}
-                                                            aria-label="下一年"
-                                                            onClick={() => shiftView(1, 0)}
-                                                            onMouseDown={(e) => e.preventDefault()}
+                                                            <ChevronIcon direction="right" />
+                                                        </Pressable>
+                                                        <Pressable
+                                                            accessibilityRole="button"
+                                                            accessibilityLabel="下一年"
+                                                            onPress={() => shiftView(1, 0)}
+                                                            style={styles.navBtn}
+                                                            testID={testID ? `${testID}-next-year` : undefined}
                                                         >
-                                                            <svg
-                                                                className={styles.navIcon}
-                                                                viewBox="0 0 12 12"
-                                                                fill="none"
-                                                                aria-hidden
-                                                            >
-                                                                <path
-                                                                    d="M4.5 2.5L8 6l-3.5 3.5"
-                                                                    stroke="currentColor"
-                                                                    strokeWidth="1.5"
-                                                                    strokeLinecap="round"
-                                                                    strokeLinejoin="round"
-                                                                />
-                                                            </svg>
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            </div>
-                                            {renderDayGrid(panelDate)}
-                                        </div>
-                                    )
-                                )}
-                            </div>
-                            <div className={styles.footer}>
-                                <button
-                                    type="button"
-                                    className={styles.confirmBtn}
-                                    onClick={confirmTime}
-                                    onMouseDown={(e) => e.preventDefault()}
+                                                            <ChevronIcon direction="right" />
+                                                        </Pressable>
+                                                    </>
+                                                )}
+                                            </View>
+                                        </View>
+                                        {renderDayGrid(panel.date, idx)}
+                                    </View>
+                                ))}
+                            </View>
+                            <View style={styles.footer}>
+                                <Pressable
+                                    accessibilityRole="button"
+                                    onPress={confirmTime}
+                                    style={styles.confirmBtn}
+                                    testID={testID ? `${testID}-confirm` : undefined}
                                 >
-                                    确定
-                                </button>
-                            </div>
+                                    <Text style={styles.confirmText}>确定</Text>
+                                </Pressable>
+                            </View>
                         </>
                     ) : (
                         <>
-                            <div className={styles.header}>
-                                <div className={styles.headerGroup}>
-                                    <button
-                                        type="button"
-                                        className={styles.navBtn}
-                                        aria-label="上一年"
-                                        onClick={() => (mode === 'year' ? shiftView(-10, 0) : shiftView(-1, 0))}
-                                        onMouseDown={(e) => e.preventDefault()}
+                            <View style={styles.header}>
+                                <View style={styles.headerGroup}>
+                                    <Pressable
+                                        accessibilityRole="button"
+                                        accessibilityLabel="上一年"
+                                        onPress={() => (mode === 'year' ? shiftView(-10, 0) : shiftView(-1, 0))}
+                                        style={styles.navBtn}
+                                        testID={testID ? `${testID}-prev-year` : undefined}
                                     >
-                                        <svg className={styles.navIcon} viewBox="0 0 12 12" fill="none" aria-hidden>
-                                            <path
-                                                d="M7.5 2.5L4 6l3.5 3.5"
-                                                stroke="currentColor"
-                                                strokeWidth="1.5"
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                            />
-                                        </svg>
-                                    </button>
+                                        <ChevronIcon direction="left" />
+                                    </Pressable>
                                     {mode === 'date' && (
-                                        <button
-                                            type="button"
-                                            className={styles.navBtn}
-                                            aria-label="上个月"
-                                            onClick={() => shiftView(0, -1)}
-                                            onMouseDown={(e) => e.preventDefault()}
+                                        <Pressable
+                                            accessibilityRole="button"
+                                            accessibilityLabel="上个月"
+                                            onPress={() => shiftView(0, -1)}
+                                            style={styles.navBtn}
+                                            testID={testID ? `${testID}-prev-month` : undefined}
                                         >
-                                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden>
-                                                <path
-                                                    d="M7.5 2.5L4 6l3.5 3.5"
-                                                    stroke="currentColor"
-                                                    strokeWidth="1.5"
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                />
-                                            </svg>
-                                        </button>
+                                            <ChevronIcon direction="left" />
+                                        </Pressable>
                                     )}
-                                </div>
+                                </View>
                                 {mode === 'date' && (
-                                    <button type="button" className={styles.labelBtn} onClick={() => setMode('year')}>
-                                        {year}年{month + 1}月
-                                    </button>
+                                    <Pressable
+                                        accessibilityRole="button"
+                                        onPress={() => setMode('year')}
+                                        style={styles.labelBtn}
+                                        testID={testID ? `${testID}-label` : undefined}
+                                    >
+                                        <Text style={styles.labelText}>
+                                            {year}年{month + 1}月
+                                        </Text>
+                                    </Pressable>
                                 )}
                                 {mode === 'month' && (
-                                    <button type="button" className={styles.labelBtn} onClick={() => setMode('year')}>
-                                        {year}年
-                                    </button>
+                                    <Pressable
+                                        accessibilityRole="button"
+                                        onPress={() => setMode('year')}
+                                        style={styles.labelBtn}
+                                        testID={testID ? `${testID}-label` : undefined}
+                                    >
+                                        <Text style={styles.labelText}>{year}年</Text>
+                                    </Pressable>
                                 )}
                                 {mode === 'year' && (
-                                    <span className={styles.yearLabel}>
-                                        {startYear} - {startYear + 9}年
-                                    </span>
+                                    <Text style={styles.yearLabel}>
+                                        {decadeStart} - {decadeEnd}年
+                                    </Text>
                                 )}
-                                <div className={styles.headerGroup}>
+                                <View style={styles.headerGroup}>
                                     {mode === 'date' && (
-                                        <button
-                                            type="button"
-                                            className={styles.navBtn}
-                                            aria-label="下个月"
-                                            onClick={() => shiftView(0, 1)}
-                                            onMouseDown={(e) => e.preventDefault()}
+                                        <Pressable
+                                            accessibilityRole="button"
+                                            accessibilityLabel="下个月"
+                                            onPress={() => shiftView(0, 1)}
+                                            style={styles.navBtn}
+                                            testID={testID ? `${testID}-next-month` : undefined}
                                         >
-                                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden>
-                                                <path
-                                                    d="M4.5 2.5L8 6l-3.5 3.5"
-                                                    stroke="currentColor"
-                                                    strokeWidth="1.5"
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                />
-                                            </svg>
-                                        </button>
+                                            <ChevronIcon direction="right" />
+                                        </Pressable>
                                     )}
-                                    <button
-                                        type="button"
-                                        className={styles.navBtn}
-                                        aria-label="下一年"
-                                        onClick={() => (mode === 'year' ? shiftView(10, 0) : shiftView(1, 0))}
-                                        onMouseDown={(e) => e.preventDefault()}
+                                    <Pressable
+                                        accessibilityRole="button"
+                                        accessibilityLabel="下一年"
+                                        onPress={() => (mode === 'year' ? shiftView(10, 0) : shiftView(1, 0))}
+                                        style={styles.navBtn}
+                                        testID={testID ? `${testID}-next-year` : undefined}
                                     >
-                                        <svg className={styles.navIcon} viewBox="0 0 12 12" fill="none" aria-hidden>
-                                            <path
-                                                d="M4.5 2.5L8 6l-3.5 3.5"
-                                                stroke="currentColor"
-                                                strokeWidth="1.5"
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                            />
-                                        </svg>
-                                    </button>
-                                </div>
-                            </div>
-                            {mode === 'date' && <>{renderDayGrid(viewDate)}</>}
+                                        <ChevronIcon direction="right" />
+                                    </Pressable>
+                                </View>
+                            </View>
+                            {mode === 'date' && renderDayGrid(viewDate, 0)}
                             {mode === 'month' && (
-                                <div className={styles.grid3x4}>
+                                <View style={styles.grid3x4}>
                                     {MONTHS.map((label, i) => {
                                         const activeDate = pendingDate ?? selectedDate;
                                         const selected =
@@ -837,80 +718,286 @@ export const DatePicker: React.FC<DatePickerProps> = ({
                                             activeDate.getFullYear() === year &&
                                             activeDate.getMonth() === i;
                                         return (
-                                            <button
+                                            <Pressable
                                                 key={label}
-                                                type="button"
-                                                className={`${styles.monthCell} ${selected ? styles.monthCellSelected : ''}`}
-                                                aria-label={`${i + 1}月`}
-                                                onClick={() => {
+                                                accessibilityRole="button"
+                                                accessibilityState={{ selected }}
+                                                accessibilityLabel={`${i + 1}月`}
+                                                onPress={() => {
                                                     if (picker === 'month' && !range) {
-                                                        // 月份选择模式：点击即设为待选月份
                                                         setPendingDate(new Date(year, i, 1));
                                                     } else {
                                                         setViewDate(new Date(year, i, 1));
-                                                        setFocusedDate(new Date(year, i, 1));
                                                         setMode('date');
                                                     }
                                                 }}
-                                                onMouseDown={(e) => e.preventDefault()}
+                                                style={[styles.monthCell, selected && styles.monthCellSelected]}
+                                                testID={testID ? `${testID}-month-${i + 1}` : undefined}
                                             >
-                                                {label}
-                                            </button>
+                                                <Text style={[styles.monthText, selected && styles.monthTextSelected]}>
+                                                    {label}
+                                                </Text>
+                                            </Pressable>
                                         );
                                     })}
-                                </div>
+                                </View>
                             )}
                             {mode === 'year' && (
-                                <div className={styles.grid3x4}>
+                                <View style={styles.grid3x4}>
                                     {yearCells.map((y) => {
                                         const selected = selectedDate?.getFullYear() === y;
                                         return (
-                                            <button
+                                            <Pressable
                                                 key={y}
-                                                type="button"
-                                                className={`${styles.yearCell} ${selected ? styles.yearCellSelected : ''}`}
-                                                aria-label={`${y}年`}
-                                                onClick={() => {
+                                                accessibilityRole="button"
+                                                accessibilityState={{ selected }}
+                                                accessibilityLabel={`${y}年`}
+                                                onPress={() => {
                                                     setViewDate(new Date(y, month, 1));
-                                                    setFocusedDate(new Date(y, month, 1));
                                                     setMode('month');
                                                 }}
-                                                onMouseDown={(e) => e.preventDefault()}
+                                                style={[styles.yearCell, selected && styles.yearCellSelected]}
+                                                testID={testID ? `${testID}-year-${y}` : undefined}
                                             >
-                                                {y}
-                                            </button>
+                                                <Text style={[styles.monthText, selected && styles.monthTextSelected]}>
+                                                    {y}
+                                                </Text>
+                                            </Pressable>
                                         );
                                     })}
-                                </div>
+                                </View>
                             )}
                             {(mode === 'date' || (picker === 'month' && mode === 'month')) && (
-                                <div className={styles.footer}>
+                                <View style={styles.footer}>
                                     {showToday && (
-                                        <button
-                                            type="button"
-                                            className={styles.todayBtn}
-                                            onClick={handleToday}
-                                            onMouseDown={(e) => e.preventDefault()}
+                                        <Pressable
+                                            accessibilityRole="button"
+                                            onPress={handleToday}
+                                            style={styles.todayBtn}
+                                            testID={testID ? `${testID}-today` : undefined}
                                         >
-                                            今天
-                                        </button>
+                                            <Text style={styles.todayText}>今天</Text>
+                                        </Pressable>
                                     )}
-                                    <button
-                                        type="button"
-                                        className={styles.confirmBtn}
-                                        onClick={confirmTime}
-                                        onMouseDown={(e) => e.preventDefault()}
+                                    <Pressable
+                                        accessibilityRole="button"
+                                        onPress={confirmTime}
+                                        style={styles.confirmBtn}
+                                        testID={testID ? `${testID}-confirm` : undefined}
                                     >
-                                        确定
-                                    </button>
-                                </div>
+                                        <Text style={styles.confirmText}>确定</Text>
+                                    </Pressable>
+                                </View>
                             )}
                         </>
                     )}
-                </div>
-            )}
-        </div>
+                </Animated.View>
+            </Modal>
+        </View>
     );
 };
 
 DatePicker.displayName = 'DatePicker';
+
+const styles = StyleSheet.create({
+    // `.wrapper { position: relative; display: inline-block }`
+    wrapper: {
+        alignSelf: 'flex-start',
+        position: 'relative',
+    },
+    wrapperDisabled: {
+        opacity: 0.6,
+    },
+    trigger: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        borderRadius: 50,
+    },
+    value: {
+        flex: 1,
+        color: VALUE_COLOR,
+        fontWeight: '500',
+    },
+    placeholder: {
+        flex: 1,
+        color: PLACEHOLDER_COLOR,
+        fontWeight: '400',
+    },
+    // `.rangeDivider { width: 1px; height: 16px; margin: 0 2px; background: #e8dcc8 }`
+    rangeDivider: {
+        width: 1,
+        height: 16,
+        marginHorizontal: 2,
+        backgroundColor: '#e8dcc8',
+    },
+    clear: {
+        width: 20,
+        height: 20,
+        marginLeft: 4,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 10,
+    },
+    clearText: {
+        color: PLACEHOLDER_COLOR,
+        fontSize: 13,
+        fontWeight: '700',
+        lineHeight: 16,
+    },
+    calendarIcon: {
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    // `.panel`
+    panel: {
+        position: 'absolute',
+        width: PANEL_WIDTH,
+        padding: 14,
+        backgroundColor: PANEL_BG,
+        borderWidth: 1.5,
+        borderColor: PANEL_BORDER,
+        borderRadius: 20,
+        boxShadow: '0 6px 18px rgba(61, 52, 40, 0.12)',
+    },
+    panelRange: {
+        width: PANEL_WIDTH_RANGE,
+    },
+    rangePanels: {
+        flexDirection: 'row',
+        gap: 12,
+    },
+    rangePanel: {
+        width: PANEL_WIDTH,
+    },
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 10,
+    },
+    headerGroup: {
+        flexDirection: 'row',
+        gap: 2,
+    },
+    navBtn: {
+        width: 26,
+        height: 26,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 8,
+    },
+    labelBtn: {
+        paddingVertical: 4,
+        paddingHorizontal: 10,
+        borderRadius: 10,
+    },
+    labelText: {
+        color: DAY_COLOR,
+        fontSize: 14,
+        fontWeight: '700',
+    },
+    yearLabel: {
+        paddingVertical: 4,
+        paddingHorizontal: 10,
+        color: DAY_COLOR,
+        fontSize: 14,
+        fontWeight: '700',
+    },
+    weekRow: {
+        flexDirection: 'row',
+        marginBottom: 4,
+    },
+    weekCell: {
+        width: 36,
+        height: 24,
+        lineHeight: 24,
+        textAlign: 'center',
+        color: '#a09080',
+        fontSize: 11,
+        fontWeight: '700',
+        letterSpacing: 1,
+    },
+    grid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 2,
+    },
+    // `.dayCell { width: 32; height: 32; justify-self: center; border-radius: 50% }`
+    dayCell: {
+        width: 32,
+        height: 32,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 16,
+    },
+    dayText: {
+        color: DAY_COLOR,
+        fontSize: 13,
+        fontWeight: '500',
+    },
+    grid3x4: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 4,
+    },
+    monthCell: {
+        width: 84,
+        height: 36,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 12,
+    },
+    monthCellSelected: {
+        backgroundColor: SELECTED_BG,
+    },
+    yearCell: {
+        width: 84,
+        height: 36,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 12,
+    },
+    yearCellSelected: {
+        backgroundColor: SELECTED_BG,
+    },
+    monthText: {
+        color: DAY_COLOR,
+        fontSize: 13,
+        fontWeight: '500',
+    },
+    monthTextSelected: {
+        color: '#fff',
+        fontWeight: '700',
+    },
+    footer: {
+        flexDirection: 'row',
+        justifyContent: 'flex-end',
+        gap: 8,
+        marginTop: 10,
+        paddingTop: 10,
+        borderTopWidth: 1,
+        borderTopColor: '#f0e8d8',
+    },
+    todayBtn: {
+        paddingVertical: 4,
+        paddingHorizontal: 12,
+        borderRadius: 10,
+    },
+    todayText: {
+        color: '#8a7b66',
+        fontSize: 13,
+        fontWeight: '700',
+    },
+    confirmBtn: {
+        paddingVertical: 6,
+        paddingHorizontal: 16,
+        borderRadius: 12,
+        backgroundColor: 'rgba(114, 93, 66, 0.1)',
+    },
+    confirmText: {
+        color: '#8a7b66',
+        fontSize: 12,
+        fontWeight: '700',
+    },
+});

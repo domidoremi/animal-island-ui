@@ -1,4 +1,5 @@
 import type React from 'react';
+import type { StyleProp, ViewStyle } from 'react-native';
 
 // ============================================
 // 字段名路径
@@ -135,10 +136,19 @@ export interface ColProps {
     offset?: number;
 }
 
-export interface FormProps<T = Record<string, unknown>> extends Omit<
-    React.FormHTMLAttributes<HTMLFormElement>,
-    'onSubmit' | 'children'
-> {
+/**
+ * Form 的 props。
+ *
+ * ⚠️ Web 版这里是 `extends Omit<React.FormHTMLAttributes<HTMLFormElement>, 'onSubmit' | 'children'>`，
+ * 一整族 DOM 属性（`id` / `name` / `noValidate` / `autoComplete` / `onReset` …）都来自它。
+ * RN 没有 `<form>`，这些属性无一存在，故改为显式声明 RN 侧真正有的东西。
+ *
+ * 两处**主动删除**而非改名的 API：
+ *   - `onReset` —— 由原生 `<button type="reset">` 触发，RN 没有原生表单事件，
+ *     也没有能触发它的控件。重置走 `form.resetFields()`。
+ *   - `onSubmit` —— 同上。提交走 `form.submit()`（见 `Form.tsx` 的说明）。
+ */
+export interface FormProps<T = Record<string, unknown>> {
     /** 受控 form 实例（Form.useForm() 产出） */
     form?: FormInstance<T>;
     /** 初始值 */
@@ -165,9 +175,11 @@ export interface FormProps<T = Record<string, unknown>> extends Omit<
     onFinishFailed?: (info: ValidateInfo) => void;
     /** 任意字段值变化 */
     onValuesChange?: (changedValues: Partial<T>, allValues: T) => void;
-    /** reset 回调 */
-    onReset?: (e: React.FormEvent<HTMLFormElement>) => void;
     children?: React.ReactNode;
+    /** 自定义样式（取代 Web 的 `className`） */
+    style?: StyleProp<ViewStyle>;
+    /** 测试标识 */
+    testID?: string;
 }
 
 // ============================================
@@ -218,8 +230,10 @@ export interface FormItemProps {
     layout?: FormItemLayout;
     /** 字段初始值（仅在挂载时生效一次） */
     initialValue?: StoreValue;
-    /** 额外 className */
-    className?: string;
+    /** 自定义样式（取代 Web 的 `className`） */
+    style?: StyleProp<ViewStyle>;
     /** 子节点：通常是受控控件；无 name 时允许传入纯文本 */
     children?: React.ReactNode;
+    /** 测试标识 */
+    testID?: string;
 }

@@ -61,6 +61,9 @@ export type { CountdownProps, CountdownSize, CountdownVariant } from './componen
 export { Cursor } from './components/Cursor';
 export type { CursorProps, CursorType } from './components/Cursor';
 
+export { DatePicker } from './components/DatePicker';
+export type { DatePickerProps, DatePickerSize, DatePickerStatus, DatePickerValue } from './components/DatePicker';
+
 export { Divider } from './components/Divider';
 export type { DividerProps, DividerType } from './components/Divider';
 
@@ -69,6 +72,32 @@ export type { DrawerProps, DrawerPlacement } from './components/Drawer';
 
 export { Footer } from './components/Footer';
 export type { FooterProps } from './components/Footer';
+
+export { Form } from './components/Form';
+export type {
+    FormInstance,
+    FormProps,
+    FormItemProps,
+    FormLayout,
+    FormLabelAlign,
+    FormSize,
+    FormItemLayout,
+    ValidateStatus,
+    ValidateError,
+    ValidateInfo,
+    FieldData,
+    NamePath,
+    RuleObject,
+    RuleRender,
+    RuleType,
+    Rules,
+    StoreValue,
+    ColProps,
+    RequiredMark,
+    ScrollOptions,
+} from './components/Form';
+export { useForm } from './components/Form';
+export type { FormProviderProps } from './components/Form';
 
 export { Image } from './components/Image';
 export type { ImageProps, ImageColor } from './components/Image';

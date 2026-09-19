@@ -324,14 +324,19 @@ function createFormInstance(options: FormOptions): FormInstance {
         if (c.onValuesChange) options.onValuesChange = c.onValuesChange;
     }
 
-    function scrollToField(name: NamePath, _options?: ScrollOptions): void {
-        // 占位：实际滚动交给消费者，组件库不强耦合 DOM API
-        const key = stringifyNamePath(name);
-        // 找到对应 FormItem 渲染的 DOM 元素（通过 data-field-name 属性）
-        if (typeof document !== 'undefined') {
-            const el = document.querySelector(`[data-field-name="${key}"]`);
-            el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
+    /**
+     * 滚动到字段。
+     *
+     * ⚠️ RN 版是**有文档的空操作**。上游的实现是
+     * `document.querySelector('[data-field-name="..."]')?.scrollIntoView(...)`，
+     * 依赖 DOM 查询与 `scrollIntoView`；RN 两者都没有，也没有「滚动容器」的概念
+     * （滚动由宿主的 `ScrollView` 持有，组件库拿不到它的 ref）。
+     *
+     * 上游自己就注明「占位：实际滚动交给消费者」，所以这里只是把它明确成真的空操作，
+     * 而不是发明一套 RN 滚动方案。要滚动请宿主自己调 `scrollViewRef.scrollTo()`。
+     */
+    function scrollToField(_name: NamePath, _options?: ScrollOptions): void {
+        // no-op
     }
 
     const formInstance: FormInstance = {

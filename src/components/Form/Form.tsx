@@ -1,25 +1,41 @@
+/**
+ * Form —— React Native 版。
+ *
+ * 与上游 Web 版的差异：
+ *
+ * 1. **没有 `<form>`，也没有原生提交**。上游靠 `<form onSubmit>` 拦下原生提交再走校验；
+ *    RN 既无 `<form>` 也无原生 submit 事件，更没有 `<button type="submit">`。
+ *    → 容器改成 `View`，提交必须显式调 `form.submit()`（或 `form.validateFields()`）。
+ *    `onFinish` / `onFinishFailed` 的触发时机与上游一致（校验后二选一）。
+ * 2. **`onReset` 删除**（见 `types.ts` 的说明）：没有原生 reset 事件可挂。
+ *    重置走 `form.resetFields()`。
+ * 3. `useForm` / `validators` / `context` **与上游同文件同名**，只有 `scrollToField`
+ *    一处改成了有文档的空操作（见 `useForm.ts`）。
+ */
+
 import React, { useEffect, useMemo, useRef } from 'react';
-import classNames from 'classnames';
-import styles from './Form.module.less';
+import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { FormContext, type FormContextValue } from './context';
 import { useForm } from './useForm';
 import { FormItem } from './FormItem';
 import type { FormInstance, FormProps } from './types';
 
-const prefixCls = 'island-form';
+/** 布局间距，取自 `Form.module.less` 的局部变量 */
+const FORM_ITEM_GAP = 8;
+const INLINE_GAP = 8;
+const HORIZONTAL_GAP = 16;
+
+/** 尺寸 → label 字号（Less 的 `@label-font-size-*`） */
+const LABEL_FONT_SIZE = { small: 12, middle: 14, large: 16 } as const;
 
 /**
- * 表单容器组件。
+ * 表单容器。
  *
- * - 监听原生 onSubmit：阻止默认提交后调用 form.submit()（先校验，触发 onFinish / onFinishFailed）
- * - 通过 FormContext 向 Form.Item 注入 form 实例、布局配置
- * - form 实例的 onValuesChange / onFinish / onFinishFailed 通过 ref 绑定，
+ * - 通过 `FormContext` 向 `Form.Item` 注入 form 实例与布局配置
+ * - form 实例的 `onValuesChange` / `onFinish` / `onFinishFailed` 通过 ref 桥接，
  *   避免每次 props 变化重建实例
  */
-function FormInner<T extends Record<string, unknown>>(
-    props: FormProps<T>,
-    ref: React.Ref<HTMLFormElement>
-): React.ReactElement {
+function FormInner<T extends Record<string, unknown>>(props: FormProps<T>): React.ReactElement {
     const {
         form: formProp,
         initialValues,
@@ -34,10 +50,9 @@ function FormInner<T extends Record<string, unknown>>(
         onFinish,
         onFinishFailed,
         onValuesChange,
-        onReset,
-        className,
         children,
-        ...rest
+        style,
+        testID,
     } = props;
 
     // 是否用户传入 form 实例
@@ -64,7 +79,6 @@ function FormInner<T extends Record<string, unknown>>(
 
     // 注入初始值：仅当 initialValues 内容（深比较）真正变化时同步给 form，
     // 避免父组件因其它状态 re-render 时用新引用、同内容对象把用户输入清空。
-    // 用 ref 缓存上次的序列化结果，JSON.stringify 仅在 effect 实际触发时计算一次。
     const lastInitialKeyRef = useRef<string | undefined>(undefined);
     useEffect(() => {
         if (!initialValues) return;
@@ -77,7 +91,6 @@ function FormInner<T extends Record<string, unknown>>(
     const ctxValue = useMemo<FormContextValue>(
         () => ({
             form: formInstance as unknown as FormContextValue['form'],
-            prefixCls,
             layout,
             labelAlign,
             labelCol,
@@ -86,67 +99,43 @@ function FormInner<T extends Record<string, unknown>>(
             disabled,
             colon,
             requiredMark,
+            /** RN 专有：Form 的字号，供 FormItem 的 label 用 */
+            labelFontSize: LABEL_FONT_SIZE[size],
+            itemGap: FORM_ITEM_GAP,
+            inlineGap: INLINE_GAP,
+            horizontalGap: HORIZONTAL_GAP,
         }),
         [formInstance, layout, labelAlign, labelCol, wrapperCol, size, disabled, colon, requiredMark]
     );
 
-    const handleSubmit: React.FormEventHandler<HTMLFormElement> = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        // 实际提交逻辑：通过校验后调用 onFinish，否则 onFinishFailed
-        formInstance.validateFields().then(
-            (values) => {
-                callbacksRef.current.onFinish?.(values as T);
-            },
-            (err: Error & { errorFields?: unknown[]; values?: unknown }) => {
-                if (err && Array.isArray(err.errorFields)) {
-                    callbacksRef.current.onFinishFailed?.({
-                        values: (err.values ?? {}) as T,
-                        errorFields: err.errorFields as never,
-                        outOfDate: false,
-                    });
-                }
-            }
-        );
-    };
-
-    const handleReset: React.FormEventHandler<HTMLFormElement> = (e) => {
-        // 由原生 <button type="reset"> 触发，e.preventDefault 阻止清空已注册的初始值
-        e.preventDefault();
-        formInstance.resetFields();
-        onReset?.(e);
-    };
-
-    const cls = classNames(
-        styles[prefixCls],
-        styles[`${prefixCls}-${layout}`],
-        styles[`${prefixCls}-${size}`],
-        {
-            [styles[`${prefixCls}-disabled`]]: disabled,
-        },
-        className
-    );
-
     return (
         <FormContext.Provider value={ctxValue}>
-            <form ref={ref} className={cls} onSubmit={handleSubmit} onReset={handleReset} {...rest}>
+            <View
+                style={[
+                    styles.form,
+                    layout === 'horizontal' && styles.formHorizontal,
+                    layout === 'vertical' && styles.formVertical,
+                    layout === 'inline' && styles.formInline,
+                    disabled && styles.formDisabled,
+                    style,
+                ]}
+                testID={testID}
+            >
                 {children}
-            </form>
+            </View>
         </FormContext.Provider>
     );
 }
 
-type FormComponent = ((
-    props: FormProps<Record<string, unknown>> & { ref?: React.Ref<HTMLFormElement> }
-) => React.ReactElement) & {
+type FormComponent = ((props: FormProps<Record<string, unknown>>) => React.ReactElement) & {
     Item: typeof FormItem;
     useForm: typeof useForm;
     Provider: typeof FormProvider;
     displayName?: string;
 };
 
-/** 透传 ref 渲染 <form> 的主组件 */
-export const Form = React.forwardRef(FormInner) as unknown as FormComponent;
+/** 渲染容器的主组件（RN 没有 `<form>`，`forwardRef` 也就没有意义，故去掉） */
+export const Form = FormInner as unknown as FormComponent;
 Form.displayName = 'Form';
 
 // ============================================
@@ -163,23 +152,34 @@ Form.useForm = useForm;
 export interface FormProviderProps {
     form: FormInstance;
     children: React.ReactNode;
+    style?: StyleProp<ViewStyle>;
+    testID?: string;
 }
 
-function FormProviderInner({ form, children }: FormProviderProps): React.ReactElement {
+function FormProviderInner({ form, children, style, testID }: FormProviderProps): React.ReactElement {
     const ctxValue = useMemo<FormContextValue>(
         () => ({
             form,
-            prefixCls,
             layout: 'vertical',
             labelAlign: 'left',
             size: 'middle',
             disabled: false,
             colon: true,
             requiredMark: false,
+            labelFontSize: LABEL_FONT_SIZE.middle,
+            itemGap: FORM_ITEM_GAP,
+            inlineGap: INLINE_GAP,
+            horizontalGap: HORIZONTAL_GAP,
         }),
         [form]
     );
-    return <FormContext.Provider value={ctxValue}>{children}</FormContext.Provider>;
+    return (
+        <FormContext.Provider value={ctxValue}>
+            <View style={[styles.form, styles.formVertical, style]} testID={testID}>
+                {children}
+            </View>
+        </FormContext.Provider>
+    );
 }
 
 const FormProvider = FormProviderInner as unknown as React.FC<FormProviderProps>;
@@ -191,3 +191,33 @@ Form.Provider = FormProvider;
 
 // 默认导出：方便 `import Form from './Form'` 后使用 Form.Item
 export default Form;
+
+const styles = StyleSheet.create({
+    // `.island-form { margin: 0; padding: 0; color: rgba(0,0,0,0.85); font-size: 14px }`
+    form: {
+        margin: 0,
+        padding: 0,
+        gap: FORM_ITEM_GAP,
+    },
+    // `.island-form-horizontal { display: flex; flex-direction: column; gap: @form-item-gap }`
+    formHorizontal: {
+        display: 'flex',
+        flexDirection: 'column',
+    },
+    // `.island-form-vertical { display: flex; flex-direction: column; gap: @form-item-gap }`
+    formVertical: {
+        display: 'flex',
+        flexDirection: 'column',
+    },
+    // `.island-form-inline { display: flex; gap: @inline-gap }`
+    formInline: {
+        display: 'flex',
+        flexDirection: 'row',
+        gap: INLINE_GAP,
+        flexWrap: 'wrap',
+    },
+    // `.island-form-disabled { opacity: 0.6 }`
+    formDisabled: {
+        opacity: 0.6,
+    },
+});
