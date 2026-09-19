@@ -13,8 +13,10 @@ components never enter the RN typecheck or test run.
 
 ## Status
 
-**27 of 34 components ported.** `npm run ci` = `format:check` + `lint` + `typecheck` +
-`test` + `build`. Currently **663 tests / 31 suites**.
+**All 34 components ported.** `npm run ci` = `format:check` + `lint` + `typecheck` +
+`test` + `build`. Currently **918 tests / 40 suites**.
+
+Test counts below come from `npx jest --json` (reproducible), not from any document.
 
 | Component     | Tests | Notes                                                                |
 | ------------- | ----- | -------------------------------------------------------------------- |
@@ -25,30 +27,37 @@ components never enter the RN typecheck or test run.
 | Card          | 22    | CSS `radial-gradient` dots → SVG `<Pattern>`                         |
 | Carousel      | 23    | `ScrollView` + `pagingEnabled`; index arithmetic in `geometry.ts`    |
 | Checkbox      | 27    | `Pressable` + `accessibilityRole="checkbox"`                         |
-| CodeBlock     | 15    |                                                                      |
+| CodeBlock     | 15    | highlighting tokeniser kept, rendered as `<Text>` runs               |
 | Collapse      | 14    | CSS Grid `0fr → 1fr` → measured height + `Animated`                  |
 | Countdown     | 15+26 | +26 in `format.test.ts` (extracted time formatting)                  |
 | Cursor        | 7     | **documented no-op** — see divergences                               |
+| DatePicker    | 37+46 | calendar arithmetic in `calendar.ts`; `focusedDate` state dropped    |
 | Divider       | 12    | wave / squiggle tiling rebuilt on `react-native-svg`                 |
+| Drawer        | 22    | `createPortal` → RN `Modal`; `pushBackground` is a documented no-op  |
 | Footer        | 9     | `<footer>` → `Text` (RN has no `contentinfo` role)                   |
+| Form          | 57    | no `FormHTMLAttributes`; `onSubmit`/`onReset` removed — see below    |
 | Image         | 29    | `react-dom` portal → `Modal`; `naive-icons` image → `src/icons/`     |
 | Input         | 28    | `TextInput`; focus styling from `onFocus`/`onBlur`                   |
 | Loading       | 19    | absolute positioning kept (not `Modal`) so `zIndex` stays meaningful |
+| Modal         | 16    | `createPortal` → RN `Modal`; `game` `clip-path` → SVG backdrop       |
+| Notification  | 23    | module-level store + `<NotificationHost />` (see divergences)        |
 | Pagination    | 47    | page-ellipsis collapsing preserved                                   |
 | Progress      | 28    | `prefers-reduced-motion` → `AccessibilityInfo.isReduceMotionEnabled` |
 | Radio         | 25    | `Pressable` + `accessibilityRole="radio"`                            |
 | Select        | 21+16 | `Modal` panel; +16 in `geometry.test.ts`                             |
 | Skeleton      | 29    | `@keyframes` → `Animated.loop`                                       |
 | Switch        | 24    | `Pressable` + `accessibilityRole="switch"`                           |
+| Table         | 16    | `table`/`rowgroup`/`row`/`columnheader`/`cell` roles all exist in RN |
 | Tabs          | 19    |                                                                      |
 | Tag           | 28    | `:hover` dropped                                                     |
 | Time          | 11    |                                                                      |
 | TimePicker    | 22+15 | panel in a `Modal`; +15 in `geometry.test.ts`                        |
 | Title         | 17    | `clip-path` / 135° corners → `react-native-svg`                      |
+| Tooltip       | 18+20 | hover → press-and-hold; placement in `geometry.ts`                   |
 | Typewriter    | 13    |                                                                      |
 
-Still untouched Web source (7): **Tooltip, Drawer, Modal, Table, Notification, Form,
-DatePicker**.
+Nothing is left unported. The Web sources remain on disk (they are the reference and they
+still build on `main`), but they are outside every include list on this branch.
 
 ### ⚠️ What this branch gives up
 
@@ -57,8 +66,9 @@ Rewriting `package.json` for RN **removed the Web toolchain** (vite, vitest, les
 
 - `npm run ci` is the **RN** pipeline. Upstream's `ci` also ran `check:docs` and
   `test:a11y`; neither has an RN equivalent here.
-- The Web components still on disk are **no longer verified by anything** on this branch.
-  Their pipeline lives on `main`. If you edit a Web component here, you are on your own.
+- The Web sources still on disk are **no longer verified by anything** on this branch —
+  every component has an RN twin now, but only the RN side is in the include lists. Their
+  pipeline lives on `main`. If you edit a Web component here, you are on your own.
 - `.githooks/pre-commit` is **not active** (`core.hooksPath` is unset), so nothing runs `ci`
   automatically — run it yourself before committing.
 
@@ -208,6 +218,48 @@ also commented at the point of change.
    cases (Tab-focus, Enter, Escape) dropped from the test suite — RN has no DOM keyboard
    events. Replaced by a test of `Modal.onRequestClose` (Android back button).
 
+6. **Tooltip: hover → press-and-hold.** RN has no hover. The bubble shows while the
+   trigger is pressed and hides on release, keeping upstream's 100ms hide debounce.
+   Upstream's `aria-describedby` has **no RN equivalent** (zero hits across the whole
+   package), so instead of linking trigger → bubble, the bubble is itself an accessible
+   node with `role="tooltip"`.
+
+7. **Drawer: `pushBackground` is a documented no-op.** Upstream pushes `body`'s children
+   down/sideways when the drawer opens. RN has no `body` and no such transform, so it is
+   accepted and ignored. Focus trapping, focus restore and scroll-locking were dropped for
+   the same reason. Upstream keeps the node mounted and plays a CSS transition both ways;
+   RN must hold `mounted` itself until the exit animation finishes.
+
+8. **Modal: `game` variant's `clip-path` cannot clip a `View`.** Replaced with a
+   full-bleed SVG backdrop whose outline matches upstream's shape — the shape is right,
+   but content is no longer clipped by it. `aria-describedby` dropped, as in (6).
+
+9. **Table: `text-align` moved to `alignItems`.** RN's `textAlign` belongs to `TextStyle`,
+   not `ViewStyle`, so a cell container cannot carry it. Containers use flex
+   `alignItems`, and plain string/number children get a `textAlign` of their own. A custom
+   `render` that returns its own node does **not** get the `textAlign` — that is a real
+   fidelity loss, not an oversight.
+
+10. **Notification needs an explicit host.** Upstream's `notification.info()` creates and
+    appends its own container to `document.body`. RN has no such entry point, so the port
+    uses a module-level store plus a `<NotificationHost />` the app must mount once at the
+    root. This is the largest API change in the whole port.
+
+11. **Form: `onSubmit` and `onReset` removed, not renamed.** Both are native form events
+    (`<form onsubmit>`, `<button type=reset>`); RN has neither `FormHTMLAttributes` nor
+    native form events. Submit via `form.submit()`, reset via `form.resetFields()`.
+    `scrollToField()` is a documented no-op: upstream does
+    `document.querySelector(...)?.scrollIntoView(...)`, and RN has no document and no
+    scroll container to reach — the host's `ScrollView` owns that. Upstream already called
+    it a placeholder. `aria-invalid` and `aria-errormessage` do not exist in RN 0.87
+    (only 13 `aria-*` are rewritten), so error state is signalled by passing
+    `status="error"` to the child control.
+
+12. **DatePicker: `focusedDate` state deleted.** Upstream's `focusedDate` is the
+    keyboard-navigation cursor, and its only reader is `handleKeyDown`. With keyboard
+    navigation gone it would be write-only dead state. The range-hover preview became a
+    press preview, for the same reason as (6).
+
 ## Untested surface — verified by construction only
 
 Be honest about this before trusting the green build:
@@ -251,9 +303,9 @@ fade-in is not perceptible.
 - **`computeAccessibleName` ignores `aria-hidden` and `accessible={false}`** — it walks all
   children. So "the button is named after its question text" cannot be asserted when a
   decorative `+`/`−` glyph is also inside; assert `accessibilityState` / the glyph instead.
-- **JS-driven `Animated` needs fake timers.** `useNativeDriver: false` updates React every
-  frame; without fake timers those frames land outside `act` and flood the output with
-  "not wrapped in act(...)" warnings. See `Collapse.test.tsx`.
+- **JS-driven `Animated` needs _some_ timer control** — `useNativeDriver: false` updates
+  React every frame, and without control those frames land outside `act`. `Collapse.test.tsx`
+  uses fake timers. **But fake timers do not work everywhere** — see the next bullet.
 - **`getByTestId` returns the host element**, so you see the props _after_ RN's `View.js`
   rewrote `aria-*` into `accessibility*` — **except that the jest preset mocks `View`
   entirely** (`setup.js` → `mocks/View.js` → `mockComponent`), and the mock passes props
@@ -269,6 +321,33 @@ fade-in is not perceptible.
 
     So: assertions on **`Pressable`** props (trigger, options) match production; assertions on
     **`View` / `Animated.View`** props only prove the component forwarded the prop.
+
+- ⚠️ **Fake timers are unusable on components that animate on mount** (Drawer, DatePicker).
+  Two independent failures, both confirmed by probing:
+
+    | Approach                                                | Symptom                                                                                                                                                                                         |
+    | ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+    | `jest.useFakeTimers()`                                  | fakes `queueMicrotask` too; React 19's scheduler and RNTL's `await render()` both depend on it, so the tree never commits — first case runs 10s, then even `trigger` is unfindable              |
+    | `jest.useFakeTimers({ doNotFake: ['queueMicrotask'] })` | fixes rendering, but React's scheduler itself queues work with `setTimeout`, so `await act(async () => ...)` waits on a timer that never arrives — passes after 11s, tripping Jest's 5s timeout |
+    | real timers + `waitFor(..., { timeout: 2000 })`         | works, and later cases in the same file are unaffected (verified)                                                                                                                               |
+
+- ⚠️ **RNTL treats siblings of an `aria-modal` element as inaccessible** —
+  `isHiddenFromAccessibility` in `helpers/accessibility.js` mirrors iOS
+  `accessibilityViewIsModal`. So a `Modal`'s backdrop inside the modal container must be
+  queried with `includeHiddenElements: true`, or it is simply not found.
+- ⚠️ **A test that waits for a `Modal` to unmount itself poisons later cases in the same
+  file** — they report `Unable to find an element with testID: ...` while
+  `container.queryAll` still finds it. Fake timers, `waitFor` and real timers all behave
+  the same. Moving the waiting cases to the **end of the file** restores them; a separate
+  file also avoids it (module-registry isolation) but is not worth the split. See
+  `Drawer.test.tsx`.
+- **`container.queryAll` yields host nodes only** — composite components are not in the
+  result, so props injected into a child control (e.g. `Form` injecting `status="error"`
+  into `Input`) cannot be asserted by query. Make a probe child that renders the prop as
+  text. See the "错误态" case in `Form.test.tsx`.
+- **A bare string child throws** `Invariant Violation: Text strings must be rendered
+within a <Text> component`. Components that accept free children (`Form.Item`, `Table`
+  cells) wrap strings themselves; tests that render bare text must wrap it too.
 
 ## Adding the next component
 

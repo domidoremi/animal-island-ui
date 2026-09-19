@@ -12,7 +12,9 @@ RN 移植是**增量**的 —— 它靠 `tsconfig.json`、`tsconfig.build.json`�
 
 ## 状态
 
-**34 个组件里已移植 27 个。**
+**34 个组件全部移植完成。**
+
+下表用例数取自 `npx jest --json`（可复现），不是抄任何文档。
 
 | 组件          | 用例  | 备注                                                                 |
 | ------------- | ----- | -------------------------------------------------------------------- |
@@ -23,31 +25,39 @@ RN 移植是**增量**的 —— 它靠 `tsconfig.json`、`tsconfig.build.json`�
 | Card          | 22    | CSS `radial-gradient` 波点 → SVG `<Pattern>`                         |
 | Carousel      | 23    | `ScrollView` + `pagingEnabled`；下标算术抽到 `geometry.ts`           |
 | Checkbox      | 27    | `Pressable` + `accessibilityRole="checkbox"`                         |
-| CodeBlock     | 15    |                                                                      |
+| CodeBlock     | 15    | 高亮的 tokenise 保留，渲染成 `<Text>` 片段                           |
 | Collapse      | 14    | CSS Grid `0fr → 1fr` → 测量高度 + `Animated`                         |
 | Countdown     | 15+26 | 另有 26 条在 `format.test.ts`（时间格式化抽出来了）                  |
 | Cursor        | 7     | **有文档的空操作** —— 见分歧                                         |
+| DatePicker    | 37+46 | 日历算术抽到 `calendar.ts`；`focusedDate` 状态整体删除               |
 | Divider       | 12    | wave / squiggle 平铺用 `react-native-svg` 重建                       |
+| Drawer        | 22    | `createPortal` → RN `Modal`；`pushBackground` 是有文档的空操作       |
 | Footer        | 9     | `<footer>` → `Text`（RN 没有 `contentinfo` role）                    |
 | Image         | 29    | `react-dom` 的 portal → `Modal`；`naive-icons` 图标 → `src/icons/`   |
+| Form          | 57    | 不再 extends `FormHTMLAttributes`；删掉 `onSubmit`/`onReset`         |
 | Input         | 28    | `TextInput`；聚焦样式由 `onFocus`/`onBlur` 驱动                      |
 | Loading       | 19    | 保留绝对定位而非 `Modal`，好让 `zIndex` 这个 prop 仍有意义           |
+| Modal         | 16    | `createPortal` → RN `Modal`；`game` 的 `clip-path` → SVG 底图        |
+| Notification  | 23    | 模块级 store + `<NotificationHost />`（见分歧）                      |
 | Pagination    | 47    | 页码省略折叠逻辑照搬                                                 |
 | Progress      | 28    | `prefers-reduced-motion` → `AccessibilityInfo.isReduceMotionEnabled` |
 | Radio         | 25    | `Pressable` + `accessibilityRole="radio"`                            |
 | Select        | 21+16 | `Modal` 面板；另有 16 条在 `geometry.test.ts`                        |
 | Skeleton      | 29    | `@keyframes` → `Animated.loop`                                       |
 | Switch        | 24    | `Pressable` + `accessibilityRole="switch"`                           |
+| Table         | 16    | `table`/`rowgroup`/`row`/`columnheader`/`cell` 这些 role RN 都有     |
 | Tabs          | 19    |                                                                      |
 | Tag           | 28    | `:hover` 丢弃                                                        |
 | Time          | 11    |                                                                      |
 | TimePicker    | 22+15 | 面板在 `Modal` 里；另有 15 条在 `geometry.test.ts`                   |
 | Title         | 17    | `clip-path` / 135° 切角 → `react-native-svg`                         |
+| Tooltip       | 18+20 | hover → 按住显示；定位算术抽到 `geometry.ts`                         |
 | Typewriter    | 13    |                                                                      |
 
-仍未改动的 Web 源码（7 个）：**Tooltip、Drawer、Modal、Table、Notification、Form、DatePicker**。
+没有剩下的未移植组件。Web 源码仍留在磁盘上（它们是对照物，且在 `main` 上仍然能构建），
+但全部落在本分支任何 include 名单之外。
 
-`npm run ci` = `format:check` + `lint` + `typecheck` + `test` + `build`。当前 **663 用例 / 31 套件**。
+`npm run ci` = `format:check` + `lint` + `typecheck` + `test` + `build`。当前 **918 用例 / 40 套件**。
 
 ### ⚠️ 本分支放弃了什么
 
@@ -56,8 +66,8 @@ eslint 被重新接回，但按 RN 的方式 —— 见「Linting」。因此在
 
 - `npm run ci` 是 **RN** 流水线。上游的 `ci` 还跑了 `check:docs` 与 `test:a11y`，
   这两项在本分支没有对应物。
-- 仍在磁盘上的 Web 组件在本分支**不受任何验证**。它们的流水线在 `main` 上。
-  若你在这里改 Web 组件，后果自负。
+- 仍在磁盘上的 Web 源码在本分支**不受任何验证** —— 每个组件现在都有 RN 孪生体，
+  但只有 RN 侧在 include 名单里。它们的流水线在 `main` 上。若你在这里改 Web 组件，后果自负。
 - `.githooks/pre-commit` **未启用**（`core.hooksPath` 未设置），所以没有东西会自动跑 `ci`
   —— 提交前请自己跑。
 
@@ -194,6 +204,34 @@ RN 没有鼠标指针 —— RN 的 `cursor` 样式只接受 `'auto' | 'pointer'
    （Tab 聚焦、Enter、Escape）也从测试套件里删掉 —— RN 没有 DOM 键盘事件。
    改为测试 `Modal.onRequestClose`（Android 返回键）。
 
+6. **Tooltip：hover → 按住显示。** RN 没有 hover。气泡在 trigger 按住期间显示、松开即隐藏，
+   并保留上游那个 100ms 的隐藏防抖。上游的 `aria-describedby` 在 RN **没有对应物**
+   （全包搜零命中），所以不再做 trigger → 气泡的关联，改为让气泡自身成为
+   `role="tooltip"` 的可访问节点。
+7. **Drawer：`pushBackground` 是有文档的空操作。** 上游在抽屉打开时把 `body` 的子元素
+   推开。RN 没有 `body`、也没有这种变换，所以这个 prop 收下但不用。焦点陷阱、焦点归还、
+   锁滚动同理丢弃。上游靠 CSS transition 双向播放（节点常驻 DOM），
+   RN 必须自己维持 `mounted` 直到退场动画播完。
+8. **Modal：`game` 变体的 `clip-path` 无法裁切 `View`。** 改为铺满的 SVG 底图，
+   轮廓与上游一致 —— 形状是对的，但内容不再被它裁切。`aria-describedby` 同样丢弃，理由同 (6)。
+9. **Table：`text-align` 改到 `alignItems`。** RN 的 `textAlign` 属于 `TextStyle` 而非
+   `ViewStyle`，容器拿不到它。故容器层用 flex 的 `alignItems`，纯文本子节点再补自己的
+   `textAlign`。自定义 `render` 返回的节点**拿不到**后者 —— 这是真实的保真度损失，不是疏漏。
+10. **Notification 必须显式挂宿主。** 上游的 `notification.info()` 会自己建容器并挂到
+    `document.body`。RN 没有这个入口，故改为模块级 store + 由宿主在根组件挂一次
+    `<NotificationHost />`。这是整个移植里最大的 API 变化。
+11. **Form：`onSubmit` 与 `onReset` 是删除，不是改名。** 两者都是原生表单事件
+    （`<form onsubmit>`、`<button type=reset>`），RN 既没有 `FormHTMLAttributes`
+    也没有原生表单事件。提交走 `form.submit()`、重置走 `form.resetFields()`。
+    `scrollToField()` 降级为有文档的空操作：上游是
+    `document.querySelector(...)?.scrollIntoView(...)`，RN 没有 document、也拿不到滚动容器
+    （它由宿主的 `ScrollView` 持有）；上游自己就注明「交给消费者」。`aria-invalid` 与
+    `aria-errormessage` 在 RN 0.87 都不存在（只改写 13 个 `aria-*`），
+    故错误态改为把 `status="error"` 透传给子控件。
+12. **DatePicker：`focusedDate` 状态整体删除。** 上游的 `focusedDate` 是键盘导航的焦点日期，
+    唯一读者就是 `handleKeyDown`。键盘导航既已丢弃，留着就是只写不读的死状态。
+    range 的 hover 预览改为按下预览，理由同 (6)。
+
 ## 未测面 —— 仅靠构造保证
 
 在相信这个绿色构建之前，请先诚实面对这一点：
@@ -233,9 +271,9 @@ RN 没有鼠标指针 —— RN 的 `cursor` 样式只接受 `'auto' | 'pointer'
 - **`computeAccessibleName` 不理会 `aria-hidden` 与 `accessible={false}`** —— 它会走遍所有子节点。
   所以当装饰性的 `+`/`−` 字符也在里面时，「按钮以问题文本命名」这件事无法断言；
   改为断言 `accessibilityState` 或那个字符。
-- **JS 驱动的 `Animated` 需要 fake timers。** `useNativeDriver: false` 会逐帧更新 React；
-  没有 fake timers 时这些帧会落在 `act` 之外，把输出刷满 "not wrapped in act(...)" 警告。
-  见 `Collapse.test.tsx`。
+- **JS 驱动的 `Animated` 需要某种定时器控制** —— `useNativeDriver: false` 会逐帧更新 React，
+  没有控制时这些帧会落在 `act` 之外。`Collapse.test.tsx` 用的是 fake timers。
+  **但 fake timers 并非到处可用** —— 见下一条。
 - **`getByTestId` 返回的是宿主元素**，所以你看到的是 RN 的 `View.js` 把 `aria-*`
   改写为 `accessibility*` **之后**的 props —— **但** jest preset 把 `View` 整个 mock 掉了
   （`setup.js` → `mocks/View.js` → `mockComponent`），而这个 mock **原样**透传 props。后果：
@@ -250,6 +288,30 @@ RN 没有鼠标指针 —— RN 的 `cursor` 样式只接受 `'auto' | 'pointer'
 
     所以：断言 **`Pressable`** 的 props（trigger、选项）与生产一致；断言 **`View` /
     `Animated.View`** 的 props 只能证明「prop 被透传了」。
+
+- ⚠️ **一挂载就起动画的组件上，fake timers 不可用**（Drawer、DatePicker）。
+  两种独立的失败，都是探针确认过的：
+
+    | 做法                                                    | 症状                                                                                                                                                             |
+    | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+    | `jest.useFakeTimers()`                                  | 连 `queueMicrotask` 一起假掉，而 React 19 的调度器与 RNTL 的 `await render()` 都靠它推进微任务 → 树提交不了，首个用例跑 10 秒，之后连 `trigger` 都查不到         |
+    | `jest.useFakeTimers({ doNotFake: ['queueMicrotask'] })` | 只修好渲染这一半：React 调度器自己也用 `setTimeout` 排任务，于是 `await act(async () => ...)` 要等一个永远不来的定时器 —— 能过但耗时 11 秒并触发 Jest 的 5s 超时 |
+    | 真实定时器 + `waitFor(..., { timeout: 2000 })`          | 可行，且后续用例不受影响（已验证）                                                                                                                               |
+
+- ⚠️ **RNTL 把 `aria-modal` 元素的兄弟节点一律视为不可访问** ——
+  `helpers/accessibility.js` 里的 `isHiddenFromAccessibility` 是在模拟 iOS 的
+  `accessibilityViewIsModal`。所以 `Modal` 容器内的遮罩必须带 `includeHiddenElements: true`
+  才查得到，否则根本找不到。
+- ⚠️ **「等待 Modal 自行卸载」的用例会污染同文件后面的用例** —— 后面报
+  `Unable to find an element with testID: ...`，而 `container.queryAll` 又能查到。
+  fake timers、`waitFor`、真实定时器三种等法都一样。把这类用例挪到**文件最后**即可恢复；
+  拆到独立文件也能规避（模块注册表隔离），但不值得为此多拆一个文件。见 `Drawer.test.tsx`。
+- **`container.queryAll` 只给宿主节点** —— 结果里没有复合组件，所以注入到子控件的 prop
+  （如 `Form` 给 `Input` 注入 `status="error"`）查不到。改用一个把该 prop 渲染成文本的探针子组件。
+  见 `Form.test.tsx` 的「错误态」用例。
+- **裸字符串子节点会抛** `Invariant Violation: Text strings must be rendered within a
+<Text> component`。接受自由 children 的组件（`Form.Item`、Table 单元格）自己会包一层；
+  测试里渲染裸文本时也要自己包。
 
 ## 加下一个组件
 
