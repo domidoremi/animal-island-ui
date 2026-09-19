@@ -1,26 +1,16 @@
-import React, { useEffect, useCallback, useId, useRef } from 'react';
-import { createPortal } from 'react-dom';
+import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
+import {
+    Animated,
+    Easing,
+    Modal,
+    Pressable,
+    StyleSheet,
+    Text,
+    View,
+    type StyleProp,
+    type ViewStyle,
+} from 'react-native';
 import { Cursor } from '../Cursor';
-import styles from './drawer.module.less';
-
-const FOCUSABLE_SELECTOR = [
-    'a[href]',
-    'area[href]',
-    'button:not([disabled])',
-    'input:not([disabled]):not([type="hidden"])',
-    'select:not([disabled])',
-    'textarea:not([disabled])',
-    '[tabindex]:not([tabindex="-1"])',
-    'audio[controls]',
-    'video[controls]',
-    '[contenteditable]:not([contenteditable="false"])',
-].join(',');
-
-const getFocusable = (root: HTMLElement): HTMLElement[] => {
-    return Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(
-        (el) => !el.hasAttribute('disabled') && el.getAttribute('aria-hidden') !== 'true'
-    );
-};
 
 export type DrawerPlacement = 'left' | 'right' | 'top' | 'bottom';
 
@@ -32,12 +22,19 @@ export interface DrawerProps {
     /** 弹出位置，默认 'right' */
     placement?: DrawerPlacement;
     /** 宽度（left / right 时生效），默认 378 */
-    width?: number | string;
+    width?: number;
     /** 高度（top / bottom 时生效），默认 300 */
-    height?: number | string;
+    height?: number;
     /** 点击遮罩关闭，默认 true */
     maskClosable?: boolean;
-    /** 背景下沉景深效果，默认 true */
+    /**
+     * 背景下沉景深效果，默认 true。
+     *
+     * ⚠️ **在 RN 里是空操作（no-op）**：上游的实现是遍历 `document.body.children`，
+     * 给非 fixed 的子元素写 `transform: scale(0.94)` / `filter: blur(1px)` /
+     * `borderRadius: 14px` / `overflow: hidden`。RN 既没有 `document`，
+     * 也无法从组件内部改宿主 App 的其它视图。保留 prop 只为守住上游 API 的形状。
+     */
     pushBackground?: boolean;
     /** 底部区域，传 null 或不传则不渲染 */
     footer?: React.ReactNode | null;
@@ -45,20 +42,56 @@ export interface DrawerProps {
     onClose?: () => void;
     /** 自定义内容 */
     children?: React.ReactNode;
-    className?: string;
+    /** 面板自定义样式（取代 Web 的 `className`） */
+    style?: StyleProp<ViewStyle>;
     /** 遮罩层自定义样式 */
-    maskStyle?: React.CSSProperties;
+    maskStyle?: StyleProp<ViewStyle>;
+    /** 测试标识，同时作为 `-mask` / `-panel` / `-title` / `-close` / `-body` / `-footer` 的前缀 */
+    testID?: string;
 }
+
+/** `.panel { transition: transform 0.36s cubic-bezier(0.2, 0, 0.2, 1) }` */
+const SLIDE_DURATION_MS = 360;
+const SLIDE_EASING = Easing.bezier(0.2, 0, 0.2, 1);
+
+const PANEL_BG = 'rgb(247, 243, 223)';
+const TITLE_COLOR = 'rgba(114, 93, 66, 1)';
+const CLOSE_COLOR = 'rgba(114, 93, 66, 0.6)';
+const BODY_COLOR = '#8a7b66';
+const MASK_BG = 'rgba(0, 0, 0, 0.18)';
+
+/**
+ * 关闭态 / 打开态的位移。
+ *
+ * 上游是 CSS：`.panelRight { transform: translateX(100%) }` 被
+ * `.panel.panelOpen { transform: none }` 覆盖，靠 transition 双向播放。
+ * RN 没有 CSS transition，改用 `Animated.Value` + 百分比 `translate`。
+ */
+const slideRange = (placement: DrawerPlacement, axis: 'x' | 'y'): [string, string] => {
+    if (axis === 'x') {
+        return placement === 'left' ? ['-100%', '0%'] : ['100%', '0%'];
+    }
+    return placement === 'top' ? ['-100%', '0%'] : ['100%', '0%'];
+};
 
 /**
  * Drawer 下沉景深抽屉
  *
- * 抽屉本体始终在 DOM 中（参考 index.html 的下沉景深抽屉结构）：
- * - 关闭态由 placement 类（transform: translateX/Y(...)）定义，
- *   打开态由 panelOpen 覆盖（transform: none），浏览器能稳定捕获两端状态，
- *   transition 入场/退场自动反向播放。
- * - 关闭时用 aria-hidden 把抽屉排除在无障碍树之外，关闭状态下也保留 focus 行为兼容。
- * - 面板上加 inert={!open} 防止关闭时被 Tab 进入。
+ * ## 与上游的结构性差异
+ *
+ * | 上游（Web）                                      | RN 版                                                        |
+ * | ------------------------------------------------ | ------------------------------------------------------------ |
+ * | `createPortal(..., document.body)`               | RN `Modal`（`transparent` + `animationType="none"`）          |
+ * | CSS `transition` 双向播放（节点常驻 DOM）         | `Animated`；关闭时播完再卸载，需要内部 `mounted` 状态         |
+ * | `document.body.style.overflow = 'hidden'` 锁滚动 | 无对应物（RN 没有 body 滚动），丢弃                           |
+ * | 焦点送进抽屉 / 归还 / Tab 陷阱                    | 无对应物（RN 的 `View` 没有 `.focus()`，也没有 DOM 焦点顺序） |
+ * | `inert={!open}`                                   | 关闭时直接卸载，`aria-hidden` 只在退场动画期间为真            |
+ * | Escape 键                                         | `Modal.onRequestClose`（安卓返回键，RN 的对应物）              |
+ * | `pushBackground` 下沉 body 子元素                | 空操作，见 `DrawerProps.pushBackground`                       |
+ *
+ * 遮罩点击关闭用 `Pressable`；面板自身 `onStartShouldSetResponder={() => true}`
+ * 抢下 responder，于是面板内的点击不会冒泡到遮罩 —— 这是上游
+ * `onClick={e => e.stopPropagation()}` 在 RN 里的对应写法。
  */
 export const Drawer: React.FC<DrawerProps> = ({
     open,
@@ -67,240 +100,230 @@ export const Drawer: React.FC<DrawerProps> = ({
     width = 378,
     height = 300,
     maskClosable = true,
-    pushBackground = true,
+    pushBackground: _pushBackground = true,
     footer,
     onClose,
     children,
-    className,
+    style,
     maskStyle,
+    testID,
 }) => {
-    const dialogRef = useRef<HTMLDivElement>(null);
-    const previouslyFocusedRef = useRef<HTMLElement | null>(null);
-    // 用于在退场时延迟一帧恢复元素的原始 transition（让 transform 恢复能套用我们设的过渡）
-    const restoreTransitionRafRef = useRef<number | null>(null);
-
-    // 打开时记录触发元素 + 把焦点送进抽屉；关闭时归还焦点
-    useEffect(() => {
-        if (!open) return;
-        previouslyFocusedRef.current = (document.activeElement as HTMLElement) ?? null;
-        const id = window.setTimeout(() => {
-            const dialog = dialogRef.current;
-            if (!dialog) return;
-            const focusables = getFocusable(dialog);
-            (focusables[0] ?? dialog).focus();
-        }, 0);
-        return () => {
-            window.clearTimeout(id);
-            previouslyFocusedRef.current?.focus?.();
-        };
-    }, [open]);
-
-    // ESC 关闭 + Tab/Shift+Tab 焦点陷阱
-    useEffect(() => {
-        if (!open) return;
-        const handler = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') {
-                onClose?.();
-                return;
-            }
-            if (e.key !== 'Tab') return;
-            const dialog = dialogRef.current;
-            if (!dialog) return;
-            const focusables = getFocusable(dialog);
-            if (focusables.length === 0) {
-                e.preventDefault();
-                dialog.focus();
-                return;
-            }
-            const first = focusables[0];
-            const last = focusables[focusables.length - 1];
-            const active = document.activeElement as HTMLElement | null;
-            if (e.shiftKey) {
-                if (active === first || !dialog.contains(active)) {
-                    e.preventDefault();
-                    last.focus();
-                }
-            } else {
-                if (active === last || !dialog.contains(active)) {
-                    e.preventDefault();
-                    first.focus();
-                }
-            }
-        };
-        document.addEventListener('keydown', handler);
-        return () => document.removeEventListener('keydown', handler);
-    }, [open, onClose]);
-
-    // 禁止滚动：与 open 同步，关闭时立刻还原（参考中开关类即释放滚动）
-    useEffect(() => {
-        if (open) {
-            document.body.style.overflow = 'hidden';
-            return () => {
-                document.body.style.overflow = '';
-            };
-        }
-        return undefined;
-    }, [open]);
-
-    // 背景下沉景深效果：对 body 直接子元素中非 fixed 的内容施加 transform + filter + borderRadius + overflow
-    // 数值与时序对齐 index.html "下沉景深抽屉" 参考：
-    //   transform: scale(0.94)
-    //   filter: blur(1px)
-    //   border-radius: 14px / overflow: hidden
-    //   transition: transform/filter/border-radius 0.36s cubic-bezier(0.2, 0, 0.2, 1) / ease
-    useEffect(() => {
-        if (!open || !pushBackground) return;
-
-        // 取消上次清理时可能未完成的恢复 transition 的 rAF（处理快速重新打开抽屉的场景）
-        if (restoreTransitionRafRef.current !== null) {
-            cancelAnimationFrame(restoreTransitionRafRef.current);
-            restoreTransitionRafRef.current = null;
-        }
-
-        const pushed: Array<{
-            el: HTMLElement;
-            transform: string;
-            filter: string;
-            borderRadius: string;
-            overflow: string;
-            transition: string;
-        }> = [];
-
-        const candidates = Array.from(document.body.children).filter((el): el is HTMLElement => {
-            if (!(el instanceof HTMLElement)) return false;
-            // 跳过脚本/样式/无脚本标签
-            const tag = el.tagName;
-            if (tag === 'SCRIPT' || tag === 'STYLE' || tag === 'NOSCRIPT') return false;
-            // 跳过显式标记忽略的元素
-            if (el.hasAttribute('data-animal-drawer-ignore')) return false;
-            // 跳过本组件 portal 输出（Cursor 包裹器非 fixed，但其内部的 mask/panel 是 fixed，
-            // 若对其施加 transform 会成为 fixed 后代的包含块，破坏视口定位）
-            if (el.hasAttribute('data-animal-drawer-portal')) return false;
-            // 跳过 fixed 定位（遮罩、面板、其他 portal 均为 fixed，自动排除）
-            return getComputedStyle(el).position !== 'fixed';
-        });
-
-        candidates.forEach((el) => {
-            pushed.push({
-                el,
-                transform: el.style.transform,
-                filter: el.style.filter,
-                borderRadius: el.style.borderRadius,
-                overflow: el.style.overflow,
-                transition: el.style.transition,
-            });
-            el.style.transition =
-                'transform 0.36s cubic-bezier(0.2, 0, 0.2, 1), filter 0.36s ease, border-radius 0.36s ease';
-        });
-
-        const rafId = requestAnimationFrame(() => {
-            pushed.forEach(({ el }) => {
-                el.style.transform = 'scale(0.94)';
-                el.style.filter = 'blur(1px)';
-                el.style.borderRadius = '14px';
-                el.style.overflow = 'hidden';
-            });
-        });
-
-        return () => {
-            cancelAnimationFrame(rafId);
-            // 取消可能未完成的恢复 transition 的 rAF（effect 重新打开抽屉时）
-            if (restoreTransitionRafRef.current !== null) {
-                cancelAnimationFrame(restoreTransitionRafRef.current);
-                restoreTransitionRafRef.current = null;
-            }
-            // 先恢复 transform/filter/borderRadius/overflow，但保留我们设的 transition，让背景能平滑恢复
-            pushed.forEach(({ el, transform, filter, borderRadius, overflow }) => {
-                el.style.transform = transform;
-                el.style.filter = filter;
-                el.style.borderRadius = borderRadius;
-                el.style.overflow = overflow;
-            });
-            // 下一帧再恢复原始 transition，避免和上面的样式写入被合批导致 transition 失效
-            restoreTransitionRafRef.current = requestAnimationFrame(() => {
-                pushed.forEach(({ el, transition }) => {
-                    el.style.transition = transition;
-                });
-                restoreTransitionRafRef.current = null;
-            });
-        };
-    }, [open, pushBackground]);
-
-    const handleMaskClick = useCallback(() => {
-        if (maskClosable) onClose?.();
-    }, [maskClosable, onClose]);
-
-    const handleContentClick = useCallback((e: React.MouseEvent) => {
-        e.stopPropagation();
-    }, []);
+    const [mounted, setMounted] = useState(open);
+    const slide = useRef(new Animated.Value(open ? 1 : 0)).current;
+    const maskOpacity = useRef(new Animated.Value(open ? 1 : 0)).current;
 
     const idPrefix = `animal-drawer-${useId().replace(/:/g, '')}`;
     const titleId = `${idPrefix}-title`;
 
-    // 始终在 DOM 中渲染：关闭态由 placement 类（transform: translateX/Y(...)）定义，
-    // 打开态由 .panelOpen 覆盖（transform: none），CSS transition 入场/退场自动反向播放。
-    // 关闭时通过 inert + aria-hidden 把抽屉从无障碍树和 Tab 顺序中排除。
-    const inertProps = !open ? ({ inert: '' } as Record<string, string>) : {};
+    useEffect(() => {
+        if (open) setMounted(true);
 
-    const panelClass = [
-        styles.panel,
-        placement === 'left' && styles.panelLeft,
-        placement === 'right' && styles.panelRight,
-        placement === 'top' && styles.panelTop,
-        placement === 'bottom' && styles.panelBottom,
-        open && styles.panelOpen,
-        className,
-    ]
-        .filter(Boolean)
-        .join(' ');
+        // useNativeDriver：真实设备上走原生线程；测试里是 no-op，
+        // 所以卸载不能挂在动画回调上（回调不会来），用定时器兜底（同 TimePicker）。
+        Animated.timing(slide, {
+            toValue: open ? 1 : 0,
+            duration: SLIDE_DURATION_MS,
+            easing: SLIDE_EASING,
+            useNativeDriver: true,
+        }).start();
+        Animated.timing(maskOpacity, {
+            toValue: open ? 1 : 0,
+            duration: SLIDE_DURATION_MS,
+            easing: Easing.ease,
+            useNativeDriver: true,
+        }).start();
 
-    const panelStyle: React.CSSProperties = {};
-    if (placement === 'left' || placement === 'right') {
-        panelStyle.width = typeof width === 'number' ? `${width}px` : width;
-    } else {
-        panelStyle.height = typeof height === 'number' ? `${height}px` : height;
-    }
+        if (open) return undefined;
+        const id = setTimeout(() => setMounted(false), SLIDE_DURATION_MS);
+        return () => clearTimeout(id);
+        // pushBackground 有意忽略（_pushBackground 不可读），故不进依赖数组
+    }, [open, slide, maskOpacity]);
 
-    const drawerContent = (
-        <div data-animal-drawer-portal>
+    const handleMaskPress = useCallback(() => {
+        if (maskClosable) onClose?.();
+    }, [maskClosable, onClose]);
+
+    const panelStyle: ViewStyle = placement === 'left' || placement === 'right' ? { width } : { height };
+
+    const horizontal = placement === 'left' || placement === 'right';
+    const [from, to] = slideRange(placement, horizontal ? 'x' : 'y');
+    const axis = horizontal ? 'translateX' : 'translateY';
+    const slideTransform = [{ [axis]: slide.interpolate({ inputRange: [0, 1], outputRange: [from, to] }) }];
+
+    return (
+        <Modal transparent visible={mounted} animationType="none" onRequestClose={onClose}>
             <Cursor>
-                <div
-                    className={[styles.mask, open && styles.maskOpen].filter(Boolean).join(' ')}
-                    style={maskStyle}
-                    onClick={handleMaskClick}
-                    aria-hidden={!open}
+                <Animated.View
+                    style={[styles.mask, { opacity: maskOpacity }, maskStyle]}
+                    testID={testID ? `${testID}-mask` : undefined}
                 >
-                    <div
-                        ref={dialogRef}
-                        className={panelClass}
-                        style={panelStyle}
-                        onClick={handleContentClick}
+                    <Pressable
+                        style={StyleSheet.absoluteFill}
+                        onPress={handleMaskPress}
+                        disabled={!maskClosable}
+                        testID={testID ? `${testID}-mask-hit` : undefined}
+                    />
+                    <Animated.View
+                        // `accessible` 是必需的：RNTL 的 `getByRole` 受 `isAccessibilityElement`
+                        // 门控，非 Text 宿主只有显式 `accessible` 才会进无障碍树（与 Collapse 的
+                        // `region` 同款坑）。对 dialog 来说把内容合成一个节点也正好是上游的语义
+                        // （`aria-modal="true"` 意味着外部内容都不可达）。
+                        accessible
                         role="dialog"
-                        aria-modal="true"
-                        aria-labelledby={title ? titleId : undefined}
+                        aria-modal
                         aria-hidden={!open}
-                        tabIndex={-1}
-                        {...inertProps}
+                        aria-labelledby={title ? titleId : undefined}
+                        // 上游 `onClick={e => e.stopPropagation()}`：
+                        // 抢下 responder，遮罩的 Pressable 就收不到这次触摸。
+                        onStartShouldSetResponder={() => true}
+                        style={[
+                            styles.panel,
+                            placement === 'right' && styles.panelRight,
+                            placement === 'left' && styles.panelLeft,
+                            placement === 'top' && styles.panelTop,
+                            placement === 'bottom' && styles.panelBottom,
+                            panelStyle,
+                            style,
+                            { transform: slideTransform as never },
+                        ]}
+                        testID={testID ? `${testID}-panel` : undefined}
                     >
                         {title && (
-                            <div className={styles.header}>
-                                <div className={styles.title} id={titleId}>
+                            <View style={styles.header}>
+                                <Text
+                                    nativeID={titleId}
+                                    style={styles.title}
+                                    testID={testID ? `${testID}-title` : undefined}
+                                >
                                     {title}
-                                </div>
-                                <button type="button" className={styles.close} onClick={onClose} aria-label="关闭">
-                                    ×
-                                </button>
-                            </div>
+                                </Text>
+                                <Pressable
+                                    accessibilityRole="button"
+                                    aria-label="关闭"
+                                    onPress={onClose}
+                                    style={styles.close}
+                                    testID={testID ? `${testID}-close` : undefined}
+                                >
+                                    <Text style={styles.closeText}>×</Text>
+                                </Pressable>
+                            </View>
                         )}
-                        <div className={styles.body}>{children}</div>
-                        {footer && <div className={styles.footer}>{footer}</div>}
-                    </div>
-                </div>
+                        <View style={styles.body} testID={testID ? `${testID}-body` : undefined}>
+                            {children}
+                        </View>
+                        {footer && (
+                            <View style={styles.footer} testID={testID ? `${testID}-footer` : undefined}>
+                                {footer}
+                            </View>
+                        )}
+                    </Animated.View>
+                </Animated.View>
             </Cursor>
-        </div>
+        </Modal>
     );
-
-    return createPortal(drawerContent, document.body);
 };
 
 Drawer.displayName = 'Drawer';
+
+const styles = StyleSheet.create({
+    // `.mask { position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,.18); opacity: 0 }`
+    mask: {
+        flex: 1,
+        backgroundColor: MASK_BG,
+    },
+    // `.panel { position: fixed; z-index: 1001; display:flex; flex-direction: column; ... }`
+    panel: {
+        position: 'absolute',
+        backgroundColor: PANEL_BG,
+        flexDirection: 'column',
+        overflow: 'hidden',
+    },
+    // ⚠️ `max-width: calc(100vw - 32px)` —— RN 不支持 `calc()`，
+    //    这里退化为 `maxWidth: '100%'`，也就是丢掉那 32px 的内缩。
+    panelRight: {
+        top: 0,
+        right: 0,
+        bottom: 0,
+        maxWidth: '100%',
+        borderTopLeftRadius: 20,
+        borderBottomLeftRadius: 20,
+        boxShadow: '-12px 0 32px rgba(61, 52, 40, 0.18)',
+    },
+    panelLeft: {
+        top: 0,
+        left: 0,
+        bottom: 0,
+        maxWidth: '100%',
+        borderTopRightRadius: 20,
+        borderBottomRightRadius: 20,
+        boxShadow: '12px 0 32px rgba(61, 52, 40, 0.18)',
+    },
+    panelTop: {
+        top: 0,
+        left: 0,
+        right: 0,
+        maxHeight: '100%',
+        borderBottomLeftRadius: 20,
+        borderBottomRightRadius: 20,
+        boxShadow: '0 12px 32px rgba(61, 52, 40, 0.18)',
+    },
+    panelBottom: {
+        bottom: 0,
+        left: 0,
+        right: 0,
+        maxHeight: '100%',
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        boxShadow: '0 -12px 32px rgba(61, 52, 40, 0.18)',
+    },
+    // `.header { display:flex; align-items:center; justify-content:space-between; padding: 24px 24px 15px }`
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingTop: 24,
+        paddingHorizontal: 24,
+        paddingBottom: 15,
+        flexShrink: 0,
+    },
+    // `.title { font-size: 28px; font-weight: 700; color: rgba(114,93,66,1) }`
+    title: {
+        fontSize: 28,
+        fontWeight: '700',
+        color: TITLE_COLOR,
+    },
+    // `.close { width:32px; height:32px; border:none; background:transparent; border-radius:50% }`
+    close: {
+        width: 32,
+        height: 32,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 16,
+    },
+    // `.close { font-size: 22px; line-height: 1; color: rgba(114,93,66,.6) }`
+    closeText: {
+        fontSize: 22,
+        lineHeight: 22,
+        color: CLOSE_COLOR,
+    },
+    // `.body { flex:1; overflow-y:auto; padding: 0 24px 24px; font-size:20px; font-weight:600; line-height:1.6; color:#8a7b66 }`
+    body: {
+        flex: 1,
+        paddingHorizontal: 24,
+        paddingBottom: 24,
+        fontSize: 20,
+        fontWeight: '600',
+        lineHeight: 32,
+        color: BODY_COLOR,
+    },
+    // `.footer { display:flex; align-items:center; justify-content:flex-end; gap:12px; padding: 0 24px 24px }`
+    footer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'flex-end',
+        gap: 12,
+        paddingHorizontal: 24,
+        paddingBottom: 24,
+        flexShrink: 0,
+    },
+});

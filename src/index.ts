@@ -64,6 +64,9 @@ export type { CursorProps, CursorType } from './components/Cursor';
 export { Divider } from './components/Divider';
 export type { DividerProps, DividerType } from './components/Divider';
 
+export { Drawer } from './components/Drawer';
+export type { DrawerProps, DrawerPlacement } from './components/Drawer';
+
 export { Footer } from './components/Footer';
 export type { FooterProps } from './components/Footer';
 
@@ -75,6 +78,9 @@ export type { InputProps, InputSize, InputChangeEvent } from './components/Input
 
 export { Loading } from './components/Loading';
 export type { LoadingProps } from './components/Loading';
+
+export { Modal } from './components/Modal';
+export type { ModalProps, ModalVariant } from './components/Modal';
 
 export { Pagination } from './components/Pagination';
 export type { PaginationProps } from './components/Pagination';
@@ -117,3 +123,6 @@ export type { TitleProps, TitleSize, TitleColor } from './components/Title';
 
 export { Typewriter } from './components/Typewriter';
 export type { TypewriterProps } from './components/Typewriter';
+
+export { Tooltip } from './components/Tooltip';
+export type { TooltipProps, TooltipPlacement, TooltipTrigger, TooltipVariant } from './components/Tooltip';

@@ -35,10 +35,12 @@
         "src/components/Countdown",
         "src/components/Cursor",
         "src/components/Divider",
+        "src/components/Drawer",
         "src/components/Footer",
         "src/components/Image",
         "src/components/Input",
         "src/components/Loading",
+        "src/components/Modal",
         "src/components/Pagination",
         "src/components/Progress",
         "src/components/Radio",
@@ -50,7 +52,8 @@
         "src/components/Time",
         "src/components/TimePicker",
         "src/components/Title",
-        "src/components/Typewriter"
+        "src/components/Typewriter",
+        "src/components/Tooltip"
     ],
     "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx", "node_modules", "dist"]
 }
