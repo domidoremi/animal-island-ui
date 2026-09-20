@@ -80,13 +80,24 @@ const TitleDemo: React.FC = () => (
                     ['tab', '折角便签'],
                 ] as const
             ).map(([variant, text]) => (
-                <Title
-                    key={variant}
-                    variant={variant}
-                    color={COLOR_VARIANTS[Math.floor(Math.random() * COLOR_VARIANTS.length)][0]}
-                >
-                    {text}
-                </Title>
+                <div key={variant} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+                    <Title
+                        variant={variant}
+                        color={COLOR_VARIANTS[Math.floor(Math.random() * COLOR_VARIANTS.length)][0]}
+                    >
+                        {text}
+                    </Title>
+                    <span
+                        style={{
+                            fontSize: 12,
+                            color: '#8b7355',
+                            fontWeight: 600,
+                            fontFamily: "'Nunito', 'Noto Sans SC', sans-serif",
+                        }}
+                    >
+                        variant=&quot;{variant}&quot;
+                    </span>
+                </div>
             ))}
         </div>
 
@@ -132,7 +143,7 @@ const TitleDemo: React.FC = () => (
             <Title>🎮 LET&apos;S PLAY!</Title>
         </div>
 
-        <div style={labelStyle}>飘带标题（variant="ribbon"）</div>
+        <div style={labelStyle}>飘带标题 Ribbon</div>
         <div style={bgGreen}>
             <Title variant="ribbon">飘带类型</Title>
         </div>
@@ -149,7 +160,7 @@ const TitleDemo: React.FC = () => (
             </div>
         </div>
 
-        <div style={labelStyle}>折角便签 Corner Tab</div>
+        <div style={labelStyle}>折角便签 Tab</div>
         <div style={bgLavender}>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '28px 40px' }}>
                 <Title variant="tab" color="lime-green">

@@ -11,25 +11,25 @@ describe('Title', () => {
 
     it('默认 size=middle 字号 20px', () => {
         const { container } = render(<Title>X</Title>);
-        const layer = container.querySelector(`.${styles.layer}`) as HTMLElement;
-        expect(layer).toHaveStyle({ fontSize: '20px' });
+        const ribbon = container.querySelector(`.${styles.ribbon}`) as HTMLElement;
+        expect(ribbon).toHaveStyle({ fontSize: '20px' });
     });
 
-    it('默认 variant=layer 渲染双层纸', () => {
+    it('默认 variant=ribbon 渲染飘带', () => {
         const { container } = render(<Title>X</Title>);
-        expect(container.querySelector(`.${styles.layer}`)).toBeTruthy();
+        expect(container.querySelector(`.${styles.ribbon}`)).toBeTruthy();
     });
 
     it('size=large 字号 28px', () => {
         const { container } = render(<Title size="large">X</Title>);
-        const layer = container.querySelector(`.${styles.layer}`) as HTMLElement;
-        expect(layer).toHaveStyle({ fontSize: '28px' });
+        const ribbon = container.querySelector(`.${styles.ribbon}`) as HTMLElement;
+        expect(ribbon).toHaveStyle({ fontSize: '28px' });
     });
 
     it('color 非 default 时应用 color-${color}', () => {
         const { container } = render(<Title color="app-pink">X</Title>);
-        const layer = container.querySelector(`.${styles.layer}`) as HTMLElement;
-        expect(layer).toHaveClass(styles['color-app-pink']);
+        const ribbon = container.querySelector(`.${styles.ribbon}`) as HTMLElement;
+        expect(ribbon).toHaveClass(styles['color-app-pink']);
     });
 
     it('variant=layer 渲染双层纸结构', () => {
