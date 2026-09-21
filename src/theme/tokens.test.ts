@@ -1,6 +1,7 @@
 import {
     borderWidth,
     boxShadow,
+    brand,
     colors,
     controlHeight,
     defaultTheme,
@@ -10,6 +11,7 @@ import {
     fontSize,
     lineHeightBase,
     radius,
+    roles,
     spacing,
 } from './tokens';
 
@@ -163,6 +165,8 @@ describe('设计 token ← src/styles/variables.less', () => {
         it('把所有 token 聚成一个可注入的对象', () => {
             expect(defaultTheme).toEqual({
                 colors,
+                brand,
+                roles,
                 fontSize,
                 lineHeightBase,
                 spacing,
@@ -176,8 +180,8 @@ describe('设计 token ← src/styles/variables.less', () => {
             });
         });
 
-        it('字段齐全（11 个）', () => {
-            expect(Object.keys(defaultTheme)).toHaveLength(11);
+        it('字段齐全（13 个：11 个基础 token + brand + roles）', () => {
+            expect(Object.keys(defaultTheme)).toHaveLength(13);
         });
     });
 });

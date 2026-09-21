@@ -5,6 +5,8 @@ coverage/
 node_modules/
 # Jest transform 缓存（见 jest.config.js：刻意放在项目内）
 .jest-cache/
+# 本地 agent 配置（git 忽略，无需格式化）
+.claude/
 
 # 第三方压缩库（含 is 目录下的所有）
 src/components/Loading/island/
