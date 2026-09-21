@@ -50,14 +50,14 @@ RN 移植是**增量**的 —— 它靠 `tsconfig.json`、`tsconfig.build.json`�
 | Tag           | 28    | `:hover` 丢弃                                                        |
 | Time          | 11    |                                                                      |
 | TimePicker    | 22+15 | 面板在 `Modal` 里；另有 15 条在 `geometry.test.ts`                   |
-| Title         | 17    | `clip-path` / 135° 切角 → `react-native-svg`                         |
+| Title         | 18    | `clip-path` / 135° 切角 → `react-native-svg`；默认 `ribbon`          |
 | Tooltip       | 18+20 | hover → 按住显示；定位算术抽到 `geometry.ts`                         |
 | Typewriter    | 13    |                                                                      |
 
 没有剩下的未移植组件。Web 源码仍留在磁盘上（它们是对照物，且在 `main` 上仍然能构建），
 但全部落在本分支任何 include 名单之外。
 
-`npm run ci` = `format:check` + `lint` + `typecheck` + `test` + `build`。当前 **918 用例 / 40 套件**。
+`npm run ci` = `format:check` + `lint` + `typecheck` + `test` + `build`。当前 **919 用例 / 40 套件**。
 
 ### ⚠️ 本分支放弃了什么
 

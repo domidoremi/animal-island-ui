@@ -19,8 +19,10 @@ import type { TestInstance } from 'test-renderer';
  *     RN 的 `<View>` 不能承载文本样式，`fontSize` 只能落在 `<Text>` 上。
  *   - `container.firstChild` 之类的 DOM 结构断言 —— RN 无对应物（派生 testID 已覆盖）。
  *
- * 另外**新增**了 Web 版完全没覆盖的 `variant="ribbon"` 用例（上游 10 个用例里一个都没有），
- * 以及全部 13 个配色的色板断言。
+ * 上游 c7d47d2 把默认 variant 从 layer 改成 ribbon，本文件相应地：
+ *   - 「默认」相关用例（size、结构）改断言 ribbon 节点，与上游同一意图；
+ *   - layer 专属的几何 / 配色用例补上 `variant="layer"`，保住那部分覆盖。
+ * 此外仍保留 Web 版没覆盖的 `variant="ribbon"` 几何 / 配色断言，以及全部 13 个配色的色板断言。
  *
  * RNTL v14 的 `render` 是**异步**的，所有用例都要 `await`。
  */
@@ -97,12 +99,14 @@ describe('Title', () => {
         expect(getByText('Hello')).toBeTruthy();
     });
 
-    it('默认 size=middle 字号 20', async () => {
+    it('默认 size=middle 字号 20（默认 variant=ribbon）', async () => {
+        // 上游 c7d47d2 把默认 variant 从 layer 改成 ribbon，字号断言随之落到 ribbon 文字节点上。
         const { getByTestId } = await render(<Title testID="t">X</Title>);
-        expect(getByTestId('t-layer-front')).toHaveStyle({ fontSize: 20 });
+        expect(getByTestId('t-ribbon-text')).toHaveStyle({ fontSize: 20 });
     });
 
     it('size 全部枚举（small 14 / middle 20 / large 28）', async () => {
+        // 显式 variant="layer"：默认改为 ribbon 后，这里仍要覆盖 layer 各尺寸的字号。
         const sizes: [TitleSize, number][] = [
             ['small', 14],
             ['middle', 20],
@@ -110,7 +114,7 @@ describe('Title', () => {
         ];
         for (const [size, expected] of sizes) {
             const { getByTestId, unmount } = await render(
-                <Title size={size} testID="t">
+                <Title variant="layer" size={size} testID="t">
                     X
                 </Title>
             );
@@ -119,17 +123,29 @@ describe('Title', () => {
         }
     });
 
-    it('size=large 字号 28', async () => {
+    it('size=large 字号 28（默认 variant=ribbon）', async () => {
         const { getByTestId } = await render(
             <Title size="large" testID="t">
                 X
             </Title>
         );
-        expect(getByTestId('t-layer-front')).toHaveStyle({ fontSize: 28 });
+        expect(getByTestId('t-ribbon-text')).toHaveStyle({ fontSize: 28 });
     });
 
-    it('默认 variant=layer 渲染双层纸结构', async () => {
+    it('默认 variant=ribbon 渲染飘带', async () => {
+        // 上游 c7d47d2：默认 variant 现在是 ribbon。此用例只证明「默认即 ribbon」，
+        // 飘带的完整几何 / 配色由下方显式 variant="ribbon" 的用例覆盖。
         const { getByTestId } = await render(<Title testID="t">X</Title>);
+        expect(getByTestId('t-ribbon')).toBeTruthy();
+        expect(getByTestId('t-ribbon-text')).toHaveTextContent('X');
+    });
+
+    it('variant=layer 渲染双层纸结构', async () => {
+        const { getByTestId } = await render(
+            <Title variant="layer" testID="t">
+                X
+            </Title>
+        );
         const layer = getByTestId('t-layer');
         // [背层纸片(.layer::before), 正面(.layerFront)]
         expect(layer.children).toHaveLength(2);
@@ -138,7 +154,7 @@ describe('Title', () => {
 
     it('variant=layer 几何：em 全部由 fontSize 推出（large=28）', async () => {
         const { getByTestId } = await render(
-            <Title size="large" testID="t">
+            <Title variant="layer" size="large" testID="t">
                 X
             </Title>
         );
@@ -161,7 +177,7 @@ describe('Title', () => {
 
     it('color 非 default 时应用色板（layer：背层 / 正面 / 文字三处颜色都换）', async () => {
         const { getByTestId } = await render(
-            <Title color="app-pink" testID="t">
+            <Title variant="layer" color="app-pink" testID="t">
                 X
             </Title>
         );
@@ -344,7 +360,7 @@ describe('Title', () => {
     it('13 个配色都能解析到色板（背层与正面必须不同色）', async () => {
         for (const color of ALL_COLORS) {
             const { getByTestId, unmount } = await render(
-                <Title color={color} testID="t">
+                <Title variant="layer" color={color} testID="t">
                     X
                 </Title>
             );

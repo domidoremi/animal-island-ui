@@ -14,7 +14,7 @@ components never enter the RN typecheck or test run.
 ## Status
 
 **All 34 components ported.** `npm run ci` = `format:check` + `lint` + `typecheck` +
-`test` + `build`. Currently **918 tests / 40 suites**.
+`test` + `build`. Currently **919 tests / 40 suites**.
 
 Test counts below come from `npx jest --json` (reproducible), not from any document.
 
@@ -52,7 +52,7 @@ Test counts below come from `npx jest --json` (reproducible), not from any docum
 | Tag           | 28    | `:hover` dropped                                                     |
 | Time          | 11    |                                                                      |
 | TimePicker    | 22+15 | panel in a `Modal`; +15 in `geometry.test.ts`                        |
-| Title         | 17    | `clip-path` / 135° corners → `react-native-svg`                      |
+| Title         | 18    | `clip-path` / 135° corners → `react-native-svg`; default `ribbon`    |
 | Tooltip       | 18+20 | hover → press-and-hold; placement in `geometry.ts`                   |
 | Typewriter    | 13    |                                                                      |
 
