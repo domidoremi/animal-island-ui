@@ -19,6 +19,8 @@ RN 移植是**增量**的 —— 它靠 `tsconfig.json`、`tsconfig.build.json`�
 | 组件          | 用例  | 备注                                                                 |
 | ------------- | ----- | -------------------------------------------------------------------- |
 | design tokens | 52    | `src/theme/tokens.ts`，与 `src/styles/variables.less` 1:1 对应       |
+| theme（暗色） | 11    | `appearance.ts` —— 暗色板 + `resolveNativeTheme`（见分歧）           |
+| ThemeProvider | 7     | `ThemeProvider.tsx` —— `useTheme` context；RN 独有，上游无           |
 | BackTop       | 18    | 删掉 `duration`，新增 `scrollY`（见分歧）                            |
 | Background    | 11    | CSS 平铺 → SVG `<Pattern>`；场景图 → `src/assets/image/rn/`          |
 | Button        | 21    | 另建了一套 RN 图标集（`src/icons/`）                                 |
@@ -255,6 +257,18 @@ RN 没有鼠标指针 —— RN 的 `cursor` 样式只接受 `'auto' | 'pointer'
 12. **DatePicker：`focusedDate` 状态整体删除。** 上游的 `focusedDate` 是键盘导航的焦点日期，
     唯一读者就是 `handleKeyDown`。键盘导航既已丢弃，留着就是只写不读的死状态。
     range 的 hover 预览改为按下预览，理由同 (6)。
+
+13. **暗色主题 + `ThemeProvider` 是 RN 侧新增能力，不是移植。** 上游只有一套烘进
+    `variables.less` 的亮色皮肤，没有暗色主题、也没有运行时主题切换可移植。RN 没有 CSS 自定义
+    属性，明暗切换只能做成显式 Provider。`src/theme/appearance.ts` 新增一套语义暗色板与
+    `resolveNativeTheme(mode)`（light **按引用**返回 `defaultTheme` —— 默认皮肤仍归本包所有）；
+    `ThemeProvider` 通过 `useTheme` 暴露 `{ mode, theme, reducedMotion }`，可选 `accent` 仅覆盖
+    `colors.primary`。暗色 hex 值是**这里新写的，不是从上游推导**，所以 `appearance.test.ts`
+    冻结的是**行为不变量**（light ≡ default、dark 只改 `colors`、两套色板共用一套 key），
+    而非具体颜色 —— 没有上游真值可比。`reducedMotion` 由宿主传入，不再另起一个
+    `AccessibilityInfo` 监听，以与宿主自身设置保持一致。以 `./theme` 子路径导出
+    （见 `package.json` 的 `exports`），好让构建工具不拉入 React Native 就能读 token。
+    **目前还没有组件消费 `useTheme`** —— 组件仍直接 import token；把它们接到 Provider 上是后续工作。
 
 ## 未测面 —— 仅靠构造保证
 

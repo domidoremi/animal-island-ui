@@ -86,6 +86,7 @@ module.exports = {
         '<rootDir>/src/components/Tooltip/*.test.tsx',
         '<rootDir>/src/components/Tooltip/*.test.ts',
         '<rootDir>/src/theme/*.test.ts',
+        '<rootDir>/src/theme/*.test.tsx',
     ],
     collectCoverageFrom: ['src/**/*.{ts,tsx}', '!src/**/*.test.{ts,tsx}'],
 };

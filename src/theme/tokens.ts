@@ -125,7 +125,7 @@ export const boxShadow = {
 export const fontFamily: string | undefined = undefined;
 
 export type Theme = {
-    colors: typeof colors;
+    colors: { [Key in keyof typeof colors]: string };
     fontSize: typeof fontSize;
     lineHeightBase: number;
     spacing: typeof spacing;

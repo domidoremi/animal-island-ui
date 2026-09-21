@@ -14,13 +14,15 @@ components never enter the RN typecheck or test run.
 ## Status
 
 **All 34 components ported.** `npm run ci` = `format:check` + `lint` + `typecheck` +
-`test` + `build`. Currently **919 tests / 40 suites**.
+`test` + `build`. Currently **937 tests / 42 suites**.
 
 Test counts below come from `npx jest --json` (reproducible), not from any document.
 
 | Component     | Tests | Notes                                                                |
 | ------------- | ----- | -------------------------------------------------------------------- |
 | design tokens | 52    | `src/theme/tokens.ts`, 1:1 with `src/styles/variables.less`          |
+| theme (dark)  | 11    | `appearance.ts` — dark palette + `resolveNativeTheme` (see below)    |
+| ThemeProvider | 7     | `ThemeProvider.tsx` — `useTheme` context; RN-only, no upstream       |
 | BackTop       | 18    | `duration` dropped; new `scrollY` prop (see divergences)             |
 | Background    | 11    | CSS tiling → SVG `<Pattern>`; scene images → `src/assets/image/rn/`  |
 | Button        | 21    | plus a self-built RN icon set (`src/icons/`)                         |
@@ -284,6 +286,22 @@ also commented at the point of change.
     keyboard-navigation cursor, and its only reader is `handleKeyDown`. With keyboard
     navigation gone it would be write-only dead state. The range-hover preview became a
     press preview, for the same reason as (6).
+
+13. **Dark theme + `ThemeProvider` are RN-only additions, not a port.** Upstream ships a
+    single light skin baked into `variables.less`; there is no dark theme and no runtime
+    theme switch to port. RN has no CSS custom properties, so a light/dark switch has to be
+    an explicit provider. `src/theme/appearance.ts` adds a semantic dark palette and
+    `resolveNativeTheme(mode)` (light returns `defaultTheme` **by reference** — the default
+    skin stays owned by this package); `ThemeProvider` exposes `{ mode, theme, reducedMotion }`
+    through `useTheme`, with an optional `accent` that overrides only `colors.primary`.
+    The dark hex values are **authored here, not derived from upstream**, so
+    `appearance.test.ts` freezes behavioural invariants (light ≡ default, dark changes only
+    `colors`, the two palettes share one key set) rather than specific colors — there is no
+    upstream truth to diff against. `reducedMotion` is passed in by the host, not read from a
+    second `AccessibilityInfo` listener, so it stays consistent with the host's own setting.
+    Shipped as a `./theme` subpath export (see `package.json` `exports`) so build tools can
+    read tokens without pulling in React Native. **No component consumes `useTheme` yet** —
+    components still import tokens directly; wiring them to the provider is future work.
 
 ## Untested surface — verified by construction only
 

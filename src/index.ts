@@ -15,6 +15,9 @@
 // 设计 token
 // ============================================
 export * from './theme/tokens';
+export * from './theme/appearance';
+export { ThemeProvider, useTheme } from './theme/ThemeProvider';
+export type { ThemeProviderProps } from './theme/ThemeProvider';
 
 // ============================================
 // 图标（RN 自建：上游的 naive-icons 是 DOM-only 库，RN 用不了）
