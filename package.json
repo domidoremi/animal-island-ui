@@ -30,6 +30,7 @@
     "scripts": {
         "typecheck": "tsc --noEmit",
         "build": "tsc --project tsconfig.build.json",
+        "prepare": "npm run build",
         "test": "jest",
         "test:watch": "jest --watch",
         "lint": "eslint .",
