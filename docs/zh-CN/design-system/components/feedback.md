@@ -1,5 +1,7 @@
 # Feedback — 精确样式规范
 
+> **RN fork:** Progress 使用暗色轨道与文字。fillColor 可替换场景填充；indeterminate 隐去数值进度，以静态局部填充表示未知进度，不宣称测得的百分比。 [RN contract](../../../RN-PORT.zh-CN.md). 其余表格描述上游 Web/亮色皮肤。
+
 反馈进度与等待状态的组件：Progress、Skeleton、BackTop 的精确取值
 
 ## Progress（场景图 fill + 波点 track）

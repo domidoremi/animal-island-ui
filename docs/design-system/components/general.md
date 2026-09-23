@@ -1,5 +1,9 @@
 # General — pixel spec
 
+> **RN fork:** Button uses provider colors in dark mode, keeps the 3D press face, disables presses while busy and removes decorative motion when requested. [RN contract](../../../RN-PORT.md). The remaining tables describe the upstream Web/light skin.
+
+RN loading labels and spinner outlines share a foreground selected for at least 4.5:1 contrast against the solid loading face. The light mint background remains unchanged, but its loading foreground is dark green instead of upstream white. Dark/custom accents use deep green, white or near-black green as needed; transparent or unresolvable accents fall back to the theme's solid surface. Loading takes precedence over link/danger/ghost colors and disabled opacity, without re-enabling interaction. Caller `style`/`textStyle` overrides remain the caller's responsibility.
+
 Pixel-level styling for the general-purpose components: Button, Icon, Typewriter and Cursor.
 
 ## Button

@@ -2,16 +2,20 @@ import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import {
     Animated,
     Easing,
+    KeyboardAvoidingView,
+    Platform,
     Modal as RNModal,
     Pressable,
     StyleSheet,
     Text,
     View,
+    ScrollView,
     type StyleProp,
     type ViewStyle,
 } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { colors } from '../../theme/tokens';
+import { useTheme } from '../../theme/ThemeProvider';
 import { Button } from '../Button';
 import { Cursor } from '../Cursor';
 import { Typewriter } from '../Typewriter';
@@ -56,6 +60,10 @@ export interface ModalProps {
     maskStyle?: StyleProp<ViewStyle>;
     /** 测试标识，同时作为 `-mask` / `-panel` / `-title` / `-body` / `-footer` 的前缀 */
     testID?: string;
+    /** Insets supplied by the host's safe-area authority. */
+    contentInsets?: { top: number; right: number; bottom: number; left: number };
+    /** Host typography/layout for the scrollable body. */
+    contentStyle?: StyleProp<ViewStyle>;
 }
 
 /**
@@ -94,7 +102,10 @@ export const Modal: React.FC<ModalProps> = ({
     typewriter = true,
     maskStyle,
     testID,
+    contentInsets = { top: 24, right: 16, bottom: 24, left: 16 },
+    contentStyle,
 }) => {
+    const { mode, theme, reducedMotion } = useTheme();
     // 每次 open 变为 true 时重启打字机
     const [playKey, setPlayKey] = useState(0);
 
@@ -112,18 +123,18 @@ export const Modal: React.FC<ModalProps> = ({
         zoom.setValue(0);
         Animated.timing(maskOpacity, {
             toValue: 1,
-            duration: FADE_MS,
+            duration: reducedMotion ? 0 : FADE_MS,
             easing: Easing.ease,
             useNativeDriver: true,
         }).start();
         Animated.timing(zoom, {
             toValue: 1,
-            duration: ZOOM_MS,
+            duration: reducedMotion ? 0 : ZOOM_MS,
             easing: Easing.ease,
             useNativeDriver: true,
         }).start();
         return undefined;
-    }, [open, maskOpacity, zoom]);
+    }, [open, maskOpacity, zoom, reducedMotion]);
 
     const handleMaskPress = useCallback(() => {
         if (maskClosable) onClose?.();
@@ -141,87 +152,115 @@ export const Modal: React.FC<ModalProps> = ({
     );
 
     return (
-        <RNModal transparent visible={open} animationType="none" onRequestClose={onClose}>
-            <Cursor>
-                <Animated.View
-                    style={[styles.mask, { opacity: maskOpacity }, maskStyle]}
-                    testID={testID ? `${testID}-mask` : undefined}
-                >
-                    <Pressable
-                        style={StyleSheet.absoluteFill}
-                        onPress={handleMaskPress}
-                        disabled={!maskClosable}
-                        testID={testID ? `${testID}-mask-hit` : undefined}
-                    />
+        <RNModal transparent statusBarTranslucent visible={open} animationType="none" onRequestClose={onClose}>
+            <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+                <Cursor style={styles.flex}>
                     <Animated.View
-                        // `accessible` 必需：RNTL 的 `getByRole` 受 `isAccessibilityElement`
-                        // 门控，非 Text 宿主只有显式 `accessible` 才会进无障碍树。
-                        accessible
-                        role="dialog"
-                        aria-modal
-                        aria-labelledby={title ? titleId : undefined}
-                        // 上游 `onClick={e => e.stopPropagation()}`
-                        onStartShouldSetResponder={() => true}
                         style={[
-                            styles.modal,
-                            isGame && styles.modalGame,
-                            { width },
-                            style,
+                            styles.mask,
                             {
-                                opacity: zoom,
-                                transform: [
-                                    { scale: zoom.interpolate({ inputRange: [0, 1], outputRange: [0.92, 1] }) },
-                                ],
-                            } as never,
+                                opacity: maskOpacity,
+                                backgroundColor: theme.colors.mask,
+                                paddingTop: contentInsets.top,
+                                paddingRight: contentInsets.right,
+                                paddingBottom: contentInsets.bottom,
+                                paddingLeft: contentInsets.left,
+                            },
+                            maskStyle,
                         ]}
-                        testID={testID ? `${testID}-panel` : undefined}
+                        testID={testID ? `${testID}-mask` : undefined}
                     >
-                        {isGame && (
-                            // 上游：`<ClipDef />` 的 `clipPath` + `.gameClipped { clip-path: url(...) }`。
-                            // RN 不能用路径裁切 `View`，所以改成把同一条路径当作底图画在内容下面 ——
-                            // 形状一致，但**内容不会被裁掉**（见文件头的差异表）。
-                            <Svg
-                                viewBox="0 0 1 1"
-                                preserveAspectRatio="none"
-                                style={StyleSheet.absoluteFill}
-                                testID={testID ? `${testID}-game-shape` : undefined}
-                            >
-                                <Path d={GAME_CLIP_PATH} fill={'rgb(247, 243, 223)'} />
-                            </Svg>
-                        )}
-                        <View
-                            style={[styles.modalClipped, isGame && styles.gameClipped]}
-                            testID={testID ? `${testID}-clipped` : undefined}
+                        <Pressable
+                            accessible={false}
+                            accessibilityRole="none"
+                            style={StyleSheet.absoluteFill}
+                            onPress={handleMaskPress}
+                            disabled={!maskClosable}
+                            testID={testID ? `${testID}-mask-hit` : undefined}
+                        />
+                        <Animated.View
+                            // `accessible` 必需：RNTL 的 `getByRole` 受 `isAccessibilityElement`
+                            // 门控，非 Text 宿主只有显式 `accessible` 才会进无障碍树。
+                            accessible
+                            role="dialog"
+                            aria-modal
+                            accessibilityViewIsModal
+                            aria-labelledby={title ? titleId : undefined}
+                            // 上游 `onClick={e => e.stopPropagation()}`
+                            onStartShouldSetResponder={() => true}
+                            style={[
+                                styles.modal,
+                                isGame && styles.modalGame,
+                                { width },
+                                style,
+                                {
+                                    opacity: zoom,
+                                    transform: [
+                                        { scale: zoom.interpolate({ inputRange: [0, 1], outputRange: [0.92, 1] }) },
+                                    ],
+                                } as never,
+                            ]}
+                            testID={testID ? `${testID}-panel` : undefined}
                         >
-                            {title && (
-                                <View style={styles.header}>
-                                    <Text
-                                        nativeID={titleId}
-                                        style={styles.title}
-                                        testID={testID ? `${testID}-title` : undefined}
-                                    >
-                                        {title}
-                                    </Text>
-                                </View>
+                            {isGame && (
+                                // 上游：`<ClipDef />` 的 `clipPath` + `.gameClipped { clip-path: url(...) }`。
+                                // RN 不能用路径裁切 `View`，所以改成把同一条路径当作底图画在内容下面 ——
+                                // 形状一致，但**内容不会被裁掉**（见文件头的差异表）。
+                                <Svg
+                                    viewBox="0 0 1 1"
+                                    preserveAspectRatio="none"
+                                    style={StyleSheet.absoluteFill}
+                                    testID={testID ? `${testID}-game-shape` : undefined}
+                                >
+                                    <Path
+                                        d={GAME_CLIP_PATH}
+                                        fill={mode === 'dark' ? theme.colors.bg : 'rgb(247, 243, 223)'}
+                                    />
+                                </Svg>
                             )}
-                            <View style={styles.body} testID={testID ? `${testID}-body` : undefined}>
-                                {typewriter ? (
-                                    <Typewriter speed={typeSpeed} trigger={playKey}>
-                                        {children}
-                                    </Typewriter>
-                                ) : (
-                                    children
+                            <View
+                                style={[
+                                    styles.modalClipped,
+                                    mode === 'dark' && { backgroundColor: theme.colors.bg },
+                                    isGame && styles.gameClipped,
+                                ]}
+                                testID={testID ? `${testID}-clipped` : undefined}
+                            >
+                                {title && (
+                                    <View style={styles.header}>
+                                        <Text
+                                            nativeID={titleId}
+                                            style={[styles.title, mode === 'dark' && { color: theme.colors.text }]}
+                                            testID={testID ? `${testID}-title` : undefined}
+                                        >
+                                            {title}
+                                        </Text>
+                                    </View>
+                                )}
+                                <ScrollView
+                                    style={styles.scrollBody}
+                                    contentContainerStyle={[styles.body, contentStyle]}
+                                    keyboardShouldPersistTaps="handled"
+                                    testID={testID ? `${testID}-body` : undefined}
+                                >
+                                    {typewriter && !reducedMotion ? (
+                                        <Typewriter speed={typeSpeed} trigger={playKey}>
+                                            {children}
+                                        </Typewriter>
+                                    ) : (
+                                        children
+                                    )}
+                                </ScrollView>
+                                {footer !== null && (
+                                    <View style={styles.footer} testID={testID ? `${testID}-footer` : undefined}>
+                                        {footer === undefined ? defaultFooter : footer}
+                                    </View>
                                 )}
                             </View>
-                            {footer !== null && (
-                                <View style={styles.footer} testID={testID ? `${testID}-footer` : undefined}>
-                                    {footer === undefined ? defaultFooter : footer}
-                                </View>
-                            )}
-                        </View>
+                        </Animated.View>
                     </Animated.View>
-                </Animated.View>
-            </Cursor>
+                </Cursor>
+            </KeyboardAvoidingView>
         </RNModal>
     );
 };
@@ -229,6 +268,8 @@ export const Modal: React.FC<ModalProps> = ({
 Modal.displayName = 'Modal';
 
 const styles = StyleSheet.create({
+    flex: { flex: 1 },
+    scrollBody: { flexShrink: 1 },
     // `.mask { position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
     //          background: var(--animal-mask-bg) }`（= `@mask-bg` → `colors.mask`）
     mask: {
@@ -250,6 +291,7 @@ const styles = StyleSheet.create({
     //                  box-shadow: 0 18px 50px -12px rgba(0,0,0,.25); overflow: hidden }`
     modalClipped: {
         width: '100%',
+        maxHeight: '100%',
         paddingTop: 40,
         paddingHorizontal: 35,
         paddingBottom: 25,
@@ -284,7 +326,6 @@ const styles = StyleSheet.create({
     // `.body { padding-bottom:20px; flex:1; font-size:20px; font-weight:600; line-height:1.6; color:#8a7b66 }`
     body: {
         paddingBottom: 20,
-        flex: 1,
         alignItems: 'flex-start',
         fontSize: 20,
         fontWeight: '600',

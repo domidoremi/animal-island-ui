@@ -1,9 +1,11 @@
 import React from 'react';
-import { View } from 'react-native';
+import { Animated, View, processColor } from 'react-native';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import type { TestInstance } from 'test-renderer';
 import { Button } from './Button';
 import { colors } from '../../theme/tokens';
+import { ThemeProvider } from '../../theme/ThemeProvider';
+import { resolveNativeTheme } from '../../theme/appearance';
 
 /**
  * RN 版测试，对应 Web 版 `Button.test.tsx` 的 18 个用例。
@@ -78,7 +80,100 @@ const styleOf = (node: TestInstance) => {
     return merged;
 };
 
+const contrast = (foreground: string, background: string) => {
+    const luminance = (color: string) => {
+        const value = processColor(color) as number;
+        const argb = value < 0 ? value + 2 ** 32 : value;
+        const channels = [16, 8, 0].map((shift) => {
+            const channel = (Math.floor(argb / 2 ** shift) % 256) / 255;
+            return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+        });
+        return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
+    };
+    const a = luminance(foreground);
+    const b = luminance(background);
+    return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+};
+
 describe('Button', () => {
+    it.each(['primary', 'default', 'dashed', 'text', 'link'] as const)(
+        '%s loading 的文案和图标在强调色变化后仍清晰可见',
+        async (type) => {
+            const onPress = jest.fn();
+            for (const mode of ['light', 'dark'] as const) {
+                for (const accent of [
+                    undefined,
+                    '#4455B7',
+                    '#f7cd67',
+                    '#15261f',
+                    '#888888',
+                    '#777777',
+                    'rgba(68, 85, 183, 0.4)',
+                    'invalid',
+                ]) {
+                    const screen = await render(
+                        <ThemeProvider mode={mode} accent={accent} reducedMotion>
+                            <Button testID="busy" type={type} loading disabled onPress={onPress}>
+                                Loading
+                            </Button>
+                        </ThemeProvider>
+                    );
+                    const face = styleOf(screen.getByTestId('busy'));
+                    const label = styleOf(screen.getByText('Loading'));
+                    expect(contrast(label.color as string, face.backgroundColor as string)).toBeGreaterThanOrEqual(4.5);
+                    const strokes = screen
+                        .getByTestId('busy-loading-icon', HIDDEN)
+                        .queryAll((node) => node.props.stroke !== undefined)
+                        .map((node) => node.props.stroke);
+                    expect(strokes).toContainEqual({ type: 0, payload: processColor(label.color as string) });
+                    expect(face.opacity ?? 1).toBe(1);
+                    await fireEvent.press(screen.getByRole('button', { disabled: true, busy: true }));
+                    expect(onPress).not.toHaveBeenCalled();
+                    await screen.unmount();
+                }
+            }
+        }
+    );
+
+    it('takes dark colors and host semantics while reduced motion disables its loading loop', async () => {
+        const loop = jest.spyOn(Animated, 'loop');
+        const onPress = jest.fn();
+        try {
+            const screen = await render(
+                <ThemeProvider mode="dark" reducedMotion>
+                    <Button
+                        testID="dark"
+                        accessibilityState={{ expanded: true }}
+                        textStyle={{ fontSize: 18 }}
+                        hitSlop={12}
+                        onPress={onPress}
+                    >
+                        Open
+                    </Button>
+                </ThemeProvider>
+            );
+            expect(screen.getByTestId('dark')).toHaveStyle({ backgroundColor: resolveNativeTheme('dark').colors.bg });
+            expect(screen.getByText('Open')).toHaveStyle({
+                color: resolveNativeTheme('dark').colors.text,
+                fontSize: 18,
+            });
+            expect(screen.getByRole('button', { expanded: true })).toBeTruthy();
+            expect(screen.getByTestId('dark').props.hitSlop).toBe(12);
+            await screen.rerender(
+                <ThemeProvider mode="dark" reducedMotion>
+                    <Button loading onPress={onPress}>
+                        Open
+                    </Button>
+                </ThemeProvider>
+            );
+            expect(loop).not.toHaveBeenCalled();
+            await fireEvent.press(screen.getByRole('button', { disabled: true, busy: true }));
+            expect(onPress).not.toHaveBeenCalled();
+        } finally {
+            loop.mockRestore();
+        }
+    });
+
     it('渲染 children 文案', async () => {
         const { getByText } = await render(<Button>OK</Button>);
         expect(getByText('OK')).toBeTruthy();

@@ -1,8 +1,50 @@
 import React from 'react';
-import { Text } from 'react-native';
+import { Animated, Text } from 'react-native';
 import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
 import type { TestInstance } from 'test-renderer';
 import { Modal } from './Modal';
+import { ThemeProvider } from '../../theme/ThemeProvider';
+import { resolveNativeTheme } from '../../theme/appearance';
+
+it('keeps actions outside the scroll body, respects safe areas, and cancels on Android Back', async () => {
+    const close = jest.fn();
+    const timing = jest.spyOn(Animated, 'timing');
+    try {
+        const screen = await render(
+            <ThemeProvider mode="dark" reducedMotion>
+                <Modal
+                    open
+                    variant="game"
+                    title="Confirm"
+                    testID="native"
+                    onClose={close}
+                    contentInsets={{ top: 40, bottom: 24, left: 16, right: 16 }}
+                    footer={<Text>Action</Text>}
+                >
+                    <Text>Long body</Text>
+                </Modal>
+            </ThemeProvider>
+        );
+        expect(screen.getByTestId('native-mask')).toHaveStyle({
+            paddingTop: 40,
+            paddingBottom: 24,
+            backgroundColor: resolveNativeTheme('dark').colors.mask,
+        });
+        expect(screen.getByTestId('native-panel').props.accessibilityViewIsModal).toBe(true);
+        expect(screen.getByTestId('native-body').props.keyboardShouldPersistTaps).toBe('handled');
+        expect(screen.getByTestId('native-body').queryAll((node) => node.props.children === 'Action')).toHaveLength(0);
+        expect(
+            screen.getByTestId('native-footer').queryAll((node) => node.props.children === 'Action').length
+        ).toBeGreaterThan(0);
+        expect(screen.getByText('Long body')).toBeTruthy();
+        expect(modalsOf(screen.container)[0].props.statusBarTranslucent).toBe(true);
+        expect(timing.mock.calls.every(([, config]) => config.duration === 0)).toBe(true);
+        await act(() => modalsOf(screen.container)[0].props.onRequestClose());
+        expect(close).toHaveBeenCalledTimes(1);
+    } finally {
+        timing.mockRestore();
+    }
+});
 
 /**
  * RN 版测试，对应 Web 版 `Modal.test.tsx` 的 16 个用例（含 6 个 a11y 用例）。

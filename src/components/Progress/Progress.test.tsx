@@ -7,7 +7,30 @@ import { AccessibilityInfo } from 'react-native';
 import { act, fireEvent, render } from '@testing-library/react-native';
 import { Progress } from './Progress';
 import { colors } from '../../theme/tokens';
+import { ThemeProvider } from '../../theme/ThemeProvider';
+import { resolveNativeTheme } from '../../theme/appearance';
 import type { TestInstance } from 'test-renderer';
+
+it('respects host reduced motion, dark track and indeterminate/custom fill semantics', async () => {
+    const tree = (percent: number, indeterminate = false) => (
+        <ThemeProvider mode="dark" reducedMotion>
+            <Progress percent={percent} testID="host" fillColor="#4455B7" indeterminate={indeterminate} />
+        </ThemeProvider>
+    );
+    const screen = await render(tree(10));
+    await screen.rerender(tree(90));
+    expect(screen.getByTestId('host-fill', { includeHiddenElements: true })).toHaveStyle({
+        width: '90%',
+        backgroundColor: '#4455B7',
+    });
+    expect(screen.getByTestId('host-track', { includeHiddenElements: true })).toHaveStyle({
+        backgroundColor: resolveNativeTheme('dark').colors.bg,
+    });
+    await screen.rerender(tree(90, true));
+    expect(screen.getByRole('progressbar').props['aria-valuenow']).toBeUndefined();
+    expect(screen.getByRole('progressbar').props['aria-valuetext']).toBe('');
+    expect(screen.queryByText('90%')).toBeNull();
+});
 
 /**
  * RN 版测试，对应 Web 版 `Progress.test.tsx` 的 16 个用例。

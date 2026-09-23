@@ -9,8 +9,10 @@ import {
     type StyleProp,
     type TextStyle,
     type ViewStyle,
+    type PressableProps,
 } from 'react-native';
 import { duration as motionDuration, easing as motionEase } from '../../theme/tokens';
+import { useTheme } from '../../theme/ThemeProvider';
 
 export type SwitchSize = 'small' | 'default';
 
@@ -43,6 +45,8 @@ export interface SwitchProps {
     'aria-label'?: string;
     /** 关联外部可见 label 的 id */
     'aria-labelledby'?: string;
+    /** Extend the compact track's native touch target without changing its shape. */
+    hitSlop?: PressableProps['hitSlop'];
 }
 
 /**
@@ -141,7 +145,22 @@ export const Switch: React.FC<SwitchProps> = ({
     testID,
     'aria-label': ariaLabel,
     'aria-labelledby': ariaLabelledBy,
+    hitSlop,
 }) => {
+    const { mode, theme, reducedMotion } = useTheme();
+    const palette =
+        mode === 'dark'
+            ? {
+                  ...PALETTE,
+                  trackOff: theme.colors.bgSecondary,
+                  trackOn: theme.colors.primaryBg,
+                  borderOff: theme.colors.border,
+                  borderOn: theme.colors.primary,
+                  handleBg: theme.colors.text,
+                  spinnerOn: theme.colors.primary,
+                  spinnerOff: theme.colors.textSecondary,
+              }
+            : PALETTE;
     const [innerChecked, setInnerChecked] = useState(defaultChecked);
     const isControlled = checked !== undefined;
     const isChecked = isControlled ? checked : innerChecked;
@@ -171,16 +190,16 @@ export const Switch: React.FC<SwitchProps> = ({
     useEffect(() => {
         Animated.timing(progress, {
             toValue: isChecked ? 1 : 0,
-            duration: motionDuration.base,
+            duration: reducedMotion ? 0 : motionDuration.base,
             easing: Easing.bezier(...motionEase),
             useNativeDriver: false,
         }).start();
-    }, [isChecked, progress]);
+    }, [isChecked, progress, reducedMotion]);
 
     /** 加载指示器旋转 —— `@keyframes animal-spin { to { transform: rotate(360deg) } }`，0.6s linear */
     const spin = useRef(new Animated.Value(0)).current;
     useEffect(() => {
-        if (!loading) {
+        if (!loading || reducedMotion) {
             spin.setValue(0);
             return undefined;
         }
@@ -194,7 +213,7 @@ export const Switch: React.FC<SwitchProps> = ({
         );
         animation.start();
         return () => animation.stop();
-    }, [loading, spin]);
+    }, [loading, spin, reducedMotion]);
 
     const handleClick = useCallback(() => {
         if (disabled || loading) return;
@@ -210,15 +229,15 @@ export const Switch: React.FC<SwitchProps> = ({
     const translateX = progress.interpolate({ inputRange: [0, 1], outputRange: [0, travel] });
     const trackBackgroundColor = progress.interpolate({
         inputRange: [0, 1],
-        outputRange: [PALETTE.trackOff, PALETTE.trackOn],
+        outputRange: [palette.trackOff, palette.trackOn],
     });
     const trackBorderColor = progress.interpolate({
         inputRange: [0, 1],
-        outputRange: [PALETTE.borderOff, PALETTE.borderOn],
+        outputRange: [palette.borderOff, palette.borderOn],
     });
     const handleBorderColor = progress.interpolate({
         inputRange: [0, 1],
-        outputRange: [PALETTE.borderOff, PALETTE.borderOn],
+        outputRange: [palette.borderOff, palette.borderOn],
     });
     const rotate = spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
 
@@ -236,6 +255,7 @@ export const Switch: React.FC<SwitchProps> = ({
             aria-labelledby={ariaLabelledBy}
             aria-busy={loading || undefined}
             disabled={disabled}
+            hitSlop={hitSlop}
             // Web 的 `.switch-loading { pointer-events: none }`
             pointerEvents={loading ? 'none' : 'auto'}
             // 非交互时把 handler 摘掉，而不只是在 handler 里 return：
@@ -269,6 +289,7 @@ export const Switch: React.FC<SwitchProps> = ({
                         top: handleTop,
                         borderWidth: spec.borderWidth,
                         borderColor: handleBorderColor,
+                        backgroundColor: palette.handleBg,
                         transform: [{ translateX }],
                     },
                 ]}
@@ -282,7 +303,7 @@ export const Switch: React.FC<SwitchProps> = ({
                                 // `.spinner { border: 2px solid #6fba2c; border-right-color: transparent }`
                                 // `.switch:not(.switch-checked) .spinner { border-color: #a89878 }`
                                 // 注意 `.spinner` 自己没有 transition，颜色是瞬间切换的（不做插值）。
-                                borderColor: isChecked ? PALETTE.spinnerOn : PALETTE.spinnerOff,
+                                borderColor: isChecked ? palette.spinnerOn : palette.spinnerOff,
                                 transform: [{ rotate }],
                             },
                         ]}

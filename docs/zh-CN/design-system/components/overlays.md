@@ -1,5 +1,9 @@
 # Overlays — 精确样式规范
 
+> **RN fork:** Modal 使用键盘避让、宿主安全区、滚动正文与固定页脚；暗色模式调整有机外框表面颜色。Modal 和 Tooltip 在减少动态时禁用装饰性过渡。 [RN contract](../../../RN-PORT.zh-CN.md). 其余表格描述上游 Web/亮色皮肤。
+
+Android 上，Modal 的透明窗口通过 `statusBarTranslucent` 延伸到状态栏后方，打开弹窗时不会出现独立的系统栏色带。宿主提供的 `contentInsets` 仍用于保护弹窗内容，不应缩进遮罩背景本身。
+
 浮在页面内容之上的层：Modal、Drawer、Tooltip 的精确取值
 
 ## Modal（SVG blob 裁切路径）

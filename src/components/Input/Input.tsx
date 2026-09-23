@@ -11,10 +11,12 @@ import {
     type TextInputBlurEvent,
     type TextInputFocusEvent,
     type TextInputSubmitEditingEvent,
+    type TextInputProps,
     type TextStyle,
     type ViewStyle,
 } from 'react-native';
 import { colors, controlHeight, fontSize, lineHeightBase } from '../../theme/tokens';
+import { useTheme } from '../../theme/ThemeProvider';
 
 export type InputSize = 'small' | 'middle' | 'large';
 
@@ -129,6 +131,14 @@ export interface InputProps {
      * 供测试定位 Web 版用类名定位的那几个结构节点（RN 没有 `querySelector`）。
      */
     testID?: string;
+    /** Native props not covered above, including selection, content-size and test ID. */
+    inputProps?: Omit<TextInputProps, 'value' | 'defaultValue' | 'onChangeText' | 'editable' | 'onFocus' | 'onBlur'>;
+    /** Native string callback in addition to the Form-compatible onChange event. */
+    onChangeText?: (value: string) => void;
+    /** Text styling applies to the actual TextInput, not the wrapper. */
+    inputStyle?: StyleProp<TextStyle>;
+    /** Ref to the native input for host focus/selection commands. */
+    inputRef?: React.ComponentPropsWithRef<typeof TextInput>['ref'];
 }
 
 type SizeSpec = {
@@ -259,7 +269,12 @@ export const Input: React.FC<InputProps> = ({
     'aria-labelledby': ariaLabelledBy,
     style,
     testID,
+    inputProps,
+    onChangeText,
+    inputStyle,
+    inputRef,
 }) => {
+    const { mode, theme } = useTheme();
     const [innerValue, setInnerValue] = useState(defaultValue ?? '');
     /**
      * 聚焦状态。
@@ -277,8 +292,9 @@ export const Input: React.FC<InputProps> = ({
         (next: string) => {
             if (!isControlled) setInnerValue(next);
             onChange?.({ target: { value: next }, nativeEvent: { text: next } });
+            onChangeText?.(next);
         },
-        [isControlled, onChange]
+        [isControlled, onChange, onChangeText]
     );
 
     // 用 `onChangeText`（拿字符串）而不是 `onChange`（拿 NativeSyntheticEvent）：
@@ -300,7 +316,8 @@ export const Input: React.FC<InputProps> = ({
         if (!isControlled) setInnerValue('');
         onClear?.();
         onChange?.({ target: { value: '' }, nativeEvent: { text: '' } });
-    }, [isControlled, onClear, onChange]);
+        onChangeText?.('');
+    }, [isControlled, onClear, onChange, onChangeText]);
 
     const handleFocus = useCallback(
         (e: TextInputFocusEvent) => {
@@ -330,7 +347,14 @@ export const Input: React.FC<InputProps> = ({
         height: sizeSpec.height,
         paddingHorizontal: sizeSpec.paddingHorizontal,
         borderRadius: sizeSpec.borderRadius,
-        backgroundColor: disabled ? DISABLED_BG : WRAPPER_BG,
+        backgroundColor:
+            mode === 'dark'
+                ? disabled
+                    ? theme.colors.bgDisabled
+                    : theme.colors.bgSecondary
+                : disabled
+                  ? DISABLED_BG
+                  : WRAPPER_BG,
     };
     if (boxShadowValue) wrapperFace.boxShadow = boxShadowValue;
 
@@ -346,7 +370,14 @@ export const Input: React.FC<InputProps> = ({
         fontWeight: '500',
         lineHeight: sizeSpec.fontSize * lineHeightBase, // CSS line-height: var(--animal-line-height-base)
         letterSpacing: sizeSpec.fontSize * 0.01, // CSS letter-spacing: 0.01em（RN 只收绝对值）
-        color: disabled ? DISABLED_TEXT_COLOR : TEXT_COLOR,
+        color:
+            mode === 'dark'
+                ? disabled
+                    ? theme.colors.textDisabled
+                    : theme.colors.text
+                : disabled
+                  ? DISABLED_TEXT_COLOR
+                  : TEXT_COLOR,
     };
 
     return (
@@ -361,7 +392,7 @@ export const Input: React.FC<InputProps> = ({
             )}
 
             <TextInput
-                style={inputFace}
+                ref={inputRef}
                 // Web 的 `<input disabled>`；RN 里等价的是 `editable={false}`
                 editable={!disabled}
                 value={currentValue}
@@ -369,7 +400,9 @@ export const Input: React.FC<InputProps> = ({
                 onFocus={handleFocus}
                 onBlur={handleBlur}
                 placeholder={placeholder}
-                placeholderTextColor={placeholderTextColor ?? PLACEHOLDER_COLOR}
+                placeholderTextColor={
+                    placeholderTextColor ?? (mode === 'dark' ? theme.colors.textSecondary : PLACEHOLDER_COLOR)
+                }
                 keyboardType={keyboardType}
                 autoCapitalize={autoCapitalize}
                 autoCorrect={autoCorrect}
@@ -383,20 +416,22 @@ export const Input: React.FC<InputProps> = ({
                 nativeID={nativeID}
                 aria-label={ariaLabel}
                 aria-labelledby={ariaLabelledBy}
-                // ⚠️ 上游在 error 态会给输入框打 `aria-invalid="true"`（a11y 契约）。
-                // RN 0.87 的 `ViewProps` / `AccessibilityState` **都没有 invalid**
-                // （aria-* 只支持 label/labelledby/live/modal/busy/checked/disabled/
-                // expanded/selected/hidden/valuenow-min-max-text），
-                // `aria-errormessage` / `aria-required` 同样没有 —— 只能整条丢掉。
-                testID={testID ? `${testID}-input` : undefined}
+                {...inputProps}
+                style={[inputFace, inputStyle, inputProps?.style]}
+                // React Native Web forwards aria-invalid. Native RN has no invalid
+                // AccessibilityState trait; hosts should also expose a visible error.
+                aria-invalid={status === 'error' || undefined}
+                testID={inputProps?.testID ?? (testID ? `${testID}-input` : undefined)}
+                accessibilityState={{ ...inputProps?.accessibilityState, disabled }}
             />
 
-            {allowClear && currentValue && !disabled && (
+            {allowClear && !!currentValue && !disabled && (
                 // Web 版是原生 `<button type="button">`（可 Tab 聚焦、可 Enter 触发）。
                 // RN 没有键盘焦点，`accessibilityRole="button"` 是等价的可访问语义。
                 <Pressable
                     accessibilityRole="button"
                     aria-label={clearAriaLabel}
+                    hitSlop={12}
                     onPress={handleClear}
                     style={styles.clear}
                     testID={testID ? `${testID}-clear` : undefined}

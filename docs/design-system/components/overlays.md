@@ -1,5 +1,9 @@
 # Overlays — pixel spec
 
+> **RN fork:** Modal has a keyboard-avoiding wrapper, host-provided safe-area insets, scrollable body and fixed footer; dark mode recolors its organic surface. Modal and Tooltip suppress decorative transitions for reduced motion. [RN contract](../../../RN-PORT.md). The remaining tables describe the upstream Web/light skin.
+
+On Android, Modal's transparent window extends behind the status bar (`statusBarTranslucent`), so opening it does not introduce a separate system-bar strip. Host-provided `contentInsets` still protect the dialog content; they must not inset the backdrop itself.
+
 Exact values for the layered surfaces that sit above page content: Modal, Drawer and Tooltip.
 
 ## Modal (SVG blob clip-path)

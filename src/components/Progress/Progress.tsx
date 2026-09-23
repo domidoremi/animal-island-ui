@@ -5,6 +5,7 @@ import { colors, fontSize, spacing } from '../../theme/tokens';
 import { BACKGROUND_PATTERN_SPEC, BackgroundLayer, BackgroundPatternLayer } from '../Background/patterns';
 import type { ProgressProps, ProgressSize, ProgressVariant } from './types';
 import { useReduceMotion } from './useReduceMotion';
+import { useTheme } from '../../theme/ThemeProvider';
 
 /**
  * 场景图 type → RN 组件。
@@ -79,7 +80,10 @@ export const Progress: React.FC<ProgressProps> = ({
     testID,
     'aria-label': ariaLabel,
     'aria-labelledby': ariaLabelledBy,
+    indeterminate = false,
+    fillColor,
 }) => {
+    const { mode, theme, reducedMotion } = useTheme();
     const safePercent = useMemo(() => {
         if (typeof percent !== 'number' || Number.isNaN(percent)) return 0;
         return Math.max(0, Math.min(100, percent));
@@ -87,8 +91,9 @@ export const Progress: React.FC<ProgressProps> = ({
 
     const renderedInfo = useMemo(() => {
         if (infoFormat) return infoFormat(safePercent);
+        if (indeterminate) return '';
         return `${Math.round(safePercent)}%`;
-    }, [infoFormat, safePercent]);
+    }, [infoFormat, safePercent, indeterminate]);
 
     // track 宽度（px）：图片按整条轨道宽度铺满（取上部），fill 只显示左侧进度宽的部分 = 从左揭开。
     // Web 靠 ResizeObserver + clientWidth（见 RN-PORT.md 的映射表）；RN 用 onLayout。
@@ -114,7 +119,7 @@ export const Progress: React.FC<ProgressProps> = ({
         }
         // `duration={0}` → CSS 的 `.noTransition`；系统开了「减弱动态效果」→ 上游的
         // `@media (prefers-reduced-motion: reduce)`。两者都直接跳到目标值。
-        if (duration === 0 || reduceMotion) {
+        if (duration === 0 || reduceMotion || reducedMotion) {
             fillPercent.setValue(safePercent);
             return undefined;
         }
@@ -126,7 +131,7 @@ export const Progress: React.FC<ProgressProps> = ({
         });
         animation.start();
         return () => animation.stop();
-    }, [safePercent, duration, reduceMotion, fillPercent]);
+    }, [safePercent, duration, reduceMotion, reducedMotion, fillPercent]);
 
     // 0–100 的数值插值成百分比宽度字符串
     const fillWidth = fillPercent.interpolate({ inputRange: [0, 100], outputRange: ['0%', '100%'] });
@@ -145,27 +150,38 @@ export const Progress: React.FC<ProgressProps> = ({
             aria-labelledby={ariaLabelledBy}
             aria-valuemin={0}
             aria-valuemax={100}
-            aria-valuenow={Math.round(safePercent)}
+            aria-valuenow={indeterminate ? undefined : Math.round(safePercent)}
             aria-valuetext={ariaValueText}
             style={[styles.progress, style]}
             testID={testID}
         >
             <View style={styles.row}>
                 <View
-                    style={[styles.track, { height: SIZE_HEIGHT[size] }]}
+                    style={[styles.track, { height: SIZE_HEIGHT[size], backgroundColor: theme.colors.bg }]}
                     onLayout={onTrackLayout}
                     testID={testID ? `${testID}-track` : undefined}
                 >
                     {/* 奶油色波点底（对应 CSS 的 background 简写），铺在 fill 下面 */}
                     <BackgroundLayer testID={testID ? `${testID}-track-pattern` : undefined}>
-                        <BackgroundPatternLayer spec={TRACK_PATTERN} />
+                        <BackgroundPatternLayer
+                            spec={
+                                mode === 'dark' ? { ...TRACK_PATTERN, base: theme.colors.bgSecondary } : TRACK_PATTERN
+                            }
+                        />
                     </BackgroundLayer>
 
                     <Animated.View
-                        style={[styles.fill, { width: fillWidth }]}
+                        style={[
+                            styles.fill,
+                            {
+                                width: fillWidth,
+                                backgroundColor: fillColor ?? theme.colors.primary,
+                            },
+                            indeterminate && styles.indeterminateFill,
+                        ]}
                         testID={testID ? `${testID}-fill` : undefined}
                     >
-                        {trackWidth > 0 && (
+                        {trackWidth > 0 && !fillColor && (
                             // 图片固定为**整条轨道**的宽度（高度按 16:9 算，所以只露出上部），
                             // fill 自身 overflow: hidden 按进度宽度裁掉右侧 = 从左揭开。
                             // Web 在测量到宽度前用的是 `100% auto`；RN 这里那一帧不画图
@@ -182,7 +198,10 @@ export const Progress: React.FC<ProgressProps> = ({
                     // 必须在 <Text> 上，所以拆成「盒子 View + Text」两层。
                     <View style={styles.infoBox} testID={testID ? `${testID}-info` : undefined}>
                         {isTextual(renderedInfo) ? (
-                            <Text numberOfLines={1} style={styles.infoText}>
+                            <Text
+                                numberOfLines={1}
+                                style={[styles.infoText, mode === 'dark' && { color: theme.colors.textSecondary }]}
+                            >
                                 {renderedInfo}
                             </Text>
                         ) : (
@@ -199,6 +218,7 @@ export const Progress: React.FC<ProgressProps> = ({
 Progress.displayName = 'Progress';
 
 const styles = StyleSheet.create({
+    indeterminateFill: { width: '30%' },
     progress: {
         // `.progress { display: flex; align-items: center; width: 100% }`
         // CSS 的 display:flex 默认就是 row，RN 的 View 默认是 column，所以要显式写。

@@ -3,17 +3,20 @@ import {
     Animated,
     Easing,
     Pressable,
+    processColor,
     StyleSheet,
     Text,
     View,
     type GestureResponderEvent,
     type PressableStateCallbackType,
+    type PressableProps,
     type StyleProp,
     type TextStyle,
     type ViewStyle,
 } from 'react-native';
 import { DonutIcon } from '../../icons';
 import { boxShadow, colors, controlHeight, fontSize, radius, spacing } from '../../theme/tokens';
+import { useTheme } from '../../theme/ThemeProvider';
 
 export type ButtonType = 'primary' | 'default' | 'dashed' | 'text' | 'link';
 export type ButtonSize = 'small' | 'middle' | 'large';
@@ -47,6 +50,13 @@ export interface ButtonProps {
     testID?: string;
     /** 可访问名；纯图标按钮必须传 */
     accessibilityLabel?: string;
+    /** Host accessibility semantics (for example a disclosure's expanded state). */
+    accessibilityRole?: PressableProps['accessibilityRole'];
+    accessibilityState?: PressableProps['accessibilityState'];
+    /** Typography only; layout belongs on style. */
+    textStyle?: StyleProp<TextStyle>;
+    /** Extend a compact visual control's accessible touch target. */
+    hitSlop?: PressableProps['hitSlop'];
 }
 
 /** 尺寸规格 —— 对应 .btn-small / .btn-middle / .btn-large */
@@ -165,6 +175,34 @@ const LOADING_FACE: FacePatch = {
     boxShadow: undefined,
 };
 
+/** 加载状态必须可读：保留青绿底，按实际底色选择文字/图标色，而不是恒白或恒深绿。 */
+function readableLoadingFace(background: string, fallback: string): FacePatch {
+    const luminance = (color: string): number | undefined => {
+        const value = processColor(color);
+        // 半透明/动态色的最终底色取决于宿主；loading 改用本主题的实心表面。
+        if (typeof value !== 'number') return undefined;
+        const argb = value < 0 ? value + 2 ** 32 : value;
+        if (Math.floor(argb / 2 ** 24) !== 255) return undefined;
+        const channels = [16, 8, 0].map((shift) => {
+            const channel = (Math.floor(argb / 2 ** shift) % 256) / 255;
+            return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+        });
+        return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
+    };
+    const requestedLuminance = luminance(background);
+    const backgroundColor = requestedLuminance === undefined ? fallback : background;
+    const backgroundLuminance = requestedLuminance ?? luminance(fallback) ?? 1;
+    // 常规青绿底仍用深绿；中间亮度的自定义色必要时用更深的墨绿（非纯黑）。
+    const color = ['#173c32', '#fff', '#030604'].find((candidate) => {
+        const foreground = luminance(candidate)!;
+        return (
+            (Math.max(foreground, backgroundLuminance) + 0.05) / (Math.min(foreground, backgroundLuminance) + 0.05) >=
+            4.5
+        );
+    })!;
+    return { backgroundColor, color, boxShadow: undefined };
+}
+
 /** 把 Face 拆成 View 样式与 Text 样式两部分（RN 的布局/文字样式分属两个 props） */
 const toViewStyle = (face: FacePatch): ViewStyle => {
     // ViewStyle 的属性是 readonly，先攒到可变对象再断言
@@ -194,14 +232,19 @@ export const Button: React.FC<ButtonProps> = ({
     style,
     testID,
     accessibilityLabel,
+    accessibilityRole = 'button',
+    accessibilityState,
+    textStyle,
+    hitSlop,
 }) => {
+    const { mode, theme, reducedMotion } = useTheme();
     // loading 时不可交互（对应 Web 的 pointer-events: none）
     const interactive = !disabled && !loading;
 
     // ---------- 旋转指示器：@keyframes animal-btn-spin，2.5s linear 逆时针无限循环 ----------
     const spin = useRef(new Animated.Value(0)).current;
     useEffect(() => {
-        if (!loading) {
+        if (!loading || reducedMotion) {
             spin.setValue(0);
             return undefined;
         }
@@ -215,7 +258,7 @@ export const Button: React.FC<ButtonProps> = ({
         );
         animation.start();
         return () => animation.stop();
-    }, [loading, spin]);
+    }, [loading, reducedMotion, spin]);
     const rotate = spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '-360deg'] });
 
     const sizeSpec = SIZE_SPEC[size];
@@ -244,6 +287,42 @@ export const Button: React.FC<ButtonProps> = ({
     }
     if (ghost && type === 'primary') Object.assign(pressedFace, GHOST_PRIMARY_PRESSED);
 
+    if (mode === 'dark') {
+        const transparent = ghost || type === 'text' || type === 'link';
+        Object.assign(face, {
+            color: type === 'link' ? theme.colors.primary : theme.colors.text,
+            backgroundColor: transparent ? 'transparent' : theme.colors.bg,
+            borderColor: transparent ? 'transparent' : theme.colors.border,
+            boxShadow: type === 'primary' && !ghost ? `0 5px 0 0 ${theme.roles.buttonPrimaryShadow}` : undefined,
+        });
+        Object.assign(pressedFace, {
+            color: theme.colors.primary,
+            backgroundColor: transparent ? theme.colors.bgSecondary : theme.colors.bg,
+            borderColor: theme.colors.primary,
+            boxShadow: type === 'primary' && !ghost ? `0 1px 0 0 ${theme.roles.buttonPrimaryShadow}` : undefined,
+        });
+        if (danger) {
+            face.color = theme.colors.error;
+            pressedFace.color = theme.colors.error;
+            if (type === 'primary' && !ghost) {
+                Object.assign(face, {
+                    backgroundColor: theme.colors.error,
+                    borderColor: theme.colors.error,
+                    color: '#3d3428',
+                });
+                Object.assign(pressedFace, { backgroundColor: theme.colors.errorHover, color: '#3d3428' });
+            }
+        }
+        if (disabled) face.boxShadow = undefined;
+    }
+    if (type === 'link' && !danger) face.color = theme.colors.primary;
+    if (loading) {
+        Object.assign(
+            face,
+            readableLoadingFace(mode === 'dark' ? theme.colors.primary : LOADING_FACE.backgroundColor!, theme.colors.bg)
+        );
+    }
+
     const faceStyle = toViewStyle(face);
     const faceTextStyle = toTextStyle(face);
     const pressedStyle = toViewStyle(pressedFace);
@@ -259,7 +338,7 @@ export const Button: React.FC<ButtonProps> = ({
         block ? styles.block : styles.inline,
         faceStyle,
         loading && styles.loading,
-        disabled && styles.disabled,
+        disabled && !loading && styles.disabled,
         pressed && interactive ? pressedStyle : null,
         style,
     ];
@@ -279,10 +358,11 @@ export const Button: React.FC<ButtonProps> = ({
         // 上都会把整个子树移出无障碍树，后者只表示「这个 View 本身不是无障碍元素」，
         // 其内部的 Text 仍会被读出来。装饰性图标要的是前者（与 Web 版一致）。
         <Pressable
-            accessibilityRole="button"
-            accessibilityState={{ disabled: disabled || loading, busy: loading }}
+            accessibilityRole={accessibilityRole}
+            accessibilityState={{ ...accessibilityState, disabled: disabled || loading, busy: loading }}
             accessibilityLabel={accessibilityLabel}
-            disabled={disabled}
+            hitSlop={hitSlop}
+            disabled={!interactive}
             pointerEvents={loading ? 'none' : 'auto'}
             onPress={interactive ? onPress : undefined}
             onLongPress={interactive ? onLongPress : undefined}
@@ -297,8 +377,7 @@ export const Button: React.FC<ButtonProps> = ({
                             style={[styles.icon, { transform: [{ rotate }] }]}
                             testID={testID ? `${testID}-loading-icon` : undefined}
                         >
-                            {/* color 跟随当前文字色：Web 传的是 color="currentColor"，
-                                loading 态按钮 color:#fff，所以甜甜圈描边是白色 */}
+                            {/* 图标和文案共用经过对比度检查的 loading 前景色。 */}
                             <DonutIcon size={28} color={face.color} />
                         </Animated.View>
                     ) : (
@@ -309,7 +388,10 @@ export const Button: React.FC<ButtonProps> = ({
                         )
                     )}
                     {children != null && children !== false && (
-                        <Text numberOfLines={1} style={[labelStyle, pressed && interactive ? pressedTextStyle : null]}>
+                        <Text
+                            numberOfLines={1}
+                            style={[labelStyle, pressed && interactive ? pressedTextStyle : null, textStyle]}
+                        >
                             {children}
                         </Text>
                     )}

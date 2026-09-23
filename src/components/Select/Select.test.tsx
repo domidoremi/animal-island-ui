@@ -3,6 +3,8 @@ import { act, fireEvent, render } from '@testing-library/react-native';
 import type { TestInstance } from 'test-renderer';
 import { Select, type SelectOption } from './Select';
 import { dropdownHeight } from './geometry';
+import { ThemeProvider } from '../../theme/ThemeProvider';
+import { resolveNativeTheme } from '../../theme/appearance';
 
 /**
  * RN 版测试，对应 Web 版 `Select.test.tsx` 的 18 个用例。
@@ -44,6 +46,30 @@ const options: SelectOption[] = [
     { key: 'b', label: 'Banana' },
     { key: 'c', label: 'Cherry' },
 ];
+
+it('keeps disabled options inert and applies the host dark palette to the menu', async () => {
+    const onChange = jest.fn();
+    const screen = await render(
+        <ThemeProvider mode="dark" reducedMotion>
+            <Select
+                testID="native"
+                value=""
+                options={[
+                    { key: 'off', label: 'Disabled', disabled: true },
+                    { key: 'on', label: 'Enabled' },
+                ]}
+                onChange={onChange}
+            />
+        </ThemeProvider>
+    );
+    expect(screen.getByTestId('native-trigger')).toHaveStyle({ backgroundColor: resolveNativeTheme('dark').colors.bg });
+    await fireEvent.press(screen.getByTestId('native-trigger'));
+    expect(screen.getByTestId('native-option-off').props.accessibilityState.disabled).toBe(true);
+    await fireEvent.press(screen.getByTestId('native-option-off'));
+    expect(onChange).not.toHaveBeenCalled();
+    await fireEvent.press(screen.getByTestId('native-option-on'));
+    expect(onChange).toHaveBeenCalledWith('on');
+});
 
 const child = (node: unknown) => node as TestInstance;
 

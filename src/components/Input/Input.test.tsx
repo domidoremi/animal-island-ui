@@ -4,6 +4,8 @@ import { fireEvent, render } from '@testing-library/react-native';
 import type { TestInstance } from 'test-renderer';
 import { Input } from './Input';
 import { colors } from '../../theme/tokens';
+import { ThemeProvider } from '../../theme/ThemeProvider';
+import { resolveNativeTheme } from '../../theme/appearance';
 
 /**
  * RN 版测试，对应 Web 版 `Input.test.tsx` 的 14 个用例。
@@ -14,10 +16,8 @@ import { colors } from '../../theme/tokens';
  *     role**：`Role` 联合类型里只有 `searchbox` / `combobox`，没有 `textbox`；
  *     `TextInput` 也没有隐式 role（RNTL 的 `getRole` 只给 `Text` 兜底成 `text`）。
  *     改用 `getByTestId('i-input')`，并断言宿主节点类型就是 `TextInput`。
- *   - `status=error … toBeInvalid()` —— `aria-invalid` 在 RN 里**不存在**
- *     （RN 0.87 的 aria-* 只有 label/labelledby/live/modal/busy/checked/disabled/
- *     expanded/selected/hidden/valuenow-min-max-text；`AccessibilityState` 也没有
- *     `invalid` 字段）。整条 a11y 契约只能丢，保留「错误态投影变红」这半条视觉断言。
+ *   - `status=error … toBeInvalid()` —— RN 没有 invalid accessibility trait；
+ *     保留错误态投影，并透传 aria-invalid 供 React Native Web 使用。
  *   - `清除按钮支持键盘聚焦与 Enter 触发` —— RN 没有 DOM 键盘焦点 / Enter 事件，
  *     `outline: 2px solid` 的 `:focus-visible` 也没有对应物。替换为
  *     「清除按钮是可访问的 button，且带 aria-label」。
@@ -53,6 +53,58 @@ const warningShadow = `0 3px 0 0 ${colors.warningActive}`; // @warning-color-act
 const focusRing = '0 0 0 3px rgba(245, 195, 28, 0.25)';
 
 describe('Input', () => {
+    it('does not render a raw empty string inside the native wrapper when clear is enabled', async () => {
+        const screen = await render(<Input testID="empty" allowClear value="" />);
+        // Renderer children discard empty strings; inspect the raw View props so
+        // this catches the `allowClear && currentValue && ...` RN Web regression.
+        expect(
+            React.Children.toArray(screen.getByTestId('empty').props.children).filter(
+                (node) => typeof node === 'string'
+            )
+        ).toHaveLength(0);
+    });
+    it('preserves native events, refs and selection while emitting both string and Form changes', async () => {
+        const onChange = jest.fn();
+        const onChangeText = jest.fn();
+        const onNativeChange = jest.fn();
+        const inputRef = jest.fn();
+        const screen = await render(
+            <Input
+                defaultValue="draft"
+                allowClear
+                onChange={onChange}
+                onChangeText={onChangeText}
+                inputRef={inputRef}
+                inputProps={{ testID: 'native', selection: { start: 2, end: 2 }, onChange: onNativeChange }}
+            />
+        );
+        expect(inputRef).toHaveBeenCalled();
+        expect(screen.getByTestId('native').props.selection).toEqual({ start: 2, end: 2 });
+        const event = { nativeEvent: { text: 'edited', target: 7, eventCount: 1 } };
+        await fireEvent(screen.getByTestId('native'), 'change', event);
+        expect(onNativeChange).toHaveBeenCalledWith(event);
+        await fireEvent.changeText(screen.getByTestId('native'), 'edited');
+        expect(onChangeText).toHaveBeenLastCalledWith('edited');
+        expect(onChange).toHaveBeenLastCalledWith({ target: { value: 'edited' }, nativeEvent: { text: 'edited' } });
+        await fireEvent.press(screen.getByRole('button', { name: '清除' }));
+        expect(onChangeText).toHaveBeenLastCalledWith('');
+        expect(screen.getByTestId('native').props.value).toBe('');
+    });
+
+    it('uses the provider dark palette and keeps disabled native input and clear behavior aligned', async () => {
+        const screen = await render(
+            <ThemeProvider mode="dark">
+                <Input value="locked" disabled allowClear testID="dark" />
+            </ThemeProvider>
+        );
+        const theme = resolveNativeTheme('dark');
+        expect(screen.getByTestId('dark')).toHaveStyle({ backgroundColor: theme.colors.bgDisabled });
+        expect(screen.getByTestId('dark-input')).toHaveStyle({ color: theme.colors.textDisabled });
+        expect(screen.getByTestId('dark-input').props.accessibilityState.disabled).toBe(true);
+        expect(screen.getByTestId('dark-input').props.editable).toBe(false);
+        expect(screen.queryByRole('button', { name: '清除' })).toBeNull();
+    });
+
     describe('渲染', () => {
         it('渲染基础输入框（Web 的 role=textbox 在 RN 里没有对应 role，改用 testID）', async () => {
             const { getByTestId } = await render(<Input testID="i" />);
@@ -80,12 +132,11 @@ describe('Input', () => {
             }
         });
 
-        it('status=error 时容器投影转错误色（Web 的 aria-invalid 在 RN 无对应属性）', async () => {
+        it('status=error keeps error styling and web invalid semantics without inventing a native invalid state', async () => {
             const { getByTestId } = await render(<Input testID="i" shadow status="error" />);
             expect(getByTestId('i')).toHaveStyle({ boxShadow: errorShadow });
-            // a11y 契约的那一半在 RN 无法还原：TextInput 上没有 aria-invalid / invalid state
-            expect(getByTestId('i-input').props['aria-invalid']).toBeUndefined();
-            expect(getByTestId('i-input').props.accessibilityState).toBeUndefined();
+            expect(getByTestId('i-input').props['aria-invalid']).toBe(true);
+            expect(getByTestId('i-input').props.accessibilityState).toEqual({ disabled: false });
         });
 
         it('status=warning 时容器投影转警告色', async () => {

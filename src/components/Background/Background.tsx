@@ -1,6 +1,8 @@
 import React from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { CoffeeBreak, SweetCorner, type SceneImageProps } from '../../assets/image/rn';
+import { useTheme } from '../../theme/ThemeProvider';
+import { appearanceColors } from '../../theme/appearance';
 import {
     BACKGROUND_PATTERN_SPEC,
     BackgroundLayer,
@@ -61,8 +63,19 @@ export interface BackgroundProps {
  * 这一整块被丢弃：只保留 `type` / `children` / `style` / `testID`。
  */
 export const Background: React.FC<BackgroundProps> = ({ type = 'default', children, style, testID }) => {
+    const { mode, theme } = useTheme();
     const Scene = SCENE_IMAGE[type];
-    const pattern = BACKGROUND_PATTERN_SPEC[type as BackgroundPatternType];
+    const basePattern = BACKGROUND_PATTERN_SPEC[type as BackgroundPatternType];
+    const pattern =
+        mode === 'dark' && basePattern
+            ? {
+                  ...basePattern,
+                  base: appearanceColors.dark.canvas,
+                  ...(basePattern.kind === 'dots'
+                      ? { strong: theme.colors.border, weak: theme.colors.borderLight }
+                      : {}),
+              }
+            : basePattern;
     // 场景图类的底色来自 .bg-sweet-corner / .bg-coffee-break 的 background-color，
     // 图案类来自各自 background 简写的最后一个颜色
     const backgroundColor = Scene ? SCENE_BASE_COLOR : pattern.base;

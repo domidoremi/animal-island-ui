@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Animated, Easing, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { borderWidth, boxShadow, duration, easing, fontSize, radius } from '../../theme/tokens';
+import { useTheme } from '../../theme/ThemeProvider';
 import {
     bubbleStyle,
     splitPlacement,
@@ -65,6 +66,8 @@ export interface TooltipProps {
     style?: ViewStyle;
     /** 测试 id，同时作为 `-bubble` / `-arrow` 的前缀 */
     testID?: string;
+    /** Controlled visibility for host-owned focus/hover policies. */
+    open?: boolean;
 }
 
 export const Tooltip: React.FC<TooltipProps> = ({
@@ -76,8 +79,11 @@ export const Tooltip: React.FC<TooltipProps> = ({
     children,
     style,
     testID,
+    open,
 }) => {
-    const [visible, setVisible] = useState(false);
+    const { reducedMotion } = useTheme();
+    const [innerVisible, setVisible] = useState(false);
+    const visible = open ?? innerVisible;
     const [wrapperHeight, setWrapperHeight] = useState<number>();
     const [tipHeight, setTipHeight] = useState<number>();
     const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -99,13 +105,13 @@ export const Tooltip: React.FC<TooltipProps> = ({
     useEffect(() => {
         const anim = Animated.timing(opacity, {
             toValue: visible ? 1 : 0,
-            duration: duration.base,
+            duration: reducedMotion ? 0 : duration.base,
             easing: Easing.bezier(easing[0], easing[1], easing[2], easing[3]),
             useNativeDriver: true,
         });
         anim.start();
         return () => anim.stop();
-    }, [visible, opacity]);
+    }, [visible, opacity, reducedMotion]);
 
     const child = React.Children.only(children);
     const childProps = child.props as {

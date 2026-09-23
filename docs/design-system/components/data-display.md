@@ -1,5 +1,7 @@
 # Data display — pixel spec
 
+> **RN fork:** Image preview marks only its content as modal; its decorative dismissal backdrop is excluded from accessibility. Native screen-reader behavior still needs device verification. [RN contract](../../../RN-PORT.md). The remaining tables describe the upstream Web/light skin.
+
 Exact values for the components that present content: Table, Pagination, CodeBlock and Tag.
 
 ## Table (dashed row rules, solid hover)

@@ -1,5 +1,7 @@
 # Form controls — pixel spec
 
+> **RN fork:** Input and Select use dark surfaces, text and borders; Switch uses dark track/handle colors. Disabled options cannot be selected. Compact touch targets use hitSlop without changing the visual geometry. [RN contract](../../../RN-PORT.md). The remaining tables describe the upstream Web/light skin.
+
 Pixel-level styling for the interactive input controls: Input, Switch, Checkbox, Radio and Select.
 
 ## Input
@@ -264,6 +266,16 @@ opacity: 0.55;
 ```
 
 ## Radio
+
+**RN fork / Web hosts:** `Radio` uses the unstyled `RadioGroup` container for one Tab
+entry per group. Arrow keys move and activate, Space selects on release, Home/End reach the first/last available
+option, and horizontal arrows follow RTL. Disabled options and options hidden with
+`hidden`, `aria-hidden` or `inert` are skipped. Custom radio cards can use the same
+container without replacing their visuals; each child supplies `role="radio"`, checked
+state and its normal press handler. Nested groups and editable descendants keep their
+own keyboard events. Selection remains host-owned, including during deferred theme
+transitions. Native hosts retain individually accessible options; DOM navigation is
+installed only on Web. No new animation or styling is added.
 
 | Property         | small   | middle  | large                                 |
 | ---------------- | ------- | ------- | ------------------------------------- |

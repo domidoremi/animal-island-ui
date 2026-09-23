@@ -1,5 +1,7 @@
 # Layout — pixel spec
 
+> **RN fork:** Card resolves its dark pattern face from the provider brand palette; reduced motion removes hover movement. Light pattern geometry is unchanged. [RN contract](../../../RN-PORT.md). The remaining tables describe the upstream Web/light skin.
+
 Pixel-level styling for the layout and structural components: Card, Title, Divider, Background, Collapse and Tabs.
 
 ## Card

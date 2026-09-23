@@ -178,12 +178,21 @@ describe('brand / roles 的 light 值冻结（= 组件现有字面量）', () =>
         expect(Object.keys(brand)).toHaveLength(12);
     });
 
-    it('roles 的 light 值 = 现字面量（Tag default 中性色 + Button 硬阴影）', () => {
+    it('roles 的 light 值 = 现字面量（场景面 / 浮层控件 / 阴影 / Tag 中性色 / Button 硬阴影）', () => {
         expect(roles).toEqual({
-            tagNeutralBg: 'rgb(247, 243, 223)',
+            surfaceScene: 'rgb(247, 243, 223)',
+            onSceneStrong: '#725d42',
+            onSceneMuted: '#8a7b66',
             tagNeutralOn: '#8f734f',
             tagNeutralBorderSolid: '#d4c4a8',
             tagNeutralBorderOutline: '#c4b89e',
+            controlSurface: 'rgba(255, 255, 255, 0.92)',
+            controlBorder: 'rgba(121, 79, 39, 0.16)',
+            controlSurfaceMuted: 'rgba(255, 255, 255, 0.85)',
+            carouselDotIdle: '#d4c9b4',
+            trackShadowColor: 'rgba(114, 93, 66, 0.08)',
+            modalShadowColor: 'rgba(0, 0, 0, 0.25)',
+            onAccentSolid: '#fff',
             buttonPrimaryShadow: '#bdaea0',
         });
     });

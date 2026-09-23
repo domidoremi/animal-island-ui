@@ -1,5 +1,7 @@
 # 布局组件 —— 精确样式规范
 
+> **RN fork:** Card 从 Provider 品牌色板解析暗色图案表面；减少动态时移除悬浮位移，亮色图案几何不变。 [RN contract](../../../RN-PORT.zh-CN.md). 其余表格描述上游 Web/亮色皮肤。
+
 布局与结构类组件 Card、Title、Divider、Background、Collapse、Tabs 的像素级样式规范。
 
 ## Card

@@ -12,6 +12,7 @@ import {
     type ViewStyle,
 } from 'react-native';
 import Svg, { Circle, Defs, Pattern, Rect } from 'react-native-svg';
+import { useTheme } from '../../theme/ThemeProvider';
 
 export type CardType = 'default' | 'dashed';
 
@@ -308,6 +309,7 @@ export const Card: React.FC<CardProps> = ({
     'aria-label': ariaLabel,
     'aria-labelledby': ariaLabelledBy,
 }) => {
+    const { mode, theme, reducedMotion } = useTheme();
     // 花纹的 <Pattern> id 必须全局唯一，否则同一屏里的多张卡片会互相串色。
     // useId 的原始串带 `«»` / `:` 这类字符，`url(#...)` 里不安全，先滤掉。
     const patternId = `animal-card-pattern-${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
@@ -321,6 +323,15 @@ export const Card: React.FC<CardProps> = ({
     if (type === 'dashed') Object.assign(face, DASHED_FACE);
     if (color !== 'default') Object.assign(face, COLOR_SPEC[color]);
     if (patternSpec !== undefined) Object.assign(face, patternSpec);
+    if (mode === 'dark') {
+        const brandName = pattern !== 'none' && pattern !== 'default' ? pattern : color;
+        const brand = brandName === 'default' ? undefined : theme.brand[brandName];
+        Object.assign(face, {
+            backgroundColor: brand ? (patternSpec ? brand.containerBg : brand.solidBg) : theme.colors.bg,
+            color: brand ? (patternSpec ? brand.onContainer : brand.onSolid) : theme.colors.text,
+            borderColor: brand?.border ?? theme.colors.border,
+        });
+    }
 
     // ---------- 按下态（替代 Web 的 :hover，见 CardProps.hoverable）----------
     const pressedFace: Face = type === 'dashed' ? DASHED_PRESSED_FACE : HOVERABLE_PRESSED_FACE;
@@ -395,7 +406,7 @@ export const Card: React.FC<CardProps> = ({
         const pressableStyle = ({ pressed }: PressableStateCallbackType): StyleProp<ViewStyle> => [
             styles.card,
             faceStyle,
-            hoverable && pressed ? pressedStyle : null,
+            hoverable && pressed && !reducedMotion ? pressedStyle : null,
             style,
         ];
 

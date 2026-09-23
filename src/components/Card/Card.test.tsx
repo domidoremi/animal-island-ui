@@ -3,6 +3,21 @@ import { View } from 'react-native';
 import { render, fireEvent } from '@testing-library/react-native';
 import type { TestInstance } from 'test-renderer';
 import { Card, type CardColor, type CardPattern } from './Card';
+import { ThemeProvider } from '../../theme/ThemeProvider';
+import { resolveNativeTheme } from '../../theme/appearance';
+
+it('uses provider-owned dark brand surfaces without changing the light default', async () => {
+    const screen = await render(
+        <ThemeProvider mode="dark">
+            <Card color="app-teal" testID="dark">
+                Content
+            </Card>
+        </ThemeProvider>
+    );
+    const brand = resolveNativeTheme('dark').brand['app-teal'];
+    expect(screen.getByTestId('dark')).toHaveStyle({ backgroundColor: brand.solidBg });
+    expect(screen.getByText('Content')).toHaveStyle({ color: brand.onSolid });
+});
 
 /**
  * RN 版测试，对应 Web 版 `Card.test.tsx` 的 21 个用例。

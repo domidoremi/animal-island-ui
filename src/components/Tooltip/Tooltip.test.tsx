@@ -4,6 +4,26 @@ import { act, fireEvent, render } from '@testing-library/react-native';
 import type { TestInstance } from 'test-renderer';
 import { Tooltip } from './Tooltip';
 import { ARROW_SIZE, ISLAND_ARROW_SIZE, TOOLTIP_GAP } from './geometry';
+import { ThemeProvider } from '../../theme/ThemeProvider';
+
+it('supports host-controlled visibility without stealing the child action', async () => {
+    const press = jest.fn();
+    const tree = (open: boolean) => (
+        <ThemeProvider reducedMotion>
+            <Tooltip title="Help" open={open} trigger="click">
+                <Pressable onPress={press}>
+                    <Text>Action</Text>
+                </Pressable>
+            </Tooltip>
+        </ThemeProvider>
+    );
+    const screen = await render(tree(true));
+    expect(screen.getByRole('tooltip')).toBeTruthy();
+    await fireEvent.press(screen.getByText('Action'));
+    expect(press).toHaveBeenCalledTimes(1);
+    await screen.rerender(tree(false));
+    expect(screen.queryByRole('tooltip')).toBeNull();
+});
 
 /**
  * RN 版测试，对应 Web 版 `Tooltip.test.tsx` 的 9 个用例。

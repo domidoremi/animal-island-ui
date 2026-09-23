@@ -349,27 +349,56 @@ export const brand: Record<BrandColorName, BrandFace> = {
 
 /**
  * 组件专属语义角色 —— 无法归入 `colors`（25 个基础语义）或 `brand`（品牌色系）的
- * 那些写死色，集中到这里配 light/dark 双值。**逐组件按阶段增补**：Phase 0 只放品牌
- * 消费者的 `default`（非品牌）中性色与跨组件通用槽，其余组件私有色在各自阶段迁入。
+ * 那些写死色，集中到这里配 light/dark 双值。**逐组件按阶段增补**：Phase 0 放品牌
+ * 消费者的 `default`（非品牌）中性色与跨组件通用槽，Phase 1 增补档 1 组件
+ * （Modal/Carousel/Progress/Collapse）用到的场景面 / 浮层控件 / 阴影色，
+ * 其余组件私有色在各自阶段迁入。
  *
  * light 值同样逐字等于组件现字面量。
  */
 export type Roles = {
-    /** Tag `default` 变体：solid 底 / 文字 / solid 边 / outline·dashed 边 */
-    tagNeutralBg: string;
+    /** 奶油场景面：Modal 面板底 / Carousel 视口底 / Tag `default` solid 底（跨组件共享同一 hex） */
+    surfaceScene: string;
+    /** 场景面上的强调文字（Modal 标题 / Progress 百分比，均 `#725d42`） */
+    onSceneStrong: string;
+    /** 场景面上的正文文字（Modal body `#8a7b66`） */
+    onSceneMuted: string;
+    /** Tag `default` 变体：文字 / solid 边 / outline·dashed 边 */
     tagNeutralOn: string;
     tagNeutralBorderSolid: string;
     tagNeutralBorderOutline: string;
+    /** 浮层控件（Carousel 箭头 / 播放控制）的近白底与暖描边 */
+    controlSurface: string;
+    controlBorder: string;
+    /** 浮层控件的次级近白底（Carousel 圆点容器，比 controlSurface 略透） */
+    controlSurfaceMuted: string;
+    /** Carousel 未选中圆点色 */
+    carouselDotIdle: string;
+    /** Progress 轨道内阴影色（`inset 0 2px 4px <此色>`） */
+    trackShadowColor: string;
+    /** Modal 面板投影色（`0 18px 50px -12px <此色>`） */
+    modalShadowColor: string;
+    /** 强调实心面（primary 圆钮等）上恒定的图标/文字色（Collapse 问号图标恒白字） */
+    onAccentSolid: string;
     /** Button primary 的硬阴影底色 `0 5px 0 0 #bdaea0`（不在任何基础 token 里） */
     buttonPrimaryShadow: string;
 };
 
-/** 组件专属角色的 light 值。 */
+/** 组件专属角色的 light 值。每一格都逐字等于组件现字面量。 */
 export const roles: Roles = {
-    tagNeutralBg: 'rgb(247, 243, 223)',
+    surfaceScene: 'rgb(247, 243, 223)',
+    onSceneStrong: '#725d42',
+    onSceneMuted: '#8a7b66',
     tagNeutralOn: '#8f734f',
     tagNeutralBorderSolid: '#d4c4a8',
     tagNeutralBorderOutline: '#c4b89e',
+    controlSurface: 'rgba(255, 255, 255, 0.92)',
+    controlBorder: 'rgba(121, 79, 39, 0.16)',
+    controlSurfaceMuted: 'rgba(255, 255, 255, 0.85)',
+    carouselDotIdle: '#d4c9b4',
+    trackShadowColor: 'rgba(114, 93, 66, 0.08)',
+    modalShadowColor: 'rgba(0, 0, 0, 0.25)',
+    onAccentSolid: '#fff',
     buttonPrimaryShadow: '#bdaea0',
 };
 

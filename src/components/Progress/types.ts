@@ -39,4 +39,8 @@ export interface ProgressProps {
     'aria-label'?: string;
     /** 关联外部可见标题的 id */
     'aria-labelledby'?: string;
+    /** Unknown progress must not announce a fabricated percentage. */
+    indeterminate?: boolean;
+    /** Optional host status color; omitting it keeps the scene fill. */
+    fillColor?: string;
 }

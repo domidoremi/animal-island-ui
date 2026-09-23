@@ -174,10 +174,24 @@ export const brandDark: Record<BrandColorName, BrandFace> = Object.fromEntries(
 
 /** 组件专属角色的暗调值。对齐 `appearanceColors.dark` 的面/边/文字层级。 */
 export const rolesDark: Roles = {
-    tagNeutralBg: appearanceColors.dark.surfaceContainer,
+    // 奶油场景面 → 暗底的容器面；其上的强调/正文字用亮/中亮墨对齐层级
+    surfaceScene: appearanceColors.dark.surfaceContainer,
+    onSceneStrong: appearanceColors.dark.onSurface,
+    onSceneMuted: appearanceColors.dark.onSurfaceMuted,
     tagNeutralOn: appearanceColors.dark.onSurfaceMuted,
     tagNeutralBorderSolid: appearanceColors.dark.border,
     tagNeutralBorderOutline: appearanceColors.dark.border,
+    // 浮层控件：light 是近白 + 暖描边压在奶油底上；暗底改成半透明的抬升深面 + 浅雾描边
+    controlSurface: 'rgba(57, 67, 52, 0.92)',
+    controlBorder: 'rgba(156, 167, 131, 0.3)',
+    controlSurfaceMuted: 'rgba(57, 67, 52, 0.85)',
+    // 未选中圆点：light 是暖灰米；暗底改成压低明度的橄榄灰
+    carouselDotIdle: '#6f7a63',
+    // 内阴影 / 投影：暗底上纯黑要更重才有凹陷/浮起感（light 是暖棕低 alpha）
+    trackShadowColor: 'rgba(0, 0, 0, 0.28)',
+    modalShadowColor: 'rgba(0, 0, 0, 0.5)',
+    // primary 圆钮在暗底上是亮青，恒白字会糊，改成深墨（= onPrimary）
+    onAccentSolid: appearanceColors.dark.onPrimary,
     // 硬偏移阴影在暗底上要比面更深，才有「下沿」立体感（light 的 #bdaea0 是暖灰）
     buttonPrimaryShadow: '#141810',
 };

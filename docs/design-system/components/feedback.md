@@ -1,5 +1,7 @@
 # Feedback — pixel spec
 
+> **RN fork:** Progress uses dark track/text colors. fillColor can replace scene fill; indeterminate suppresses numeric progress and shows a static partial fill without claiming a measured percentage. [RN contract](../../../RN-PORT.md). The remaining tables describe the upstream Web/light skin.
+
 Exact values for the components that report progress or pending state: Progress, Skeleton and BackTop.
 
 ## Progress (scene-image fill on dotted track)

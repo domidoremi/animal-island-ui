@@ -13,12 +13,13 @@ import {
     type ViewStyle,
 } from 'react-native';
 import { Path, Svg } from 'react-native-svg';
-import { colors } from '../../theme/tokens';
+import { useTheme } from '../../theme/ThemeProvider';
 import { TRIGGER_MIN_WIDTH, computeDropdownPosition, type DropdownPosition } from './geometry';
 
 export type SelectOption = {
     key: string;
     label: string;
+    disabled?: boolean;
 };
 
 export interface SelectProps {
@@ -101,6 +102,7 @@ export const Select: React.FC<SelectProps> = ({
     style,
     testID,
 }) => {
+    const { mode, theme, reducedMotion } = useTheme();
     const [open, setOpen] = useState(false);
     const [panelPosition, setPanelPosition] = useState<DropdownPosition | null>(null);
     const triggerRef = useRef<ViewInstance>(null);
@@ -135,7 +137,7 @@ export const Select: React.FC<SelectProps> = ({
         visible.setValue(0);
         Animated.timing(visible, {
             toValue: 1,
-            duration: FADE_IN_MS,
+            duration: reducedMotion ? 0 : FADE_IN_MS,
             easing: EASE,
             useNativeDriver: true,
         }).start();
@@ -155,7 +157,7 @@ export const Select: React.FC<SelectProps> = ({
             });
         }
         // `options.length` 会改变估算高度，进而改变翻边判断，所以要进依赖
-    }, [open, visible, windowSize, options.length]);
+    }, [open, visible, windowSize, options.length, reducedMotion]);
 
     const handleSelect = useCallback(
         (key: string) => {
@@ -186,10 +188,24 @@ export const Select: React.FC<SelectProps> = ({
                 // （见 `close`）—— 用户观感与 Web 的「再次点击折叠」一致，
                 // 但触发区自身的 `!open` 分支实际不可达，保留是为了与上游同形。
                 onPress={() => !disabled && setOpen(!open)}
-                style={[styles.trigger, open && styles.triggerOpen, disabled && styles.triggerDisabled]}
+                style={[
+                    styles.trigger,
+                    open && styles.triggerOpen,
+                    disabled && styles.triggerDisabled,
+                    mode === 'dark' && {
+                        backgroundColor: theme.colors.bg,
+                        borderColor: open ? theme.colors.primary : theme.colors.border,
+                    },
+                ]}
                 testID={testID ? `${testID}-trigger` : undefined}
             >
-                <Text style={value ? styles.value : styles.placeholder} numberOfLines={1}>
+                <Text
+                    style={[
+                        value ? styles.value : styles.placeholder,
+                        mode === 'dark' && { color: value ? theme.colors.text : theme.colors.textSecondary },
+                    ]}
+                    numberOfLines={1}
+                >
                     {currentLabel}
                 </Text>
                 {/* `aria-hidden`：装饰性箭头，不进无障碍树（Web 版同样是 aria-hidden） */}
@@ -198,7 +214,9 @@ export const Select: React.FC<SelectProps> = ({
                     style={[styles.arrow, open && styles.arrowOpen]}
                     testID={testID ? `${testID}-arrow` : undefined}
                 >
-                    <ArrowIcon color={open ? colors.primary : ARROW_COLOR} />
+                    <ArrowIcon
+                        color={open ? theme.colors.primary : mode === 'dark' ? theme.colors.textSecondary : ARROW_COLOR}
+                    />
                 </View>
             </Pressable>
 
@@ -231,7 +249,12 @@ export const Select: React.FC<SelectProps> = ({
                         // 下面那层遮罩、把面板关掉。Web 版靠 `wrapper.contains(e.target)`，
                         // RN 靠响应者系统，等价物就是这一句。
                         onStartShouldSetResponder={() => true}
-                        style={[styles.dropdown, panelPosition, { opacity: visible }]}
+                        style={[
+                            styles.dropdown,
+                            panelPosition,
+                            { opacity: visible },
+                            mode === 'dark' && { backgroundColor: theme.colors.bgSecondary },
+                        ]}
                         testID={testID ? `${testID}-listbox` : undefined}
                     >
                         {options.map((option) => {
@@ -243,7 +266,9 @@ export const Select: React.FC<SelectProps> = ({
                                     // `aria-selected`：RN 0.87 支持，RNTL 的 `getByRole('option', { selected })`
                                     // 直接读它；真机上 RN 的 View.js 会改写成 accessibilityState.selected。
                                     aria-selected={selected}
-                                    onPress={() => handleSelect(option.key)}
+                                    disabled={option.disabled}
+                                    accessibilityState={{ disabled: !!option.disabled, selected }}
+                                    onPress={option.disabled ? undefined : () => handleSelect(option.key)}
                                     style={styles.option}
                                     testID={testID ? `${testID}-option-${option.key}` : undefined}
                                 >
@@ -262,6 +287,8 @@ export const Select: React.FC<SelectProps> = ({
                                                 style={[
                                                     styles.optionLabel,
                                                     (selected || pressed) && styles.optionLabelActive,
+                                                    mode === 'dark' && { color: theme.colors.text },
+                                                    option.disabled && { color: theme.colors.textDisabled },
                                                 ]}
                                             >
                                                 {option.label}

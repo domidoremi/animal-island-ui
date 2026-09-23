@@ -7,6 +7,17 @@ import { render } from '@testing-library/react-native';
 import { Background, type BackgroundType } from './Background';
 import { BACKGROUND_PATTERN_SPEC, SCENE_BASE_COLOR } from './patterns';
 import type { TestInstance } from 'test-renderer';
+import { ThemeProvider } from '../../theme/ThemeProvider';
+import { appearanceColors } from '../../theme/appearance';
+
+it('uses the host dark canvas for its decorative wallpaper', async () => {
+    const screen = await render(
+        <ThemeProvider mode="dark">
+            <Background testID="dark" />
+        </ThemeProvider>
+    );
+    expect(screen.getByTestId('dark')).toHaveStyle({ backgroundColor: appearanceColors.dark.canvas });
+});
 
 /**
  * RN 版测试，对应 Web 版 `Background.test.tsx` 的 7 个用例。

@@ -278,6 +278,8 @@ export const Image: React.FC<ImageProps> = ({
                      * 没有 scrim 之外的额外装饰，底色就是 `.mask` 的 rgba(0,0,0,0.55)。
                      */}
                     <Pressable
+                        accessible={false}
+                        accessibilityRole="none"
                         style={styles.mask}
                         onPress={() => setPreviewOpen(false)}
                         testID={testID ? `${testID}-mask` : undefined}
@@ -285,6 +287,7 @@ export const Image: React.FC<ImageProps> = ({
                         <View
                             role="dialog"
                             aria-modal
+                            accessibilityViewIsModal
                             aria-label={alt ? `查看图片：${alt}` : '图片预览'}
                             // 弹层自身要「吃掉」落在它身上的触摸，否则点到图片上会穿透到遮罩、
                             // 把预览关掉。上游靠 `e.stopPropagation()`，RN 靠响应者系统。
