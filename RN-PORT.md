@@ -14,19 +14,19 @@ components never enter the RN typecheck or test run.
 ## Status
 
 **All 34 components ported.** `npm run ci` = `format:check` + `lint` + `typecheck` +
-`test` + `build`. Currently **937 tests / 42 suites**.
+`test` + `build`. Currently **1000 tests / 45 suites**.
 
 Test counts below come from `npx jest --json` (reproducible), not from any document.
 
 | Component     | Tests | Notes                                                                |
 | ------------- | ----- | -------------------------------------------------------------------- |
 | design tokens | 52    | `src/theme/tokens.ts`, 1:1 with `src/styles/variables.less`          |
-| theme (dark)  | 11    | `appearance.ts` — dark palette + `resolveNativeTheme` (see below)    |
+| theme (dark)  | 23    | `appearance.ts` — dark palette + `resolveNativeTheme` (see below)    |
 | ThemeProvider | 7     | `ThemeProvider.tsx` — `useTheme` context; RN-only, no upstream       |
 | BackTop       | 18    | `duration` dropped; new `scrollY` prop (see divergences)             |
-| Background    | 11    | CSS tiling → SVG `<Pattern>`; scene images → `src/assets/image/rn/`  |
-| Button        | 21    | plus a self-built RN icon set (`src/icons/`)                         |
-| Card          | 22    | CSS `radial-gradient` dots → SVG `<Pattern>`                         |
+| Background    | 12    | CSS tiling → SVG `<Pattern>`; scene images → `src/assets/image/rn/`  |
+| Button        | 27    | plus a self-built RN icon set (`src/icons/`)                         |
+| Card          | 23    | CSS `radial-gradient` dots → SVG `<Pattern>`                         |
 | Carousel      | 23    | `ScrollView` + `pagingEnabled`; index arithmetic in `geometry.ts`    |
 | Checkbox      | 27    | `Pressable` + `accessibilityRole="checkbox"`                         |
 | CodeBlock     | 15    | highlighting tokeniser kept, rendered as `<Text>` runs               |
@@ -39,14 +39,14 @@ Test counts below come from `npx jest --json` (reproducible), not from any docum
 | Footer        | 9     | `<footer>` → `Text` (RN has no `contentinfo` role)                   |
 | Form          | 57    | no `FormHTMLAttributes`; `onSubmit`/`onReset` removed — see below    |
 | Image         | 29    | `react-dom` portal → `Modal`; `naive-icons` image → `src/icons/`     |
-| Input         | 28    | `TextInput`; focus styling from `onFocus`/`onBlur`                   |
+| Input         | 31    | `TextInput`; focus styling from `onFocus`/`onBlur`                   |
 | Loading       | 19    | absolute positioning kept (not `Modal`) so `zIndex` stays meaningful |
-| Modal         | 16    | `createPortal` → RN `Modal`; `game` `clip-path` → SVG backdrop       |
+| Modal         | 17    | `createPortal` → RN `Modal`; `game` `clip-path` → SVG backdrop       |
 | Notification  | 23    | module-level store + `<NotificationHost />` (see divergences)        |
 | Pagination    | 47    | page-ellipsis collapsing preserved                                   |
-| Progress      | 28    | `prefers-reduced-motion` → `AccessibilityInfo.isReduceMotionEnabled` |
-| Radio         | 25    | `Pressable` + `accessibilityRole="radio"`                            |
-| Select        | 21+16 | `Modal` panel; +16 in `geometry.test.ts`                             |
+| Progress      | 29    | `prefers-reduced-motion` → `AccessibilityInfo.isReduceMotionEnabled` |
+| Radio         | 25+21 | `Pressable` + shared Web `RadioGroup` keyboard navigation            |
+| Select        | 22+16 | `Modal` panel; +16 in `geometry.test.ts`                             |
 | Skeleton      | 29    | `@keyframes` → `Animated.loop`                                       |
 | Switch        | 24    | `Pressable` + `accessibilityRole="switch"`                           |
 | Table         | 16    | `table`/`rowgroup`/`row`/`columnheader`/`cell` roles all exist in RN |
@@ -55,7 +55,7 @@ Test counts below come from `npx jest --json` (reproducible), not from any docum
 | Time          | 11    |                                                                      |
 | TimePicker    | 22+15 | panel in a `Modal`; +15 in `geometry.test.ts`                        |
 | Title         | 18    | `clip-path` / 135° corners → `react-native-svg`; default `ribbon`    |
-| Tooltip       | 18+20 | hover → press-and-hold; placement in `geometry.ts`                   |
+| Tooltip       | 19+20 | hover → press-and-hold; placement in `geometry.ts`                   |
 | Typewriter    | 13    |                                                                      |
 
 Nothing is left unported. The Web sources remain on disk (they are the reference and they
@@ -295,13 +295,39 @@ also commented at the point of change.
     skin stays owned by this package); `ThemeProvider` exposes `{ mode, theme, reducedMotion }`
     through `useTheme`, with an optional `accent` that overrides only `colors.primary`.
     The dark hex values are **authored here, not derived from upstream**, so
-    `appearance.test.ts` freezes behavioural invariants (light ≡ default, dark changes only
-    `colors`, the two palettes share one key set) rather than specific colors — there is no
+    `appearance.test.ts` freezes behavioural invariants (light ≡ default, dark replaces
+    colors/brand/roles while preserving geometry, palettes share one key set) rather than specific colors — there is no
     upstream truth to diff against. `reducedMotion` is passed in by the host, not read from a
     second `AccessibilityInfo` listener, so it stays consistent with the host's own setting.
     Shipped as a `./theme` subpath export (see `package.json` `exports`) so build tools can
-    read tokens without pulling in React Native. **No component consumes `useTheme` yet** —
-    components still import tokens directly; wiring them to the provider is future work.
+    read tokens without pulling in React Native. Button, Input, Switch, Select, Card,
+    Background, Modal and Progress now consume the provider for dark surfaces and text.
+    Button, Switch, Select, Card, Modal, Progress and Tooltip honor host reduced motion.
+    Other components still use their original static skin; provider coverage is not universal.
+
+## Consuming the RN fork
+
+Use the sibling checkout as the `animal-island-ui-rn` workspace dependency; do not copy
+its RN implementations into a host application. Generic component fixes, artwork and
+palettes belong here. The host owns persisted preferences, localization, navigation,
+safe-area insets and business-state adapters.
+
+Import components and `ThemeProvider` from `animal-island-ui-rn`. Import pure tokens or
+`resolveNativeTheme` from `animal-island-ui-rn/theme` in Node-based tools. Metro/browser
+exports point to source; `npm run build` produces the declarations and CommonJS fallback
+in ignored `dist/`. Rebuild after public API changes. Linked hosts must resolve React,
+React Native and SVG to their own runtime, not this fork's development dependencies.
+
+Pass resolved `mode`, `accent` and `reducedMotion` to the provider. Accent overrides
+only `colors.primary`, not all skin/brand colors. Progress additionally honors its
+existing OS reduce-motion listener. See the [RN host API reference](skills/animal-island-ui-style/references/components/native-host.md)
+for native input refs/events, button accessibility, disabled select options, controlled
+tooltips, indeterminate progress and modal insets. Modal uses a keyboard-avoiding wrapper,
+scrollable body and fixed footer; pass localized footer actions from the host.
+
+Local changes are consumed live but do not accompany a host-only CI/EAS upload. Remote
+builds must provision a compatible fork revision; use a full commit SHA for repeatability.
+Unit tests do not establish native keyboard, screen-reader or device rendering behavior.
 
 ## Untested surface — verified by construction only
 
@@ -401,7 +427,8 @@ within a <Text> component`. Components that accept free children (`Form.Item`, `
 3. Register the directory in **three** places, or it silently escapes the gate:
    `tsconfig.json` → `include`, `tsconfig.build.json` → `include`,
    `jest.config.js` → `testMatch`.
-4. Port the test file. Drop `className` assertions and DOM keyboard cases; for each dropped
+4. Port the test file. Drop `className` assertions and native-inapplicable DOM cases; retain
+   explicit Web-host interaction tests for shared behavior such as `RadioGroup`. For each dropped
    Web case, write down _why_ in the file header, and add an RN-specific replacement when
    one exists (e.g. `Modal.onRequestClose` for Escape).
 5. If the component has logic that can't be exercised in the test renderer (measurement,

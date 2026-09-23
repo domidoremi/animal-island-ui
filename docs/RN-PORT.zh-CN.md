@@ -19,12 +19,12 @@ RN 移植是**增量**的 —— 它靠 `tsconfig.json`、`tsconfig.build.json`�
 | 组件          | 用例  | 备注                                                                 |
 | ------------- | ----- | -------------------------------------------------------------------- |
 | design tokens | 52    | `src/theme/tokens.ts`，与 `src/styles/variables.less` 1:1 对应       |
-| theme（暗色） | 11    | `appearance.ts` —— 暗色板 + `resolveNativeTheme`（见分歧）           |
+| theme（暗色） | 23    | `appearance.ts` —— 暗色板 + `resolveNativeTheme`（见分歧）           |
 | ThemeProvider | 7     | `ThemeProvider.tsx` —— `useTheme` context；RN 独有，上游无           |
 | BackTop       | 18    | 删掉 `duration`，新增 `scrollY`（见分歧）                            |
-| Background    | 11    | CSS 平铺 → SVG `<Pattern>`；场景图 → `src/assets/image/rn/`          |
-| Button        | 21    | 另建了一套 RN 图标集（`src/icons/`）                                 |
-| Card          | 22    | CSS `radial-gradient` 波点 → SVG `<Pattern>`                         |
+| Background    | 12    | CSS 平铺 → SVG `<Pattern>`；场景图 → `src/assets/image/rn/`          |
+| Button        | 27    | 另建了一套 RN 图标集（`src/icons/`）                                 |
+| Card          | 23    | CSS `radial-gradient` 波点 → SVG `<Pattern>`                         |
 | Carousel      | 23    | `ScrollView` + `pagingEnabled`；下标算术抽到 `geometry.ts`           |
 | Checkbox      | 27    | `Pressable` + `accessibilityRole="checkbox"`                         |
 | CodeBlock     | 15    | 高亮的 tokenise 保留，渲染成 `<Text>` 片段                           |
@@ -37,14 +37,14 @@ RN 移植是**增量**的 —— 它靠 `tsconfig.json`、`tsconfig.build.json`�
 | Footer        | 9     | `<footer>` → `Text`（RN 没有 `contentinfo` role）                    |
 | Image         | 29    | `react-dom` 的 portal → `Modal`；`naive-icons` 图标 → `src/icons/`   |
 | Form          | 57    | 不再 extends `FormHTMLAttributes`；删掉 `onSubmit`/`onReset`         |
-| Input         | 28    | `TextInput`；聚焦样式由 `onFocus`/`onBlur` 驱动                      |
+| Input         | 31    | `TextInput`；聚焦样式由 `onFocus`/`onBlur` 驱动                      |
 | Loading       | 19    | 保留绝对定位而非 `Modal`，好让 `zIndex` 这个 prop 仍有意义           |
-| Modal         | 16    | `createPortal` → RN `Modal`；`game` 的 `clip-path` → SVG 底图        |
+| Modal         | 17    | `createPortal` → RN `Modal`；`game` 的 `clip-path` → SVG 底图        |
 | Notification  | 23    | 模块级 store + `<NotificationHost />`（见分歧）                      |
 | Pagination    | 47    | 页码省略折叠逻辑照搬                                                 |
-| Progress      | 28    | `prefers-reduced-motion` → `AccessibilityInfo.isReduceMotionEnabled` |
-| Radio         | 25    | `Pressable` + `accessibilityRole="radio"`                            |
-| Select        | 21+16 | `Modal` 面板；另有 16 条在 `geometry.test.ts`                        |
+| Progress      | 29    | `prefers-reduced-motion` → `AccessibilityInfo.isReduceMotionEnabled` |
+| Radio         | 25+21 | `Pressable` + 共享 Web `RadioGroup` 键盘导航                         |
+| Select        | 22+16 | `Modal` 面板；另有 16 条在 `geometry.test.ts`                        |
 | Skeleton      | 29    | `@keyframes` → `Animated.loop`                                       |
 | Switch        | 24    | `Pressable` + `accessibilityRole="switch"`                           |
 | Table         | 16    | `table`/`rowgroup`/`row`/`columnheader`/`cell` 这些 role RN 都有     |
@@ -53,13 +53,13 @@ RN 移植是**增量**的 —— 它靠 `tsconfig.json`、`tsconfig.build.json`�
 | Time          | 11    |                                                                      |
 | TimePicker    | 22+15 | 面板在 `Modal` 里；另有 15 条在 `geometry.test.ts`                   |
 | Title         | 18    | `clip-path` / 135° 切角 → `react-native-svg`；默认 `ribbon`          |
-| Tooltip       | 18+20 | hover → 按住显示；定位算术抽到 `geometry.ts`                         |
+| Tooltip       | 19+20 | hover → 按住显示；定位算术抽到 `geometry.ts`                         |
 | Typewriter    | 13    |                                                                      |
 
 没有剩下的未移植组件。Web 源码仍留在磁盘上（它们是对照物，且在 `main` 上仍然能构建），
 但全部落在本分支任何 include 名单之外。
 
-`npm run ci` = `format:check` + `lint` + `typecheck` + `test` + `build`。当前 **919 用例 / 40 套件**。
+`npm run ci` = `format:check` + `lint` + `typecheck` + `test` + `build`。当前 **1000 用例 / 45 套件**。
 
 ### ⚠️ 本分支放弃了什么
 
@@ -264,11 +264,33 @@ RN 没有鼠标指针 —— RN 的 `cursor` 样式只接受 `'auto' | 'pointer'
     `resolveNativeTheme(mode)`（light **按引用**返回 `defaultTheme` —— 默认皮肤仍归本包所有）；
     `ThemeProvider` 通过 `useTheme` 暴露 `{ mode, theme, reducedMotion }`，可选 `accent` 仅覆盖
     `colors.primary`。暗色 hex 值是**这里新写的，不是从上游推导**，所以 `appearance.test.ts`
-    冻结的是**行为不变量**（light ≡ default、dark 只改 `colors`、两套色板共用一套 key），
+    冻结的是**行为不变量**（light ≡ default、dark 替换 colors/brand/roles 而保留几何、两套色板共用一套 key），
     而非具体颜色 —— 没有上游真值可比。`reducedMotion` 由宿主传入，不再另起一个
     `AccessibilityInfo` 监听，以与宿主自身设置保持一致。以 `./theme` 子路径导出
     （见 `package.json` 的 `exports`），好让构建工具不拉入 React Native 就能读 token。
-    **目前还没有组件消费 `useTheme`** —— 组件仍直接 import token；把它们接到 Provider 上是后续工作。
+    Button、Input、Switch、Select、Card、Background、Modal 和 Progress 已消费 Provider，
+    用于暗色表面与文字。Button、Switch、Select、Card、Modal、Progress 和 Tooltip 尊重宿主减少动态设置。
+    其余组件仍使用原来的静态皮肤，Provider 尚未覆盖全部组件。
+
+## 消费 RN fork
+
+将同级 checkout 作为 `animal-island-ui-rn` workspace 依赖；不要把 RN 实现复制到宿主应用。
+通用组件修复、素材与色板在本仓库维护；宿主负责偏好持久化、本地化、导航、安全区与业务状态适配。
+
+从 `animal-island-ui-rn` 导入组件和 `ThemeProvider`。Node 工具从
+`animal-island-ui-rn/theme` 导入纯 token 或 `resolveNativeTheme`。Metro/browser
+导出指向源码；`npm run build` 在忽略的 `dist/` 中生成声明与 CommonJS 入口，
+公共 API 改动后需重新构建。链接的宿主必须使用自己的 React、React Native 与 SVG runtime，
+不能使用本 fork 的开发依赖。
+
+向 Provider 传入解析后的 `mode`、`accent`、`reducedMotion`。Accent 只覆盖
+`colors.primary`，不会替换所有皮肤/品牌色。Progress 还保留已有的 OS 减少动态监听。
+原生输入 ref/事件、按钮无障碍、禁用选项、受控 Tooltip、不确定进度与弹窗安全区见
+[RN 宿主 API 参考](../skills/animal-island-ui-style/references/components/native-host.md)。
+Modal 使用键盘避让容器、滚动正文和固定页脚；本地化操作按钮由宿主通过 footer 传入。
+
+本地修改会实时消费，但不包含在仅上传宿主的 CI/EAS 构建中。远端构建必须准备兼容的
+fork revision；使用完整 commit SHA 才可重复构建。单测不能证明原生键盘、读屏与设备渲染正确。
 
 ## 未测面 —— 仅靠构造保证
 
@@ -359,7 +381,8 @@ RN 没有鼠标指针 —— RN 的 `cursor` 样式只接受 `'auto' | 'pointer'
 3. 目录要登记在**三处**，否则会静默逃出门禁：
    `tsconfig.json` → `include`、`tsconfig.build.json` → `include`、
    `jest.config.js` → `testMatch`。
-4. 移植测试文件。删掉 `className` 断言与 DOM 键盘用例；每个被删掉的 Web 用例，
+4. 移植测试文件。删掉 `className` 断言与不适用于原生的 DOM 用例；为 `RadioGroup`
+   等共享行为保留明确的 Web 宿主交互测试。每个被删掉的 Web 用例，
    都要在文件头写清**为什么**删，并在存在 RN 替代方案时补一个
    （例如用 `Modal.onRequestClose` 替代 Escape）。
 5. 若组件有测试渲染器里跑不了的逻辑（测量、滚动、命令式 API），
