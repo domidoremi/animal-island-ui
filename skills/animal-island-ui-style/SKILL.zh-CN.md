@@ -1,5 +1,7 @@
 # animal-island-ui style（中文对照，仅供人工 review）
 
+> **RN fork:** [Native host API](references/components/native-host.md) 适用于 `animal-island-ui-rn`；本 skill 其余内容保留上游 Web 契约。
+
 > 本文件是 [SKILL.md](SKILL.md) 的中文翻译，仅用于人工阅读与 review；Agent 只读取英文的 SKILL.md。frontmatter 以英文版为准。
 
 ## 名称与触发条件（对应 frontmatter）

@@ -15,10 +15,8 @@ import { colors } from '../../theme/tokens';
  *   - `所有 input 共享同一 name（单选语义）` —— RN 没有表单 `name`，也没有 `<input>`。
  *     等价物是「所有单选项都是同一个 `role="radiogroup"` 容器的直接子节点」，
  *     已按这个口径重写（见 rendering 一节）。
- *   - `键盘可访问性` 4 条（ArrowRight / ArrowLeft / Home+End）—— RN **没有 DOM 键盘
- *     事件**（`onKeyDown` 整段丢弃）。触摸设备上的等价交互由系统读屏提供
- *     （每个单选项都是独立无障碍节点，TalkBack / VoiceOver 自带单选组导航），
- *     RN 侧没有 API 可以断言。
+ *   - Web 键盘导航由 RadioGroup 共享实现，见 radioGroupWeb.test.tsx。
+ *     原生侧仍保持每个选项独立可访问，不使用 DOM 事件。
  *   - `group 级 disabled 应用 groupDisabled 类` —— 该 Less 规则只有
  *     `cursor: not-allowed` 一条声明，RN 没有光标概念，无对应物可断言。
  *   - `label 通过 for/id 绑定到 input`（`within(group).getByLabelText`）——
@@ -86,7 +84,7 @@ describe('Radio', () => {
         it('RNTL 的 getByRole 查不到 role="radiogroup" 的 View（钉住这条限制）', async () => {
             const { queryByRole, getByTestId } = await render(<Radio testID="r" options={baseOptions} />);
             // 组容器刻意不设 `accessible`（否则整组会被合并成一个无障碍节点）
-            expect(getByTestId('r').props.accessible).toBeUndefined();
+            expect(getByTestId('r').props.accessible).toBe(false);
             expect(queryByRole('radiogroup')).toBeNull();
         });
 

@@ -1,4 +1,5 @@
 # Decorative components — props reference
+> RN fork: use the [native host API](native-host.md); the declarations below describe upstream Web.
 
 Props/types below are copied from the library source. In an npm-installed project, the installed package's TypeScript declarations (`dist/types/index.d.ts`) are the ground truth — prefer exploring them when in doubt.
 

@@ -18,6 +18,8 @@ export * from './theme/tokens';
 export * from './theme/appearance';
 export { ThemeProvider, useTheme } from './theme/ThemeProvider';
 export type { ThemeProviderProps } from './theme/ThemeProvider';
+export { ThemeTransitionProvider, useThemeTransition } from './theme/ThemeTransition';
+export type { ThemeTransitionOptions, ThemeTransitionProviderProps } from './theme/ThemeTransition';
 
 // ============================================
 // 图标（RN 自建：上游的 naive-icons 是 DOM-only 库，RN 用不了）
@@ -131,6 +133,8 @@ export { Progress } from './components/Progress';
 export type { ProgressProps, ProgressSize } from './components/Progress';
 
 export { Radio } from './components/Radio';
+export { RadioGroup } from './components/Radio/RadioGroup';
+export type { RadioGroupProps } from './components/Radio/RadioGroup';
 export type { RadioProps, RadioOption, RadioSize } from './components/Radio';
 
 export { Select } from './components/Select';

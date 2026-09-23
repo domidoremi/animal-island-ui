@@ -1,3 +1,4 @@
+import { RadioGroup } from './RadioGroup';
 import React, { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { Path, Svg } from 'react-native-svg';
@@ -118,13 +119,7 @@ export const Radio: React.FC<RadioProps> = ({
     );
 
     return (
-        <View
-            // ⚠️ Web 版是 `<div role="radiogroup">`。RN 0.87 的 `Role` 联合里**有**
-            // `radiogroup`，但这里**不能**加 `accessible`：那会把整组选项合并成一个
-            // 无障碍节点，毁掉每个单选项的独立可达性（与 Collapse 面板不加
-            // `accessible` 同一理由）。代价是根节点在 RNTL 里查不到（`getByRole`
-            // 要求 `isAccessibilityElement`），只能断言 prop 透传。
-            role="radiogroup"
+        <RadioGroup
             style={[styles.group, direction === 'vertical' ? styles.vertical : styles.horizontal, style]}
             testID={testID}
         >
@@ -186,7 +181,7 @@ export const Radio: React.FC<RadioProps> = ({
                         // 丢弃：`id` / `htmlFor`（RN 无 id 绑定，label 文本就在 Pressable 内部，
                         //       自然成为可访问名）、`name`（RN 无表单 name；单选语义由
                         //       `role="radiogroup"` + 每个 `role="radio"` 表达）、
-                        //       `tabIndex`（roving tabindex 的载体不存在，见文件末尾的键盘说明）。
+                        //       Web 的 roving tabindex 由 RadioGroup 统一维护。
                         role="radio"
                         aria-checked={isChecked}
                         disabled={isDisabled}
@@ -230,24 +225,13 @@ export const Radio: React.FC<RadioProps> = ({
                     </Pressable>
                 );
             })}
-        </View>
+        </RadioGroup>
     );
 };
 
 Radio.displayName = 'Radio';
 
-/**
- * ⚠️ **整段丢弃：键盘可访问性。**
- *
- * 上游实现了 roving tabindex（`tabIndex={isFocusable ? 0 : -1}`）+
- * `onKeyDown` 的 ArrowRight / ArrowDown / ArrowLeft / ArrowUp / Home / End ——
- * 全部是 **DOM 键盘事件**，RN 没有对应能力（见 RN-PORT.md 的移植契约表）。
- *
- * 触摸设备上的等价物由系统读屏承担：因为每个单选项都是**独立的无障碍节点**
- * （`role="radio"` + `accessibilityState.checked`，组容器刻意不设 `accessible`），
- * TalkBack / VoiceOver 会用「单选组 + 上下滑动切换 + 双击选中」的原生交互覆盖
- * 同一功能。RN 侧没有 API 可以断言这一点，所以对应的 4 个 Web 用例被丢弃。
- */
+// RadioGroup restores Web keyboard navigation without changing native screen-reader semantics.
 const styles = StyleSheet.create({
     // `.radioGroup { display: flex; flex-wrap: wrap; gap: @spacing-lg; font-family: @font-family }`
     // 丢弃：`font-family` —— RN 不支持字体栈（见 tokens.ts 的 fontFamily 注释）。

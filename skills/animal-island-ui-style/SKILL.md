@@ -11,6 +11,8 @@ description: >
 
 # animal-island-ui style
 
+> **RN fork:** [Native host API](references/components/native-host.md) for `animal-island-ui-rn`; the rest of this skill retains the upstream Web contract.
+
 animal-island-ui is a React + TypeScript component library with an original
 cozy island-style design — 35 components, a single runtime dependency (`naive-icons`
 for icons), CC BY-NC 4.0 (non-commercial use only).
