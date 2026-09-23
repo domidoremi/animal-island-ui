@@ -10,9 +10,20 @@ describe('Modal', () => {
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
 
-    it('默认使用常规圆角矩形，无 game 变体类', () => {
+    it('默认（不传 variant）应用异形外框类', () => {
         render(
             <Modal open typewriter={false}>
+                content
+            </Modal>
+        );
+        const dialog = screen.getByRole('dialog');
+        expect(dialog.className).toContain('modalGame');
+        expect(dialog.querySelector('[class*="gameClipped"]')).not.toBeNull();
+    });
+
+    it('variant="default" 使用常规圆角矩形，无 game 变体类', () => {
+        render(
+            <Modal open variant="default" typewriter={false}>
                 content
             </Modal>
         );

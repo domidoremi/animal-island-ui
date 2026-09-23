@@ -23,7 +23,7 @@ const MODAL_API: ApiRow[] = [
         prop: 'variant',
         desc: '弹窗类型: default 常规圆角矩形, game 异形自然外框',
         type: "'default' | 'game'",
-        defaultVal: "'default'",
+        defaultVal: "'game'",
     },
     { prop: 'title', desc: '标题', type: 'ReactNode', defaultVal: '-' },
     { prop: 'width', desc: '宽度', type: 'number | string', defaultVal: '520' },

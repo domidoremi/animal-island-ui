@@ -65,7 +65,7 @@ export interface ModalProps {
 
 export const Modal: React.FC<ModalProps> = ({
     open,
-    variant = 'default',
+    variant = 'game',
     title,
     width = 520,
     maskClosable = true,
