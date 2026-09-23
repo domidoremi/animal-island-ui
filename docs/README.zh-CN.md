@@ -20,7 +20,7 @@
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-CC--BY--NC--4.0-orange.svg?style=flat-square" alt="License: CC BY-NC 4.0"></a>
     <a href="LICENSE"><img src="https://img.shields.io/npm/dm/animal-island-ui.svg?style=flat-square" alt=""></a>
     <a href="https://github.com/guokaigdg/animal-island-ui/releases"><img src="https://img.shields.io/github/v/tag/guokaigdg/animal-island-ui?label=version&style=flat-square" alt="Version"></a>
-    <a href="https://gitcode.com/guokaigdg/animal-island-ui"><img src="https://gitcode.com/guokaigdg/animal-island-ui/star/badge.svg" alt="Stars"></a>
+    <a href="https://atomgit.com/guokaigdg/animal-island-ui"><img alt="AtomGit Star" src="https://atomgit.com/guokaigdg/animal-island-ui/star/badge.svg"></a>
     <br/>
     <a href="../coverage/badges/coverage.json"><img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/guokaigdg/animal-island-ui/main/coverage/badges/coverage.json&style=flat-square" alt="Coverage"></a>
     <img src="https://img.shields.io/badge/tests-516%20✓-brightgreen?style=flat-square" alt="Tests">
@@ -31,6 +31,7 @@
 <div align="center">
     <a href="https://trendshift.io/repositories/34594?utm_source=trendshift-badge&amp;utm_medium=badge&amp;utm_campaign=badge-trendshift-34594" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/trendshift/repositories/34594/daily?language=TypeScript" alt="guokaigdg%2Fanimal-island-ui | Trendshift" width="250" height="55"/></a>
     <a href="https://hellogithub.com/repository/guokaigdg/animal-island-ui" target="_blank"><img src="https://api.hellogithub.com/v1/widgets/recommend.svg?rid=98ecff41d142466d8d72694a6fadf9e9&claim_uid=pyGqTPIRMdo7fBS&theme=neutral" alt="Featured｜HelloGitHub" style="width: 250px; height: 54px;" width="250" height="54" /></a>
+    <a href="https://atomgit.com/guokaigdg/animal-island-ui"><img alt="AtomGit G-Star" src="https://atomgit.com/guokaigdg/animal-island-ui/star/new_badge.svg"></a>
 </div>
 <br/>
 <p align="center">
@@ -50,7 +51,18 @@
 
 如需图标，推荐使用 **naive-icons**：<https://github.com/guokaigdg/naive-icons>
 
-## 🚀 用 AI 工具一键生成 animal-island-ui 风格页面（无需写代码）
+## 🚀 用 AI 工具生成 animal-island-ui 风格页面
+
+### 方式一：安装 skill（AI 编程 Agent 推荐）
+
+在用 AI 编程 Agent（Claude Code / Codex / Cursor）？直接安装
+[animal-island-ui-style skill](../skills/animal-island-ui-style/README.md)：
+
+```bash
+skills add guokaigdg/animal-island-ui
+```
+
+### 方式二：一键提示词（无需安装代码）
 
 非研发人员，不想自己写代码？用[一键提示词](./one-click-prompt.md)即可，不需要 npm，不需要打包工具。
 
@@ -60,13 +72,6 @@
 2. 粘贴到任意可访问 URL 的 AI 工具（Cursor / Claude / ChatGPT / Gemini / v0 / Bolt）发送。
 3. AI 会反问做什么页面，用一句话回答即可（如「个人博客」「商品列表」「FAQ」）。
 4. 保存 AI 输出的 `index.html`，双击即可预览。
-
-在用 AI 编程 Agent（Claude Code / Codex / Cursor）？直接安装
-[animal-island-ui-style skill](../skills/animal-island-ui-style/README.md)：
-
-```bash
-skills add guokaigdg/animal-island-ui
-```
 
 ## 安装
 

@@ -15,7 +15,7 @@ A React UI component library with a cute style
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-CC--BY--NC--4.0-orange.svg?style=flat-square" alt="License: CC BY-NC 4.0"></a>
     <a href="LICENSE"><img src="https://img.shields.io/npm/dm/animal-island-ui.svg?style=flat-square" alt=""></a>
     <a href="https://github.com/guokaigdg/animal-island-ui/releases"><img src="https://img.shields.io/github/v/tag/guokaigdg/animal-island-ui?label=version&style=flat-square" alt="Version"></a>
-    <!-- <a href="https://gitcode.com/guokaigdg/animal-island-ui"><img src="https://gitcode.com/guokaigdg/animal-island-ui/star/badge.svg" alt="Stars"></a> -->
+    <a href="https://atomgit.com/guokaigdg/animal-island-ui"><img alt="AtomGit Star" src="https://atomgit.com/guokaigdg/animal-island-ui/star/badge.svg"></a>
     <br/>
     <a href="./coverage/badges/coverage.json"><img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/guokaigdg/animal-island-ui/main/coverage/badges/coverage.json&style=flat-square" alt="Coverage"></a>
     <img src="https://img.shields.io/badge/tests-516%20✓-brightgreen?style=flat-square" alt="Tests">
@@ -26,6 +26,7 @@ A React UI component library with a cute style
 <div align="center">
     <a href="https://trendshift.io/repositories/34594?utm_source=trendshift-badge&amp;utm_medium=badge&amp;utm_campaign=badge-trendshift-34594" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/trendshift/repositories/34594/daily?language=TypeScript" alt="guokaigdg%2Fanimal-island-ui | Trendshift" width="250" height="55"/></a>
     <a href="https://hellogithub.com/repository/guokaigdg/animal-island-ui" target="_blank"><img src="https://api.hellogithub.com/v1/widgets/recommend.svg?rid=98ecff41d142466d8d72694a6fadf9e9&claim_uid=pyGqTPIRMdo7fBS&theme=neutral" alt="Featured｜HelloGitHub" style="width: 250px; height: 54px;" width="250" height="54" /></a>
+    <a href="https://atomgit.com/guokaigdg/animal-island-ui"><img alt="AtomGit G-Star" src="https://atomgit.com/guokaigdg/animal-island-ui/star/new_badge.svg"></a>
 </div>
 
 <br/>
@@ -46,7 +47,18 @@ This project is a lightweight UI component library built with React + TypeScript
 
 Need icons? The recommended set is **naive-icons**: <https://github.com/guokaigdg/naive-icons>
 
-## 🚀 Use AI to Generate animal-island-ui Pages (No Coding Needed)
+## 🚀 Use AI to Generate animal-island-ui Pages
+
+### Option 1: Install the skill (recommended for AI coding agents)
+
+Using an AI coding agent (Claude Code / Codex / Cursor)? Install the
+[animal-island-ui-style skill](./skills/animal-island-ui-style/README.md):
+
+```bash
+skills add guokaigdg/animal-island-ui
+```
+
+### Option 2: One-click prompt (no code, nothing to install)
 
 Non-developer and don't want to write code yourself? Use the
 [one-click prompt](./docs/one-click-prompt.md) — no npm, no build step.
@@ -57,13 +69,6 @@ Non-developer and don't want to write code yourself? Use the
 2. Paste into any AI tool that can fetch URLs (Cursor / Claude / ChatGPT / Gemini / v0 / Bolt) and send.
 3. The AI asks what page you want — reply in one phrase (e.g. "personal blog", "product list", "FAQ").
 4. Save the `index.html` it returns and double-click to preview.
-
-Using an AI coding agent (Claude Code / Codex / Cursor)? Install the
-[animal-island-ui-style skill](./skills/animal-island-ui-style/README.md) instead:
-
-```bash
-skills add guokaigdg/animal-island-ui
-```
 
 ## Installation
 
