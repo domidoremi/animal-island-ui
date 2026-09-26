@@ -1,10 +1,9 @@
 /**
  * Jest 配置（RN 版）。
  *
- * preset 用 `@react-native/jest-preset`：**RN 0.87 把 jest preset 从 `react-native`
- * 包里拆出去了**（`react-native@0.87.1` 已无 `jest-preset.js`，写 `preset: 'react-native'`
- * 会报 `Module react-native should have "jest-preset.js"`）。官方模板 `@react-native-community/template@0.87.1`
- * 用的就是 `preset: '@react-native/jest-preset'` + `jest@^29.7.0`。
+ * preset 跟随实际安装的 RN：0.86 使用 `react-native` 内置版本；
+ * **RN 0.87 把 jest preset 从 `react-native` 包里拆出去了**，改用
+ * `@react-native/jest-preset`。不能把 0.87 的 preset 用在消费应用链接的 0.86 运行时上。
  *
  * testMatch 只覆盖**已移植到 RN** 的子集。
  *
@@ -14,8 +13,14 @@
  * 它在功能上等价于「src 下所有 .test.ts 与 .test.tsx」的 glob，
  * 是否简化属基建决策、待定。
  */
+const fs = require('node:fs');
+const path = require('node:path');
+// RN 0.86 still bundles its preset; 0.87 uses the standalone package. Select
+// the preset for the installed runtime, including a consuming app's workspace link.
+const bundledPreset = path.join(path.dirname(require.resolve('react-native/package.json')), 'jest-preset.js');
+
 module.exports = {
-    preset: '@react-native/jest-preset',
+    preset: fs.existsSync(bundledPreset) ? path.dirname(bundledPreset) : '@react-native/jest-preset',
     /**
      * ⚠️ transform 缓存**必须放在项目内**，不能用默认的临时目录。
      *

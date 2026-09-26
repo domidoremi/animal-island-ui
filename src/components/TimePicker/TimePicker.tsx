@@ -10,10 +10,8 @@ import {
     View,
     useWindowDimensions,
     type LayoutChangeEvent,
-    type ScrollViewInstance,
     type StyleProp,
     type TextStyle,
-    type ViewInstance,
     type ViewStyle,
 } from 'react-native';
 import { Circle, Path, Svg } from 'react-native-svg';
@@ -172,9 +170,8 @@ interface TimeColumnProps {
  * 「该滚到哪」的算术在 `geometry.ts` 的 `centerOffset` 里（可单测）。
  */
 const TimeColumn: React.FC<TimeColumnProps> = ({ title, unit, values, selected, onSelect, testID }) => {
-    // RN 0.87 的 ref 实例类型是组件专属的 `*Instance`（= `HostInstance` = `ReactNativeElement`），
-    // 直接用 `useRef<View>` / `useRef<ScrollView>` 会拿到组件函数本身的类型，没有 measure / scrollTo
-    const scrollRef = useRef<ScrollViewInstance>(null);
+    // 从组件提取实例类型，同时兼容 RN 0.86 的 class 和 0.87 的函数组件声明。
+    const scrollRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
     const [viewportHeight, setViewportHeight] = useState(0);
 
     // 选中项在本列（已过滤）里的下标；不在列表里（如 step=15 却选中 7 分）时退回 0
@@ -250,7 +247,7 @@ export const TimePicker: React.FC<TimePickerProps> = ({
     const [panelPosition, setPanelPosition] = useState<PanelPosition | null>(null);
     const closingRef = useRef(false);
     const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const triggerRef = useRef<ViewInstance>(null);
+    const triggerRef = useRef<React.ComponentRef<typeof View>>(null);
 
     const windowSize = useWindowDimensions();
 

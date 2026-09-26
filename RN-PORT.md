@@ -13,6 +13,19 @@ components never enter the RN typecheck or test run.
 
 ## Status
 
+### Host runtime compatibility
+
+IsleMind consumes this fork with React Native 0.86.3. Refs derive their instance type
+with `React.ComponentRef<typeof View>` / `React.ComponentRef<typeof ScrollView>`;
+Input focus/blur handlers derive from `TextInputProps`. Do not import the 0.87-only
+instance/event aliases. Modal and Table column widths use `ViewStyle['width']`, not
+arbitrary CSS strings. These are type-contract corrections, not visual changes.
+Jest selects the installed runtime's bundled preset when available, otherwise the
+0.87 standalone preset. Keep the compiler, Metro and native autolinking on the same
+host React/React Native/SVG installation; standalone fork installs can replace those
+workspace links, so rerun the consuming app's install before building it.
+
+
 **All 34 components ported.** `npm run ci` = `format:check` + `lint` + `typecheck` +
 `test` + `build`. Currently **1000 tests / 45 suites**.
 

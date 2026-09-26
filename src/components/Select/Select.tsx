@@ -9,7 +9,6 @@ import {
     View,
     useWindowDimensions,
     type StyleProp,
-    type ViewInstance,
     type ViewStyle,
 } from 'react-native';
 import { Path, Svg } from 'react-native-svg';
@@ -105,7 +104,7 @@ export const Select: React.FC<SelectProps> = ({
     const { mode, theme, reducedMotion } = useTheme();
     const [open, setOpen] = useState(false);
     const [panelPosition, setPanelPosition] = useState<DropdownPosition | null>(null);
-    const triggerRef = useRef<ViewInstance>(null);
+    const triggerRef = useRef<React.ComponentRef<typeof View>>(null);
 
     const windowSize = useWindowDimensions();
 

@@ -18,7 +18,7 @@ export interface TableColumn<T = Record<string, unknown>> {
     dataIndex?: keyof T;
     render?: (value: unknown, record: T, index: number) => React.ReactNode;
     /** 列宽 */
-    width?: number | string;
+    width?: ViewStyle['width'];
     align?: 'left' | 'center' | 'right';
     /**
      * 固定列。

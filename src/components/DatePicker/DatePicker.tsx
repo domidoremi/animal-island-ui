@@ -31,7 +31,6 @@ import {
     View,
     useWindowDimensions,
     type StyleProp,
-    type ViewInstance,
     type ViewStyle,
 } from 'react-native';
 import { Path, Rect as SvgRect, Svg } from 'react-native-svg';
@@ -220,7 +219,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     const [pendingDate, setPendingDate] = useState<Date | null>(null);
     const [panelPosition, setPanelPosition] = useState<PanelPosition>(FALLBACK_PANEL_POSITION);
 
-    const triggerRef = useRef<ViewInstance>(null);
+    const triggerRef = useRef<React.ComponentRef<typeof View>>(null);
     const closeTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
     /** 面板进场 / 退场：上游是 CSS transition，RN 用一个 Animated.Value 双向跑 */
     const progress = useRef(new Animated.Value(0)).current;

@@ -8,8 +8,6 @@ import {
     type KeyboardTypeOptions,
     type ReturnKeyTypeOptions,
     type StyleProp,
-    type TextInputBlurEvent,
-    type TextInputFocusEvent,
     type TextInputSubmitEditingEvent,
     type TextInputProps,
     type TextStyle,
@@ -110,9 +108,9 @@ export interface InputProps {
      */
     nativeID?: string;
     /** 聚焦回调（RN 里也是聚焦样式的驱动源，见 `focused` state） */
-    onFocus?: (e: TextInputFocusEvent) => void;
+    onFocus?: TextInputProps['onFocus'];
     /** 失焦回调 */
-    onBlur?: (e: TextInputBlurEvent) => void;
+    onBlur?: TextInputProps['onBlur'];
     /** 可访问名（无可见 label 时使用） */
     'aria-label'?: string;
     /** 关联外部可见 label 的 id */
@@ -319,16 +317,16 @@ export const Input: React.FC<InputProps> = ({
         onChangeText?.('');
     }, [isControlled, onClear, onChange, onChangeText]);
 
-    const handleFocus = useCallback(
-        (e: TextInputFocusEvent) => {
+    const handleFocus = useCallback<NonNullable<TextInputProps['onFocus']>>(
+        (e) => {
             setFocused(true);
             onFocus?.(e);
         },
         [onFocus]
     );
 
-    const handleBlur = useCallback(
-        (e: TextInputBlurEvent) => {
+    const handleBlur = useCallback<NonNullable<TextInputProps['onBlur']>>(
+        (e) => {
             setFocused(false);
             onBlur?.(e);
         },

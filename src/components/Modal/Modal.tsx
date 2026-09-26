@@ -39,7 +39,7 @@ export interface ModalProps {
     /** 标题 */
     title?: React.ReactNode;
     /** 宽度，默认 520 */
-    width?: number | string;
+    width?: ViewStyle['width'];
     /** 点击遮罩关闭 */
     maskClosable?: boolean;
     /** 底部按钮区域；`undefined` 用默认按钮，`null` 不渲染 */

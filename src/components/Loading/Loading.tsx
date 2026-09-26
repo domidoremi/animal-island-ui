@@ -75,7 +75,7 @@ type FlakeSpec = {
     /** 直径 1–6px（`Math.random() * 5 + 1`） */
     size: number;
     /** 水平位置 0–100%（`Math.random() * 100%`） */
-    left: string;
+    left: `${number}%`;
     /** 下落时长 6–12s（`Math.random() * 6 + 6`） */
     durationMs: number;
     /**

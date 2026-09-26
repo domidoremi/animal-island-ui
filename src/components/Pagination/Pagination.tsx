@@ -8,7 +8,6 @@ import {
     View,
     useWindowDimensions,
     type StyleProp,
-    type ViewInstance,
     type ViewStyle,
 } from 'react-native';
 import { Path, Svg } from 'react-native-svg';
@@ -160,7 +159,7 @@ interface SizeChangerProps {
 const SizeChanger: React.FC<SizeChangerProps> = ({ value, options, disabled = false, variant, onChange, testID }) => {
     const [open, setOpen] = useState(false);
     const [position, setPosition] = useState<PanelPosition | null>(null);
-    const triggerRef = useRef<ViewInstance>(null);
+    const triggerRef = useRef<React.ComponentRef<typeof View>>(null);
     const windowSize = useWindowDimensions();
 
     const palette = VARIANT_PALETTE[variant];

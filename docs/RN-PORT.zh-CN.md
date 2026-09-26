@@ -12,6 +12,18 @@ RN 移植是**增量**的 —— 它靠 `tsconfig.json`、`tsconfig.build.json`�
 
 ## 状态
 
+### 宿主运行时兼容性
+
+IsleMind 使用 React Native 0.86.3 消费本 fork。ref 实例类型通过
+`React.ComponentRef<typeof View>` / `React.ComponentRef<typeof ScrollView>` 提取；
+Input 聚焦/失焦处理器从 `TextInputProps` 提取，不能导入 0.87 独有的实例/事件类型别名。
+Modal 和 Table 列宽使用 `ViewStyle['width']`，而不是任意 CSS 字符串。
+这些是类型契约修正，不改变视觉行为。
+Jest 优先使用当前运行时内置的 preset，不存在时使用 0.87 拆出的独立 preset。
+编译器、Metro 和原生 autolinking 必须使用宿主同一份 React/React Native/SVG。
+独立安装 fork 依赖可能替换 workspace 链接，因此构建消费应用前需重新运行应用的安装步骤。
+
+
 **34 个组件全部移植完成。**
 
 下表用例数取自 `npx jest --json`（可复现），不是抄任何文档。

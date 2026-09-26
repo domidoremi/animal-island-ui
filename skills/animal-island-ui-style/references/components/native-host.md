@@ -91,6 +91,8 @@ Use `onPress`, not `onClick`. Loading disables presses and announces busy state.
 
 ```ts
 export interface InputProps {
+    onFocus?: TextInputProps['onFocus'];
+    onBlur?: TextInputProps['onBlur'];
     /** Native props not covered above, including selection, content-size and test ID. */
     inputProps?: Omit<TextInputProps, 'value' | 'defaultValue' | 'onChangeText' | 'editable' | 'onFocus' | 'onBlur'>;
     /** Native string callback in addition to the Form-compatible onChange event. */
@@ -133,6 +135,7 @@ Disabled options stay visible but cannot update selection or dismiss the panel.
 
 ```ts
 export interface ModalProps {
+    width?: ViewStyle['width'];
     /** Insets supplied by the host's safe-area authority. */
     contentInsets?: { top: number; right: number; bottom: number; left: number };
     /** Host typography/layout for the scrollable body. */
@@ -147,6 +150,12 @@ localized actions (`null` hides it); `undefined` keeps the built-in Chinese acti
 Reduced motion skips entry animation and typewriter playback. `onClose` handles
 Android Back and a closable backdrop. Native keyboard/screen-reader behavior requires
 device verification, not just renderer tests.
+
+## Native dimensions
+
+`ModalProps.width` and `TableColumn.width` use `width?: ViewStyle['width'];`.
+Pass RN-supported dimensions such as `320` or `'80%'`, not arbitrary CSS strings.
+Input focus/blur events follow the installed RN `TextInputProps`, not 0.87-only aliases.
 
 ## Tooltip — added host prop (verbatim excerpt)
 

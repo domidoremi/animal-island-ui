@@ -9,7 +9,6 @@ import {
     type LayoutChangeEvent,
     type NativeScrollEvent,
     type NativeSyntheticEvent,
-    type ScrollViewInstance,
     type StyleProp,
     type ViewStyle,
 } from 'react-native';
@@ -103,7 +102,7 @@ export const Carousel: React.FC<CarouselProps> = ({
     const currentIndex = clampIndex(activeIndex ?? internalIndex, lastIndex);
     const effectivePaused = hoverPaused || rotationPaused;
 
-    const scrollRef = useRef<ScrollViewInstance>(null);
+    const scrollRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
 
     /**
      * 一页的宽度。
