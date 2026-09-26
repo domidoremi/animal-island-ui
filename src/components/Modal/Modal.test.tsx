@@ -99,9 +99,20 @@ describe('Modal', () => {
         expect(queryByRole('dialog')).toBeNull();
     });
 
-    it('默认 variant：不渲染 game 有机底图', async () => {
-        const { queryByTestId, getByTestId } = await render(
+    it('默认 variant（不传）：渲染 game 有机底图', async () => {
+        const { getByTestId } = await render(
             <Modal open typewriter={false} testID="t">
+                <Text>content</Text>
+            </Modal>
+        );
+        // 默认已是 game：有机底图存在，实底层透明无圆角
+        expect(getByTestId('t-game-shape', HIDDEN)).toBeTruthy();
+        expect(styleOf(getByTestId('t-clipped', HIDDEN)).borderRadius).toBe(0);
+    });
+
+    it('variant="default"：不渲染 game 有机底图，实底为圆角 22', async () => {
+        const { queryByTestId, getByTestId } = await render(
+            <Modal open variant="default" typewriter={false} testID="t">
                 <Text>content</Text>
             </Modal>
         );
