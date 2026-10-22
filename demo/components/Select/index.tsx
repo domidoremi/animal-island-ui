@@ -6,7 +6,6 @@ import {
     sectionStyle,
     sectionTitleStyle,
     DemoTag,
-    demoBodyStyle,
     demoDashedBoxStyle,
     ApiTable,
     ApiRow,
@@ -19,6 +18,29 @@ const SELECT_API: ApiRow[] = [
     { prop: 'onChange', desc: '选中变化回调', type: '(key: string) => void', defaultVal: '-', required: true },
     { prop: 'placeholder', desc: '占位文本', type: 'string', defaultVal: '请选择' },
     { prop: 'disabled', desc: '禁用状态', type: 'boolean', defaultVal: 'false' },
+    { prop: 'allowClear', desc: '允许一键清空', type: 'boolean', defaultVal: 'false' },
+    { prop: 'onClear', desc: '清空回调', type: '() => void', defaultVal: '-' },
+    { prop: 'clearAriaLabel', desc: '清除按钮的无障碍标签', type: 'string', defaultVal: "'清除'" },
+    { prop: 'showSearch', desc: '允许在触发区内输入关键字过滤', type: 'boolean', defaultVal: 'false' },
+    {
+        prop: 'filterOption',
+        desc: '过滤规则：true 按 optionFilterProp 匹配、false 不过滤、函数则自行判定',
+        type: 'boolean | ((inputValue, option) => boolean)',
+        defaultVal: 'true',
+    },
+    {
+        prop: 'optionFilterProp',
+        desc: '参与匹配的字段',
+        type: `'key' | 'label'`,
+        defaultVal: "'label'",
+    },
+    { prop: 'onSearch', desc: '搜索词变化回调', type: '(value: string) => void', defaultVal: '-' },
+    {
+        prop: 'notFoundContent',
+        desc: '无匹配选项时展示的内容',
+        type: 'ReactNode',
+        defaultVal: "'暂无数据'",
+    },
 ];
 
 const S = {
@@ -41,6 +63,10 @@ const SelectDemo: React.FC = () => {
     const [value2, setValue2] = useState('');
     const [value3, setValue3] = useState('flower2');
     const [value4, setValue4] = useState('');
+    const [value5, setValue5] = useState('');
+    const [value6, setValue6] = useState('fish3');
+    const [value7, setValue7] = useState('flower4');
+    const [value8, setValue8] = useState('');
     const fishOptions: SelectOption[] = [
         { key: 'fish1', label: '鲈鱼' },
         { key: 'fish2', label: '鲷鱼' },
@@ -87,6 +113,22 @@ const SelectDemo: React.FC = () => {
             <div style={S.demoBox}>
                 <Select options={flowerOptions} value={value3} onChange={setValue3} disabled />
             </div>
+            <div style={labelStyle}>allowClear 一键清空</div>
+            <div style={{ ...S.demoBox, display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+                <Select options={fishOptions} value={value6} onChange={setValue6} allowClear />
+                <Select
+                    options={flowerOptions}
+                    value={value7}
+                    onChange={setValue7}
+                    allowClear
+                    clearAriaLabel="清除已选花朵"
+                />
+            </div>
+            <div style={labelStyle}>showSearch 输入关键字过滤</div>
+            <div style={{ ...S.demoBox, display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+                <Select options={fishOptions} value={value5} onChange={setValue5} showSearch placeholder="搜索鱼类" />
+                <Select options={fruitOptions} value={value8} onChange={setValue8} showSearch placeholder="搜索水果" />
+            </div>
             <CodeBlock
                 code={`import React, { useState } from 'react';
 import { Select } from 'animal-island-ui';
@@ -106,6 +148,10 @@ const App = () => {
             <Select options={options} placeholder="请选择" />
             {/* 禁用状态 */}
             <Select options={options} disabled />
+            {/* 一键清空 */}
+            <Select options={options} value={value} onChange={setValue} allowClear onClear={() => {}} />
+            {/* 输入关键字过滤（默认按 label 匹配，大小写不敏感） */}
+            <Select options={options} value={value} onChange={setValue} showSearch placeholder="搜索" />
         </div>
     );
 };

@@ -96,3 +96,4 @@ Check code against this list before submitting it. **Any ❌ that appears is a f
 16. **Icons come from the external `naive-icons` package; no inline SVG, no Unicode symbols**
     - ❌ Writing raw Unicode symbols (✓ ✕ ✗ → ←), hard-coding `<svg>`, or pulling in another third-party icon library
     - ✅ `import { FlowerIcon } from 'naive-icons'` then render `<FlowerIcon />`; when no icon matches, substitute a pure-CSS decorative element
+    - **One exception: `Cursor`.** Its artwork is hand-authored inline SVG out of necessity — the CSS `cursor` property accepts image URLs only, so a React icon component cannot be used there at all. That artwork belongs to the component itself and is not a UI icon; do not "fix" it by swapping in `naive-icons`.

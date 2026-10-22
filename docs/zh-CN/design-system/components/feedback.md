@@ -4,10 +4,10 @@
 
 反馈进度与等待状态的组件：Progress、Skeleton、BackTop 的精确取值
 
-## Progress（场景图 fill + 波点 track）
+## Progress（描边轨道 + 渐变或场景图 fill）
 
 源码：`src/components/Progress/Progress.tsx`（受控渲染 + aria 适配）+ `types.ts`（类型定义）+ `progress.module.less`。
-**JSX 组件**（非命令式）：`percent` 受控传入，从 0 平滑动画到目标值。track 是奶油色波点 pill 带内阴影、无边框；fill 是场景图（默认 `sweet-corner.svg`）由组件内联注入，`background-size` 等于整条轨道宽度，场景铺满整条轨道。百分比文字固定显示在进度条右侧。
+**JSX 组件**（非命令式）：`percent` 受控传入，从 0 平滑动画到目标值。track 是奶油色 pill，带细波点纹理和 2px 沙色实描边；传 `variant` 时 fill 是场景图（`sweet-corner.svg`、`forest-grove.svg` …）由组件内联注入，`background-size` 等于整条轨道宽度，场景铺满整条轨道；未传 `variant` 时 fill 回退为薄荷色竖向渐变。百分比文字固定显示在进度条右侧。
 
 **props**：
 ```ts
@@ -18,7 +18,7 @@ interface ProgressProps {
     percent: number;            // required, 0-100, auto-clamped; non-integers are rounded for aria
     size?: ProgressSize;        // small=14px / middle=24px / large=32px
     showInfo?: boolean;         // default true；文字显示在进度条右侧
-    variant?: ProgressVariant;  // fill 场景图；default 'sweet-corner'
+    variant?: ProgressVariant;  // fill 场景图；不传时用薄荷渐变
     infoFormat?: (p: number) => ReactNode; // default `${p}%`
     duration?: number;          // seconds; 0 disables the fill width animation; default 0.6
     className?: string;
@@ -30,21 +30,23 @@ interface ProgressProps {
 ```css
 .track {
     position: relative;
+    box-sizing: border-box;  /* 高度含描边，保证 size 是总高 */
     flex: 1 1 auto;
     width: 100%;
     min-width: 80px;
     background:
-        radial-gradient(circle, rgba(196, 184, 158, 0.15) 1.5px, transparent 1.5px) 0 0 / 28px 28px,
-        radial-gradient(circle, rgba(196, 184, 158, 0.1) 1px, transparent 1px) 7px 7px / 14px 14px,
-        #f8f8f0;               /* 奶油色波点（与 Background default / Card pattern-default 一致） */
-    box-shadow: inset 0 2px 4px rgba(114, 93, 66, 0.08); /* 内凹阴影（很淡） */
-    border-radius: 999px;      /* pill */
+        radial-gradient(circle, rgba(196, 184, 158, 0.1) 1.5px, transparent 1.5px) 7px 7px / 14px 14px,
+        #f8f8f0;              /* 细奶油波点 + 未改动的奶油底 */
+    border: 2px solid #e2d6bd; /* 沙色实描边（替掉原来的内凹阴影） */
+    border-radius: 999px;    /* pill */
     overflow: hidden;
 }
 .track.size-small  { height: 14px; }
 .track.size-middle { height: 24px; }
 .track.size-large  { height: 32px; }
 ```
+
+原来的壁纸轨道，小点层保留了 14px 网格、7px 偏移、`#f8f8f0` 底色和 `rgba(196, 184, 158, 0.1)`，但**点半径是 1.5px，不是原来的 1px**。2px 描边吃掉了 4px 画布（14px 的 small 档内腔只剩 10px），原半径的点在这个更小的画布里显得又小又稀，所以把点径调宽来补偿。1.5px / 28px 的粗大点层去掉了：描边已经在勾边，再叠一层更大的点会显脏。`background-origin` 保持默认的 `padding-box`，所以波点从描边内侧起画，不会压在描边下面。
 
 **Fill（精确值）：**
 ```css
@@ -53,14 +55,21 @@ interface ProgressProps {
     top: 0; left: 0; bottom: 0;
     width: 0;
     border-radius: 999px;
-    /* 场景图由 Progress.tsx 内联注入：
+    background: linear-gradient(180deg, #3dd4c6 0%, #19c8b9 60%, #14b6a8 100%); /* 薄荷色，上亮下沉 */
+    box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.45);  /* 顶部内高光 */
+    /* 传 variant 时由 Progress.tsx 内联注入场景图，覆盖渐变层：
        background-image: url(<variant svg>);
        background-repeat: no-repeat;
        background-position: left top;
        background-size: <trackWidth>px auto;  (图片铺满整条轨道，按进度从左裁剪) */
     transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
     overflow: hidden;
-    display: flex; align-items: center; justify-content: flex-end; padding-right: 4px;
+}
+
+/* 100% 完成态：整体提亮，读作「已抵达」而不是「还在加载」。
+   纯 CSS，挂在组件本来就渲染的 aria 值上。 */
+.progress[aria-valuenow='100'] .fill {
+    background: linear-gradient(180deg, #7fe0d5 0%, #3dd4c6 100%);
 }
 ```
 
@@ -79,6 +88,8 @@ interface ProgressProps {
 - `duration=0` → 关闭 fill 宽度过渡（`transition: none`），瞬间到位。
 - a11y：根 div 有 `role="progressbar"` + `aria-valuemin=0/aria-valuemax=100/aria-valuenow=<四舍五入后的 percent>/aria-valuetext=<infoFormat 的字符串结果>`。
 - `prefers-reduced-motion: reduce` 时 fill 宽度过渡自动关闭。
+- 不传 `variant` 时 `Progress.tsx` 仍会内联写入 `background-color: #19c8b9`；样式表里的渐变完全不透明、盖在其上，所以这个内联色只是兜底，不是实际观感。
+- 100% 提亮只作用于渐变 fill。传了 `variant` 时场景图会内联注入自己的 `background-image`，100% 下刻意保持场景原色不染色。
 
 ## Loading（全屏落雪）
 
@@ -158,7 +169,7 @@ interface LoadingProps extends React.HTMLAttributes<HTMLDivElement> {
 - **退出时序**：`active` → false 时落雪保持挂载并加 `exiting` 类（opacity → 0、`pointer-events: none`），`fadeDuration * 1000` 毫秒计时结束后卸载。淡出途中恢复 `active` 会取消计时器并立即回到不透明。
 - `delay` 在每次 `active` 切换为 `true` 时重新计时，加载快速结束时雪花屏不会闪烁。
 - a11y：根元素带 `role="status"`；落雪包裹层与暗角均 `aria-hidden`；无 `tip` 时用视觉隐藏的 `加载中` span 提供可读内容。
-- `prefers-reduced-motion: reduce` 停止飘落与进入动画；opacity 渐隐不属于位移运动，予以保留。
+- `prefers-reduced-motion: reduce` 暂停飘落与进入动画；opacity 渐隐不属于位移运动，予以保留。落雪是**暂停而非移除**——`animation: none` 会让 50 片雪花全部退回静止位置 `top: -30px`（视口上方），只剩一块夜空底；纯落雪无 `tip` 时没有任何可见元素，看起来就是黑屏。由于每片雪花本就带**负延迟**（从周期中段起步），暂停会把每片冻结在下落途中的随机高度，开启「减弱动态效果」的用户看到的是一张铺满视口的静态雪景。
 
 ## Skeleton（流光占位）
 
@@ -237,7 +248,7 @@ SkeletonAvatarProps { size?: 'small'|'middle'|'large'; shape?: 'circle'|'square'
 
 源码：`src/components/BackTop/BackTop.tsx` + `back-top.module.less`。
 
-固定右下角的返回顶部按钮，默认使用原创贴纸风上箭头 SVG（内联 data URI：暖棕 `#c9a06c` 描边 + 奶油 `#fffdf4` 糖霜层 + 青绿 `#19c8b9` 主体带浅青 `#7fe0d4` 高光），点击后 easeInOutQuad 平滑滚动到顶部。
+固定右下角的返回顶部按钮，使用 `naive-icons` 的 `RocketIcon`（48×48 viewBox：奶油 `#FAEDCD` 机身、青绿 `#2A9D8F` 舷窗、`#E76F51` 火焰与尾翼、墨色 `#2A2A2A` 描边），以 `size={64}` 渲染；点击后 easeInOutQuad 平滑滚动到顶部。该图标是纯装饰性的，带 `aria-hidden`，可读名称由按钮自身的 `aria-label` 提供。
 
 **props**：
 ```ts
@@ -268,7 +279,7 @@ opacity: 1;
 visibility: visible;
 transform: translateY(0);
 
-// icon (240×240 viewBox 贴纸箭头)
+// icon (naive-icons RocketIcon,48×48 viewBox,按 size 64 渲染)
 .img {
     width: 64px;
     height: 64px;
@@ -321,10 +332,18 @@ interface CountdownProps extends Omit<HTMLAttributes<HTMLDivElement>, 'onChange'
 
 源码：`src/components/Time/Time.tsx` + `time.module.less`。
 
-零配置的实时时钟卡片：上方是大号 `HH:MM` 时间，每秒从 `new Date()` 刷新一次；下方胶囊显示星期与 `Mon DD`。其余 `div` 原生属性（`className`、`style`、`aria-*`…）全部透传到根节点。
+实时时钟卡片：上方是大号 `HH:MM` 时间，每秒从 `new Date()` 刷新一次；下方胶囊显示星期与月日。星期与月日都通过 dayjs 格式模板渲染，可改形状也可切换语言；其余 `div` 原生属性（`className`、`style`、`aria-*`…）全部透传到根节点。
 
 ```ts
-type TimeProps = React.HTMLAttributes<HTMLDivElement>;
+export type TimeLocale = 'en' | 'zh-cn';
+
+export interface TimeProps extends React.HTMLAttributes<HTMLDivElement> {
+    weekdayFormat?: string; // 默认 'dddd'
+    dateFormat?: string;    // 默认 'MMM D'；locale 为 'zh-cn' 时默认 'M月D日'
+    locale?: TimeLocale;    // 默认 'en'
+}
 ```
 
-卡片为纵向堆叠的 inline-flex 面板 —— 背景为 `var(--animal-bg-color)`、20px 圆角、`--animal-shadow-sm` 柔和投影、无边框，挂载时以 `--animal-motion-duration-slow` 淡入。时钟为 40px / 800 字重 / `var(--animal-text-color)`，等宽数字、1px 字距；冒号按秒闪烁（`step-end`，50% 处透明度为 0）。日期胶囊为 `var(--animal-primary-color-bg)` 底、999px 圆角的药丸形，内含大写星期（`var(--animal-primary-color)`、800 字重、1px 字距）、`·` 分隔点（禁用色调）与月日（`var(--animal-text-color-secondary)`、700 字重）。根节点使用 `role="timer"` 与 `aria-live="off"`，每秒刷新不打断读屏软件。
+两个格式都支持 dayjs **核心** token（`dddd` / `ddd` / `MMM` / `M` / `D` / `YYYY`…），插件 token 不会展开。`zh-cn` 在组件模块内注册 —— 打包进本包的 dayjs 实例看不到宿主应用的 locale 导入，所以这一步让 `locale="zh-cn"` 开箱即用。格式化都在实例副本上进行（`dayjs(now).locale(locale)`），从不调用全局 `dayjs.locale()`，因此不会改动进程级状态。
+
+卡片为纵向堆叠的 inline-flex 面板 —— 背景为 `var(--animal-bg-color)`、20px 圆角、`--animal-shadow-sm` 柔和投影、无边框，挂载时以 `--animal-motion-duration-slow` 淡入。时钟为 44px / 900 字重 / `var(--animal-text-color)`，等宽数字、1px 字距；冒号按秒闪烁（`step-end`，50% 处透明度为 0）。日期胶囊为 `var(--animal-primary-color-bg)` 底、999px 圆角的药丸形，内含大写星期（`var(--animal-primary-color)`、800 字重、1px 字距）、`·` 分隔点（禁用色调）与月日（`var(--animal-text-color-secondary)`、700 字重）。根节点使用 `role="timer"` 与 `aria-live="off"`，每秒刷新不打断读屏软件。

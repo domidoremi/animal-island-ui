@@ -57,6 +57,10 @@ max-width: calc(100vw - 32px);
 max-height: calc(100vh - 64px);
 animation: animal-zoom-in 0.3s ease;
 
+/* prefers-reduced-motion: reduce —— scale(0.92) → scale(1) 的缩放属于位移动效，
+   予以关闭（面板落回静止态 scale(1)，不会消失或卡在中间帧）。
+   遮罩的纯 opacity 淡入不属于位移动动效，予以保留。 */
+
 /* clipped content area */
 clip-path: url(#animal-modal-clip);
 background: rgb(247, 243, 223);
@@ -114,6 +118,10 @@ border-color: rgba(255, 204, 0, 0.85);
 ## Drawer（下沉景深）
 
 **下沉景深抽屉 — 背景下沉 + 缩放 + 降亮突出主体。**
+
+- `pushBackground`（默认 `true`）：打开时，`document.body` 下每个非 fixed 的直接子元素施加 `transform: scale(0.94)`、`border-radius: 14px`、`overflow: hidden`，过渡 `0.36s cubic-bezier(0.2, 0, 0.2, 1)`。fixed 定位元素、`[data-animal-drawer-ignore]` 节点以及组件自身的 portal 包裹器都会被排除。
+- 被下沉的背景**刻意不加 `filter`**。`filter` 是非合成器属性：它会为每个背景元素新建合成层，并对整个视口做逐像素高斯模糊，症状就是**首次打开卡顿**（此时各层需要从零光栅化），而之后打开却很顺。景深读数由 `scale` + 圆角 + 遮罩压暗承担。同时在过渡开始前加 `will-change: transform`，让分层提前完成而不是发生在动画中途。
+- `prefers-reduced-motion: reduce` 下**同时**关闭背景下沉（缩放位移）与面板自身的 `translateX/Y(±100%) → none` 滑入，与 `Modal` 关闭 `scale(0.92) → scale(1)` 缩放入场保持一致。面板直接落位，不会停在中间帧或不可见。遮罩的 opacity 过渡不属于位移动效，予以保留。
 
 ```css
 /* mask — light black (0.18), lighter than Modal so the recessed background stays visible (key to the depth effect) */

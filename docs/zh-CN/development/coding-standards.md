@@ -57,7 +57,7 @@ ESLint（`eslint.config.js` 里的 flat config），在 `js.configs.recommended`
 - 不要破坏 `src/index.ts` 的桶文件导出格式（值用 `export {}`，类型用 `export type {}`）。
 - 不要硬编码 CSS Module 类名字面量做断言 —— 一律通过 `styles['xxx']` 引用。
 - 不要虚构组件 API。看组件源码，或看 [component-development.md](./component-development.md) 里列出的 reference 文档。
-- 不要新增运行时依赖；`dependencies` 保持 `{}`。
+- 不要新增运行时依赖；`dependencies` 只有 `naive-icons` 与 `dayjs`（见 [ADR 0005](../adr/0005-dayjs-as-the-date-layer.md)）。日期的解析、格式化、比较与运算一律走 `dayjs` —— 不要手写，也不要调用 `dayjs.locale()`。
 - 不要提交 `dist/`、`demo-dist/`、`coverage/`。
 
 ## 脚本踩坑

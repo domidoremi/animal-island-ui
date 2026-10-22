@@ -1,0 +1,363 @@
+// ============================================
+// Calendar — Animal Island Style
+// 轻量月面板：容器与 DatePicker 同源（奶油卡片 + 青绿主色）
+// ============================================
+
+/* 强调色固定为 DatePicker 的选中色（青绿）。组件不提供主题切换：
+   其他组件也只有语义化的 color / type，没有整套换色开关 */
+
+/*
+ * 面板尺寸完全由宽度推导：组件测量自身宽度后下发 --animal-calendar-scale
+ * （= 实际宽度 / 基准宽度 750），下面所有度量都是「基准值 × 系数」。
+ * 因此面板变大时行高、事项条、字号一起跟着放大，不需要 size 档位。
+ *
+ * 硬约束：单元格高度必须容得下「日期数字带 38 + 2 条事项行 22 × 2 = 82 ≤ 104」，
+ * 否则同一周的第 2 条事项条会越出格子、盖住下一周的日期数字。
+ * 上面的基准值与 Calendar.tsx 的 LAYOUT_BASE 一一对应；基准宽度下改任何取值都必须同步那边，
+ * 两边的硬约束算式都写死常量值，避免各自漂移成对不上的数字。
+ */
+@base-scale: var(--animal-calendar-scale, 1);
+@number-size: 28px; /* 日期圆直径 */
+/* 面板左右内边距：表格与绝对定位的事项叠加层共用同一缩进，才能保持列宽对齐 */
+@body-pad: 8px;
+
+.calendar {
+    --animal-calendar-accent: #19c8b9;
+    --animal-calendar-accent-soft: rgba(25, 200, 185, 0.14);
+    --animal-calendar-accent-tint: #e6f9f6;
+    --animal-calendar-header-height: calc(32px * @base-scale);
+    --animal-calendar-number-size: calc(@number-size * @base-scale);
+    --animal-calendar-cell-height: calc(104px * @base-scale);
+    --animal-calendar-row-height: calc(22px * @base-scale);
+    --animal-calendar-bar-height: calc(17px * @base-scale);
+
+    display: block;
+    width: 100%;
+    font-family: var(--animal-font-family, 'Nunito', 'Noto Sans SC', sans-serif);
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+/* 头部：上/下月导航 + 年月标签 + 今天 */
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.headerGroup {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.navBtn {
+    display: flex;
+    width: 28px;
+    height: 28px;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 10px;
+    background: transparent;
+    color: #a0936e;
+    cursor: pointer;
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.navBtn:hover {
+    background: rgba(114, 93, 66, 0.1);
+    color: var(--animal-calendar-accent);
+}
+
+.navBtn:focus-visible {
+    outline: 2px solid var(--animal-calendar-accent);
+    outline-offset: 1px;
+}
+
+.navIcon {
+    display: block;
+    flex-shrink: 0;
+}
+
+.monthLabel {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 12px;
+    background: #fffbe7;
+    color: #725d42;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+}
+
+.monthIcon {
+    display: block;
+    flex-shrink: 0;
+    color: var(--animal-calendar-accent);
+}
+
+.todayBtn {
+    margin-right: 2px;
+    padding: 4px 12px;
+    border: none;
+    border-radius: 10px;
+    background: transparent;
+    color: #8a7b66;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.todayBtn:hover {
+    background: rgba(114, 93, 66, 0.1);
+    color: #725d42;
+}
+
+.todayBtn:focus-visible {
+    outline: 2px solid var(--animal-calendar-accent);
+    outline-offset: 1px;
+}
+
+/* 面板：奶油卡片，与 DatePicker 弹出面板同款描边与圆角 */
+.body {
+    position: relative;
+    /* 上下左右都留出内边距：下方额外为 2 行事项带预留高度（表格自身只占 6 行日期） */
+    padding: @body-pad @body-pad calc(var(--animal-calendar-row-height) * 2 + 6px + @body-pad);
+    border: 1.5px solid #e8dcc8;
+    border-radius: 20px;
+    background:
+        radial-gradient(circle, rgba(196, 184, 158, 0.15) 1.1px, transparent 1.1px) 0 0 / 28px 28px,
+        radial-gradient(circle, rgba(196, 184, 158, 0.1) 0.8px, transparent 0.8px) 7px 7px / 14px 14px,
+        #fffdf7;
+    box-shadow: 0 6px 18px rgba(61, 52, 40, 0.12);
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+
+.weekCell {
+    height: var(--animal-calendar-header-height);
+    color: #a09080;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-align: center;
+}
+
+.cell {
+    /* 日期数字与事项条都以格子的内容盒为准（左右各 5px），
+       这样 7 列网格里的跨天条与日期圆共用同一条轨道，接缝处才能连成一条。
+       顶部 5px 内边距把 numberBand 的上下留白对称化，避免日期圆贴到格顶；
+       日期圆下方空间由 numberBand 统一控制，格子不再额外设 padding-bottom */
+    height: var(--animal-calendar-cell-height);
+    padding: 5px 5px 0;
+    box-sizing: border-box;
+    vertical-align: top;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cell:hover {
+    background: #f4f0e4;
+}
+
+.cell:focus-visible {
+    outline: 2px solid var(--animal-calendar-accent);
+    outline-offset: -2px;
+}
+
+.cellOutside {
+    cursor: pointer;
+}
+
+.cellSelected,
+.cellSelected:hover {
+    background: var(--animal-calendar-accent-tint);
+}
+
+/* 开启拖拽创建后，日期格改用十字光标提示可拖拽 */
+.calendar[data-draggable='true'] .cell {
+    cursor: crosshair;
+}
+
+/* 日期数字：固定圆形，位置与叠加层解耦，悬停/选中直接换色。
+   字号随面板缩放（.calendar 上已按宽度设好），描边与背景仍挂在圆上 */
+.dayNumber {
+    display: block;
+    width: var(--animal-calendar-number-size);
+    height: var(--animal-calendar-number-size);
+    border-radius: 50%;
+    color: #725d42;
+    /* 字号固定 13px：日期圆直径会随面板放大，但数字本身再放大就会溢出圆外 */
+    font-size: 13px;
+    font-weight: 500;
+    line-height: var(--animal-calendar-number-size);
+    text-align: center;
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cell:hover .dayNumber {
+    color: #5a4530;
+    font-weight: 700;
+}
+
+.cellOutside .dayNumber {
+    color: #c4b89e;
+    font-weight: 400;
+}
+
+.cellToday .dayNumber {
+    box-shadow: inset 0 0 0 1.5px var(--animal-calendar-accent);
+    color: var(--animal-calendar-accent);
+    font-weight: 700;
+}
+
+.cellSelected .dayNumber,
+.cellSelected:hover .dayNumber {
+    background: var(--animal-calendar-accent);
+    box-shadow: none;
+    color: #fff;
+    font-weight: 700;
+}
+
+/* 事项折叠提示：超过 2 条时展示 +N */
+.more {
+    display: block;
+    margin: 2px 0 6px;
+    padding: 1px 5px;
+    border-radius: 8px;
+    background: var(--animal-calendar-accent-soft);
+    color: var(--animal-calendar-accent);
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1.5;
+    text-align: center;
+}
+
+/* 事项叠加层：绝对定位覆盖整个日期区，列宽 = 表格 7 等分列的宽度。
+   left / width / top 都由组件算好后内联下发：
+     left  = 列序 × 列宽 + 4px（与日期圆同一条内容轨道）
+     width = 跨列数 × 列宽 - 8px
+     top   = 表头 + 周序 × 单元格高 + 日期数字带 + 事项行 × 行高
+   之所以用算好的像素值而不是 grid-column：事项条是绝对定位元素，
+   已脱离网格布局，写 grid-column 不会生效。 */
+.eventsLayer {
+    --animal-calendar-col-width: calc(100% / 7);
+
+    position: absolute;
+    top: @body-pad;
+    right: @body-pad;
+    bottom: 0;
+    left: @body-pad;
+    pointer-events: none;
+}
+
+.event {
+    position: absolute;
+    /* top 由组件算到「行首」，再用 0.5em 的位移把条在行内垂直居中 */
+    top: calc(var(--animal-calendar-bar-top, 0px) + var(--animal-calendar-row-height) / 2);
+    left: var(--animal-calendar-bar-left, 0);
+    width: var(--animal-calendar-bar-width, 0);
+    height: var(--animal-calendar-bar-height, 17px);
+    margin: 0;
+    transform: translateY(-50%);
+    padding: 0 6px;
+    overflow: hidden;
+    border: 1px solid var(--animal-calendar-accent-soft);
+    border-radius: 10px;
+    background: var(--animal-calendar-accent-soft);
+    color: #725d42;
+    /* 字号随面板缩放，固定 11px 会让大面板显得字太小 */
+    font-size: calc(11px * @base-scale);
+    font-weight: 600;
+    /* 行高与条高一致，单行垂直居中；文字溢出交给内部 span 做省略号 */
+    line-height: var(--animal-calendar-bar-height, 17px);
+    white-space: nowrap;
+}
+
+.eventTitle,
+.eventTime {
+    display: inline;
+}
+
+/* 跨天条：接缝处的空档收窄到 1px（只够分开圆角），视觉上连成一条 */
+.event[data-span='true'] {
+    margin-right: 1px;
+    margin-left: 1px;
+    border-radius: 6px;
+}
+
+/* 整周条的两端贴齐网格边缘，不再往内缩 */
+.event[data-start='true'] {
+    margin-left: 0;
+}
+
+.event[data-end='true'] {
+    margin-right: 0;
+}
+
+.eventTime {
+    margin-right: 4px;
+    color: #9f927d;
+    font-variant-numeric: tabular-nums;
+}
+
+.eventTitle {
+    font-weight: 600;
+}
+
+/* 事项配色：实色圆点色系，保留一件一色 */
+.event[data-color='teal'] {
+    border-color: rgba(244, 150, 40, 0.5);
+    background: #ffe4cc;
+    color: #b04a1f;
+}
+
+.event[data-color='amber'] {
+    border-color: rgba(255, 193, 7, 0.5);
+    background: #fff3d1;
+    color: #8a6a08;
+}
+
+.event[data-color='coral'] {
+    border-color: rgba(255, 138, 101, 0.5);
+    background: #ffe7de;
+    color: #a44b32;
+}
+
+.event[data-color='green'] {
+    border-color: rgba(111, 186, 44, 0.5);
+    background: #eaf6db;
+    color: #4a7a1d;
+}
+
+.event[data-color='purple'] {
+    border-color: rgba(155, 127, 224, 0.5);
+    background: #f0eafb;
+    color: #6849b8;
+}
+
+/* 拖拽创建预览条：虚线描边区别于已有事项 */
+.event[data-preview='true'] {
+    border-style: dashed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .cell,
+    .dayNumber,
+    .navBtn,
+    .todayBtn {
+        transition: none;
+    }
+}

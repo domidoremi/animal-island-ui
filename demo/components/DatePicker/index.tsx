@@ -71,7 +71,7 @@ const DatePickerDemo: React.FC = () => {
                 当前选中: <span style={{ color: '#19c8b9', fontWeight: 600 }}>{value ?? '未选择'}</span>
             </div>
             <div style={S.demoBox}>
-                <DatePicker value={value ?? undefined} onChange={setValue} />
+                <DatePicker value={value ?? undefined} onChange={(v) => setValue(typeof v === 'string' ? v : null)} />
             </div>
             <div style={labelStyle}>非受控默认值 + 自定义格式</div>
             <div style={S.demoBox}>
@@ -110,7 +110,12 @@ const DatePickerDemo: React.FC = () => {
                 <span style={{ color: '#19c8b9', fontWeight: 600 }}>{rangeValue?.join(' ~ ') ?? '未选择'}</span>
             </div>
             <div style={S.demoBox}>
-                <DatePicker range value={rangeValue ?? undefined} onChange={setRangeValue} style={{ width: 300 }} />
+                <DatePicker
+                    range
+                    value={rangeValue ?? undefined}
+                    onChange={(v) => setRangeValue(Array.isArray(v) ? v : null)}
+                    style={{ width: 300 }}
+                />
             </div>
             <div style={labelStyle}>范围 + 清空 + 禁用周末</div>
             <div style={S.demoBox}>

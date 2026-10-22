@@ -77,7 +77,7 @@ const SkillDemo: React.FC = () => (
             <ShellCode code={SKILL_TREE} />
         </Section>
 
-        <Section title="组件目录" tags={['30 Components']}>
+        <Section title="组件目录" tags={['40 Components']}>
             <p className={`${styles.lead} ${styles.leadSpaced}`}>
                 props 参考按分类放在 references/components/ 下，props、合法取值与默认值均直接取自源码。
             </p>
@@ -112,7 +112,8 @@ const SkillDemo: React.FC = () => (
 
         <Section title="许可证" tags={['License']} dashed>
             <p className={styles.lead}>
-                本组件库与该技能均为 CC BY-NC 4.0 —— 仅限非商业使用。完整条款见仓库 LICENSE 文件。
+                本组件库与该技能均采用 MIT License —— 可自由使用、修改与分发，包括商业用途。完整条款见仓库 LICENSE
+                文件。
             </p>
         </Section>
     </div>

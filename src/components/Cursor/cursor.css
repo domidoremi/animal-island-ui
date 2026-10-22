@@ -1,19 +1,54 @@
-/* 内联 SVG 光标（28×28 几何箭头，hotspot 6 4），无外部图片资源 */
+/* 光标图像：default 走「粗描边 + 全圆角」的实心箭头 —— 经典七顶点指针剪影，
+   每个角都圆化后用一条闭合路径同时填充和描边，描边粗到接近图形宽度的 15%，
+   这是这种箭头最关键的特征：粗黑轮廓包住一小块亮色内芯，尖端刻意磨钝。
+   边一律走 L（直线）、角才走 Q（圆角）：只用一串 Q 从上一个角的出点跨到
+   下一个角的入点，会让长边被角控制点拽出约 1px 的弓形，左缘最明显。
+   整支箭头关于「过箭尖、离竖直 28.86°」那条斜轴严格镜像对称：
+   只定 ①②③④ 四个点，⑤⑥⑦ 全部取镜像，所以 ①→②=①→⑦（各 19.12）、
+   ②→③=⑥→⑦（各 6.35）自动成立。左缘略向右倾 1.8，给一点手摆的动态感。
+   注意对称轴不是竖直 —— 两条长边都约 19 单位长而画布只有 32 宽，
+   真按竖直镜像的话左缘会落到画布外的负 x。
+   剪影缩放系数 1.12：连描边占画布高 75%（1.36 时是 89%，偏满）。
+   缩放只作用在基准顶点上，TILT 与那个 1.2 的手工偏移不跟着缩，所以缩放后
+   要重新量轴角和四条边长，不能按比例推。描边 2.75 固定不缩，于是描边占
+   外廓宽的比例从 13.1% 升到 15.4% —— 小一号的光标仍要保住同等清晰的轮廓，
+   但这是可读性的下沿，再往下内芯会被吃掉。
+   raindrop 保持原始几何水滴不变。
+   全部为内联 SVG，无外部图片资源。 */
+
+/* ============ 图像与热点集中定义（下面几条规则共用，改图只动这里） ============ */
+.animal-cursor {
+    /* default：粗描边圆角箭头，32×32，尖端落在 8 5 */
+    --animal-cursor-img: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cpath d='M8.5 7.9L9.7 21.1Q10.0 23.8 11.6 21.6L13.1 19.8Q13.8 18.8 14.4 19.9L17.0 24.7Q17.8 26.1 19.2 25.3L19.6 25.1Q21.0 24.3 20.2 22.9L17.6 18.1Q17.0 17.1 18.2 17.0L20.5 16.7Q23.3 16.5 21.1 14.8L10.6 6.7Q8.2 4.8 8.5 7.9Z' fill='%23fff7e6' stroke='%23794f27' stroke-width='2.75' stroke-linejoin='round' stroke-linecap='round'/%3E%3C/svg%3E");
+    --animal-cursor-hotspot: 8 5;
+    /* 选中文本：暖黄底 + 深字。文字色必须显式指定 —— 默认正文色 #794f27
+       压在这个底上只有 4.25:1（正文不达标），换成 #2b2620 是 8.97:1，过 WCAG AAA。 */
+    --animal-selection-bg: #e9c46a;
+    --animal-selection-fg: #2b2620;
+}
+
+/* raindrop：蓝色水滴，32×32，尖端落在 16 6 */
+.animal-cursor--raindrop {
+    --animal-cursor-img: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cpath d='M16 6s-9 12-9 16a9 9 0 0 0 18 0c0-4-9-16-9-16z' fill='%2374ccff' stroke='%232e86ab' stroke-width='1.5'/%3E%3Cellipse cx='12.5' cy='19' rx='2' ry='3.2' fill='%23dff4ff' transform='rotate(-18 12.5 19)'/%3E%3C/svg%3E");
+    --animal-cursor-hotspot: 16 6;
+    /* 选区回到系统默认色。必须在这里覆盖：raindrop 常被嵌在 default 内部，
+       若只在 default 上写 ::selection，嵌套的 raindrop 会一并被染色。 */
+    --animal-selection-bg: Highlight;
+    --animal-selection-fg: HighlightText;
+}
+
+/* 所有 Cursor 容器内的选区都走这两个变量 —— 自定义属性按最近的
+   Cursor 祖先取值，所以嵌套时内层自动赢，无需 !important。 */
+.animal-cursor ::selection {
+    background: var(--animal-selection-bg);
+    color: var(--animal-selection-fg);
+}
+
 /* ============ force 模式（默认）：全覆盖所有后代 ============ */
 .animal-cursor--force,
 .animal-cursor--force * {
     cursor:
-        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'%3E%3Cpath d='M6 4 L6 21 L10.5 16.5 L13.5 23 L16.8 21.5 L13.8 15.2 L20.5 15.2 Z' fill='%23fff7e6' stroke='%23794f27' stroke-width='2.2' stroke-linejoin='round'/%3E%3C/svg%3E")
-            6 4,
-        default !important;
-}
-
-/* ============ 雨滴风格（type='raindrop'）：蓝色水滴，hotspot 16 6 ============ */
-.animal-cursor--force.animal-cursor--raindrop,
-.animal-cursor--force.animal-cursor--raindrop * {
-    cursor:
-        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cpath d='M16 6s-9 12-9 16a9 9 0 0 0 18 0c0-4-9-16-9-16z' fill='%2374ccff' stroke='%232e86ab' stroke-width='1.5'/%3E%3Cellipse cx='12.5' cy='19' rx='2' ry='3.2' fill='%23dff4ff' transform='rotate(-18 12.5 19)'/%3E%3C/svg%3E")
-            16 6,
+        var(--animal-cursor-img) var(--animal-cursor-hotspot),
         default !important;
 }
 
@@ -25,16 +60,7 @@
 /* 容器自身：使用自定义光标（双类提升特异性 (0,2,0) > 祖先 (0,1,1)） */
 .animal-cursor.animal-cursor--scoped {
     cursor:
-        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'%3E%3Cpath d='M6 4 L6 21 L10.5 16.5 L13.5 23 L16.8 21.5 L13.8 15.2 L20.5 15.2 Z' fill='%23fff7e6' stroke='%23794f27' stroke-width='2.2' stroke-linejoin='round'/%3E%3C/svg%3E")
-            6 4,
-        default !important;
-}
-
-/* 雨滴风格 scoped：容器自身（三类提升特异性以胜过祖先 force 规则） */
-.animal-cursor.animal-cursor--scoped.animal-cursor--raindrop {
-    cursor:
-        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cpath d='M16 6s-9 12-9 16a9 9 0 0 0 18 0c0-4-9-16-9-16z' fill='%2374ccff' stroke='%232e86ab' stroke-width='1.5'/%3E%3Cellipse cx='12.5' cy='19' rx='2' ry='3.2' fill='%23dff4ff' transform='rotate(-18 12.5 19)'/%3E%3C/svg%3E")
-            16 6,
+        var(--animal-cursor-img) var(--animal-cursor-hotspot),
         default !important;
 }
 

@@ -75,7 +75,9 @@ ESLint (flat config in `eslint.config.js`), on top of `js.configs.recommended` +
 - Do not hardcode CSS Module class-name literals in assertions — always go through `styles['xxx']`.
 - Do not invent component APIs. Read the component source, or the reference docs listed in
   [component-development.md](./component-development.md).
-- Do not add runtime dependencies; `dependencies` stays `{}`.
+- Do not add runtime dependencies; `dependencies` holds `naive-icons` and `dayjs` only (see
+  [ADR 0005](../adr/0005-dayjs-as-the-date-layer.md)). Date parsing, formatting, comparison and arithmetic go
+  through `dayjs` — do not hand-roll them, and never call `dayjs.locale()`.
 - Do not commit `dist/`, `demo-dist/`, or `coverage/`.
 
 ## Scripting Pitfalls

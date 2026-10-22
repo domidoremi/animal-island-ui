@@ -19,7 +19,7 @@ Pixel-level styling for the interactive input controls: Input, Switch, Checkbox,
 **Exact color values:**
 
 ```css
-background: #fffbe7;
+background: #fffdf7;         /* cream-deep — the panel tone shared with the Select / DatePicker / TimePicker popovers */
 /* no border; the total height is the token height (32/40/48px), with the space the border used to occupy now belonging to the content */
 /* no box-shadow by default; with shadow={true} the middle size takes 0 3px 0 0 #d4c9b4 from the table above */
 
@@ -342,47 +342,220 @@ flex-direction: column;
 gap: 8px;
 ```
 
+## Rate
+
+Star rating widget. Each star is a `naive-icons` `StarIcon`; a visually hidden native radio sits on top of every star, so the group keeps single-select semantics and free keyboard support.
+
+Props:
+
+| name           | type                             | default    | Description                                                     |
+| -------------- | -------------------------------- | ---------- | --------------------------------------------------------------- |
+| `value`        | `number`                         | —          | Controlled rating                                               |
+| `defaultValue` | `number`                         | `0`        | Uncontrolled default rating                                     |
+| `count`        | `number`                         | `5`        | Number of stars                                                 |
+| `size`         | `'small' \| 'middle' \| 'large'` | `'middle'` | Size                                                            |
+| `readonly`     | `boolean`                        | `false`    | Display only: no hover preview, no click, inputs disabled       |
+| `allowClear`   | `boolean`                        | `true`     | Clicking the current star again clears the rating to `0`        |
+| `onChange`     | `(value) => void`                | —          | Fired on change; receives `0` when cleared                      |
+
+The rating is clamped to `[0, count]` and rounded to the nearest whole star, so an average like `4.6` lights 5 stars with the 5th selected — the widget always keeps exactly one star reachable by Tab.
+
+**Size table (icon box, gap, and the splash scale that maps the 22px burst geometry onto the star):**
+
+| Property       | small   | middle      | large   |
+| -------------- | ------- | ----------- | ------- |
+| star box       | 20×20px | **26×26px** | 34×34px |
+| gap            | 4px     | 6px         | 8px     |
+| splash scale   | 0.91    | 1.18        | 1.55    |
+
+**Exact styles:**
+
+```css
+/* group */
+display: inline-flex; align-items: center;
+gap: var(--rate-gap); /* 4 / 6 / 8px by size */
+
+/* star — the icon ships a gold fill and a face, so both are CSS-driven */
+.star {
+    display: block;
+    width: var(--rate-size);
+    height: var(--rate-size);
+}
+.star .icon {
+    /* the naive-icons StarIcon hard-codes stroke #2A2A2A, fill #E9C46A and two eyes */
+    display: block; width: 100%; height: 100%;
+    stroke: #c4b89e; /* --animal-text-color-disabled — an empty star is outline only */
+    transition: stroke 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.star .icon path {
+    fill: #f5c31c; /* --animal-warning-color */
+    fill-opacity: 0;
+    transition: fill-opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.star .icon circle {
+    /* the icon's two eyes only appear once the star is lit */
+    fill: #794f27;
+    opacity: 0;
+    transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.active .star .icon { stroke: #dba90e; /* --animal-warning-color-active */ }
+.active .star .icon path { fill-opacity: 1; }
+.active .star .icon circle { opacity: 1; }
+
+/* item + hover lift */
+.item { transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
+.item:hover { transform: translateY(-1px); }
+
+/* focus-visible — the ring lives on the star, the hidden radio stays the focus owner */
+.input:focus-visible ~ .star {
+    border-radius: 50%;
+    outline: 2px solid #f5c31c; /* @focus-yellow */
+    outline-offset: 1px;
+}
+
+/* selection animation — a pop on every newly lit star, then a six-dot burst */
+@keyframes animal-rate-pop {
+    0% { transform: scale(0.55); }
+    60% { transform: scale(1.15); }
+    100% { transform: scale(1); }
+}
+/* .pop runs it over 0.35s cubic-bezier(0.4, 0, 0.2, 1) with a 60ms stagger
+   (--rate-pop-delay), so the newly lit stars pop one after another */
+
+.splash {
+    position: absolute; top: 50%; left: 50%;
+    width: 22px; height: 22px; margin: -11px 0 0 -11px;
+    border-radius: 50%;
+    transform: scale(var(--rate-splash-scale)); /* 22px reference geometry → star size */
+    animation: animal-rate-splash 0.6s ease forwards;
+    pointer-events: none;
+}
+/* animal-rate-splash draws the six dots only — no background disc, so the star is
+   the only element that ends up filled. The dots fly out to 36px/32px with a
+   negative spread and fade to transparent, painted in #f5c31c. Only one splash is
+   mounted at a time (the clicked star) and it is keyed by the commit counter, so
+   the animation replays on every commit. */
+
+/* readonly — no hover lift, default cursor; the stars keep their gold */
+.readonly .item { cursor: default; }
+.readonly .item:hover { transform: none; }
+```
+
 ## Select
 
-Controlled dropdown selector; the panel opens on hover/click, and options support ↑/↓ keyboard navigation, Enter to confirm and Esc to cancel.
+Controlled dropdown selector; click the trigger to open, and options support ↑/↓ keyboard navigation, Enter to confirm and Esc to cancel.
 
 ```css
 .select {
     position: relative;
     display: inline-block;
-    min-width: 120px;
+    min-width: 140px;
 }
 .selectTrigger {
-    /* border 2px solid #e8dcc8, radius 12px */
-    /* background #fff, hover switches border-color to #d4c4a8 and background to #fffdf7 */
-}
-.selectDropdown {
-    position: absolute;
-    top: calc(100% + 4px);
-    left: 0;
-    right: 0;
-    max-height: 240px;
-    overflow-y: auto;
-    background: #fffcef;
-    border: 1.5px solid @border-color-light;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 13px;
+    background: #fff;
+    border: 2px solid #e8dcc8;
     border-radius: 12px;
-    box-shadow: 0 6px 18px rgba(61, 52, 40, 0.12);
-    z-index: 1000;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    /* hover: border-color #d4c4a8, background #fffdf7 */
+}
+.selectValue {
+    flex: 1;
+    font-size: 14px;
+    color: #725d42;
+    font-weight: 600;
+    text-align: left;
+}
+.selectPlaceholder {
+    flex: 1;
+    font-size: 14px;
+    color: #a09080;
+    text-align: left;
+}
+.selectArrow {
+    color: #a09080;
+    transition: transform 0.2s ease;
+    /* .selectTrigger.isOpen: rotate(180deg), color #19c8b9 */
+}
+
+/* showSearch — the input takes the label's place inside the trigger */
+.selectSearchInput {
+    flex: 1;
+    min-width: 0;
+    padding: 0;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    color: #725d42;
+    background: transparent;
+    border: none;
+    border-radius: 12px;
+    outline: none;
+    /* ::placeholder: #a09080, weight 400 */
+    /* :focus-visible: outline 2px solid #ffcc00, outline-offset 2px */
+}
+
+/* allowClear — same spec as the Input clear button */
+.selectClear {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    margin-right: 6px;
+    color: #c4b89e;
+    background: transparent;
+    border: none;
+    border-radius: 50%;
+    transition: all var(--animal-motion-duration-fast) var(--animal-motion-ease);
+    /* hover: color #725d42, background rgba(114, 93, 66, 0.1) */
+    /* :focus-visible: outline 2px solid #19c8b9 */
+}
+
+.selectDropdown {
+    position: absolute; /* offsets are computed in JS and flip against the viewport */
+    padding: 12px 0;
+    background: #ffeea0;
+    border-radius: 28px;
+    z-index: 100;
+    animation: dropdownFadeIn 0.2s ease forwards;
 }
 .selectOption {
-    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 30px 10px 14px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #725d42;
+    white-space: nowrap;
     cursor: pointer;
-    color: @text-color-body;
+    /* hover / active: weight 700 */
+    /* hover::before: 10px #f5a623 triangle marker sliding in from the left */
 }
-.selectOption.isActive { background: @primary-color-bg; color: @primary-color; }
-.selectOption.isSelected { font-weight: 600; }
+.selectOptionPillBar {
+    /* selected marker: height 14px, margin 0 20px, background #ffcc00, opacity 0.3, radius 7px */
+}
+.selectNotFound {
+    padding: 10px 14px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #a09080;
+    text-align: center;
+    white-space: nowrap;
+}
 ```
 
-> Full interaction behavior: roving keyboard focus, scroll-into-view for the selected option, and click-outside to close.
+> Full interaction behavior: roving keyboard focus, viewport-aware dropdown flipping, and click-outside to close. With `showSearch` the trigger's `<input>` carries `role="combobox"` (ARIA 1.2) instead of the trigger `<div>`, and an empty result set renders as a disabled `role="option"` so the `listbox` always has a valid child.
 
 ## DatePicker
 
-Calendar popup date selector; value is a plain `YYYY-MM-DD` string (no date library, zero runtime deps). The trigger
+Calendar popup date selector; value is a plain `YYYY-MM-DD` string (the panel's date arithmetic runs on dayjs, see
+[ADR 0005](../../adr/0005-dayjs-as-the-date-layer.md)). The trigger
 follows the Input visual spec; the popup panel is a cream card with month/year/date three-level switching.
 
 **Trigger (matches Input):**
@@ -471,41 +644,3 @@ is its own circle.
 the old range highlight gives way: hovering a later date highlights `[start, hover]` with the hovered date as the
 pending end; hovering an earlier date highlights `[hover, start]` in reverse, marking the hovered date as the new
 pending start (clicking it resets the start). This follows the mainstream range-picker interaction model.
-
-## TimePicker
-
-Time popup selector; value is a plain `HH:mm:ss` string (no date library, zero runtime deps). The trigger follows the
-Input visual spec (cream pill, no border); the panel holds three scrollable columns (时 / 分 / 秒) plus a footer.
-
-**Trigger (matches Input):**
-
-| Property    | small | middle | large |
-| ----------- | ----- | ------ | ----- |
-| height      | 32px  | 40px   | 48px  |
-| padding     | `0 14px` | `0 18px` | `0 22px` |
-| font-size   | 12px  | 14px   | 16px  |
-| border-radius | 40px | 50px   | 50px  |
-
-```css
-background: #fffbe7;      /* no border, same as Input */
-/* hover */ box-shadow: 0 3px 0 0 #c4b89e;
-/* open/focus */ box-shadow: 0 3px 0 0 #e0b800, 0 0 0 3px rgba(255, 204, 0, 0.15);
-/* error */ box-shadow: 0 3px 0 0 #c94444;
-/* warning */ box-shadow: 0 3px 0 0 #dba90e;
-/* disabled */ background: #ece8dc; box-shadow: none; opacity: 0.6;
-```
-
-**Panel** (248px wide, narrowing to 172px when `format` omits `ss`): three columns titled 时 / 分 / 秒 (`format`
-without `ss` hides the seconds column); each column is a scrollable list of pill options (28px tall, radius 16px):
-
-```css
-/* option */ color: #725d42; border-radius: 16px;
-/* option hover */ background: #ffd54f; color: #725d42;
-/* selected option */ background: #ffb400; color: #fff; font-weight: 700;
-```
-
-**Footer** — `此刻` (sets the pending value to the current time) + `确定` (commits via `onChange` and closes with the
-0.2s exit animation). Picking a column value updates the trigger live; Esc / click-outside discards the pending value.
-
-**Interaction:** keyboard Enter/Space/ArrowDown opens, Enter confirms, Esc closes; `hourStep` / `minuteStep` /
-`secondStep` filter the column options.

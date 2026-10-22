@@ -20,7 +20,7 @@ const TOKENS: { pattern: RegExp; color: string }[] = [
     // # 注释（含目录树行内注释）
     { pattern: /#.*$/, color: COLORS.comment },
     // 目录树连接字符
-    { pattern: /[├└]──|│/, color: COLORS.tree },
+    { pattern: /[\u251C\u2514]\u2500\u2500|\u2502/, color: COLORS.tree },
     // 引号字符串
     { pattern: /'[^']*'|"[^"]*"/g, color: COLORS.string },
     // 文件名（带扩展名）

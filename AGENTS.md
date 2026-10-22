@@ -1,9 +1,9 @@
 # AGENTS.md — working in this repository
 
-animal-island-ui is a React 18 + TypeScript 5.7 component library (30 components, Less
+animal-island-ui is a React 18 + TypeScript 5.7 component library (40 components, Less
 Modules, Vite 7 library build, Vitest 4) inspired by a cozy island-style UI.
 One runtime dependency: `naive-icons` (the icon set); everything else is a peerDependency
-or devDependency. CC BY-NC 4.0 (non-commercial).
+or devDependency. MIT License.
 
 This file is the entry point for coding agents. It routes; the referenced docs hold the
 detail. Keep it lean — add new rules to the docs below, not here.
@@ -62,6 +62,50 @@ automated check — a new component must be registered in three places by hand:
 `demo/pageInfo.ts`, `demo/ComponentPage.tsx` (`PAGE_INFO` + `PAGES`), and
 `demo/HomePage.tsx` (`components` list). If a demo menu click shows a blank main area,
 check `ComponentPage.tsx`'s internal `PAGE_INFO` first.
+
+## Comments
+
+Comments here are read by agents first. An agent can already read the code; it
+cannot run the experiment that exposed the bug, and it does not have the commit
+history. So the bar is narrow: **write a comment only for what cannot be
+recovered by reading the file.** Anything inferable from the code is noise to an
+agent too — restating it costs tokens and buries the few lines that matter.
+
+When something is worth writing, say _why this way and not that way_, and prefer
+an invariant over the current numbers so the comment survives the next rewrite.
+
+**Add one when**
+
+- the wrong version compiles and passes tests but misbehaves at runtime —
+  `if (event.button === 0)` looks redundant until you learn React's
+  `onMouseDown` fires for every button, so dropping the guard lets a right-drag
+  create an event
+- the reason came from a measurement, not from reading the code — a `Dayjs`
+  object is a fresh reference every render, so putting it in a `useMemo` dep
+  array never hits the memo; nothing in review reveals this
+- it is a public contract the signature does not imply — `events` is memoised by
+  array reference, so mutating `start` / `end` in place changes nothing
+- two files must agree and nothing enforces it — a TS constant and its LESS twin
+
+**Do not comment**
+
+- what the code plainly does, or the statement above it
+- a rationale already given by a sibling comment in the same file — one
+  explanation per fact, not one per occurrence
+- history (`changed from … to …` is what `git blame` is for)
+- a fixed bug, once the trap it guarded against is gone
+- arithmetic the next line already shows
+
+**Keep comments true across edits — this is the part that rots.** Name or derive
+values from their constant instead of copying them. **Whenever you edit code,
+re-read the comments sitting directly above it**: they outlive the edit that
+introduced them and are the first thing to go stale and mislead.
+
+In tests, comment the premise — why this setup is the failing case, what a magic
+date is — never the assertion.
+
+Keep comment density near the repo norm (~9% median across `src/components/`);
+if a file you touched is noticeably denser, most of what was added is restatement.
 
 ## Ground rules
 

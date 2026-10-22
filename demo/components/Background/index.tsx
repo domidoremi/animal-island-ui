@@ -8,7 +8,7 @@ const dispatchPageBg = (type: BackgroundType | 'reset') => () =>
     window.dispatchEvent(new CustomEvent('demo-bg-easter-egg', { detail: type }));
 
 const BACKGROUND_TYPE_UNION =
-    "'default' | 'grid' | 'dots-dark-green' | 'sprinkles' | 'sweet-corner' | 'coffee-break' | 'dots-pink' | 'dots-purple' | 'dots-blue' | 'dots-yellow' | 'dots-orange' | 'dots-teal' | 'dots-green' | 'dots-red' | 'dots-lime-green' | 'dots-yellow-green' | 'dots-brown' | 'dots-warm-peach-pink'";
+    "'default' | 'grid' | 'dots-dark-green' | 'sprinkles' | 'sweet-corner' | 'coffee-break' | 'dots-pink' | 'dots-purple' | 'dots-blue' | 'dots-yellow' | 'dots-orange' | 'dots-teal' | 'dots-green' | 'dots-red' | 'dots-lime-green' | 'dots-yellow-green' | 'dots-brown' | 'dots-warm-peach-pink' | 'dots-gray'";
 
 const BACKGROUND_API: ApiRow[] = [
     {
@@ -40,7 +40,7 @@ const previewBox: React.CSSProperties = {
     fontSize: 15,
 };
 
-// 全部 18 种类型（type / 中文名 / 文字色），dots-* 底色对应 Card pattern-* 系列，文字色与 Card pattern 系列保持一致
+// 全部 19 种类型（type / 中文名 / 文字色），dots-* 底色对应 Card pattern-* 系列，文字色与 Card pattern 系列保持一致
 const CARD_COLORS: ReadonlyArray<[BackgroundType, string, string]> = [
     ['default', '奶油色波点（默认）', '#725d42'],
     ['grid', '网格', '#725d42'],
@@ -60,12 +60,13 @@ const CARD_COLORS: ReadonlyArray<[BackgroundType, string, string]> = [
     ['dots-yellow-green', '黄绿色', '#6a5a28'],
     ['dots-brown', '棕色', '#5a4a2a'],
     ['dots-warm-peach-pink', '暖桃粉', '#8a4a2a'],
+    ['dots-gray', '浅灰波点', '#5a5a5a'],
 ];
 
 const BackgroundDemo: React.FC = () => (
     <div style={sectionStyle}>
         <div style={sectionTitleStyle}>
-            Background <DemoTag>18 types · Card pattern base · 2 scene images</DemoTag>
+            Background <DemoTag>19 types · Card pattern base · 2 scene images</DemoTag>
         </div>
         <div style={labelStyle}>全部类型（dots-* 底色对应 Card pattern-* 系列，hover 预览整站壁纸）</div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>

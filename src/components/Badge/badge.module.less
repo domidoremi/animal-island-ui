@@ -1,0 +1,177 @@
+// ============================================
+// Badge —— 徽标数
+// 图标 / 头像右上角的圆形角标：数字、封顶数字、小红点
+// 配色与 Card / Tag 调色板对齐
+// ============================================
+
+.badge {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    vertical-align: middle;
+    line-height: 1;
+    font-family: inherit;
+}
+
+.indicator {
+    // 定位位移抽成变量，让出场动画在「独立使用」下也能复用同一组 keyframes
+    --badge-shift-x: 50%;
+    --badge-shift-y: -50%;
+
+    position: absolute;
+    top: 0;
+    right: 0;
+    z-index: 1;
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transform: translate(var(--badge-shift-x), var(--badge-shift-y));
+    transform-origin: 100% 0;
+    background: #fc736d;
+    color: #fff;
+    font-family: inherit;
+    font-weight: 700;
+    line-height: 1;
+    white-space: nowrap;
+    border-radius: 999px;
+    // 奶油色描边：与 Avatar 的贴纸描边一致，把角标从被覆盖的元素上分离出来
+    border: 2px solid var(--animal-bg-color, #f8f8f0);
+    box-shadow: var(--animal-shadow-sm, 0 2px 4px 0 rgba(61, 52, 40, 0.06));
+    animation: animal-badge-zoom-in 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+// ---------- 独立使用 ----------
+// 没有覆盖目标：取消位移与奶油色描边，角标落回正常文档流
+.standalone .indicator {
+    position: static;
+    --badge-shift-x: 0;
+    --badge-shift-y: 0;
+    border-color: transparent;
+    box-shadow: none;
+}
+
+// ---------- Size ----------
+// 字号按内腔算：2px 奶油描边吃掉 4px，medium 的 20px 圆只剩 16px 内腔，
+// 12px 字号下「99」约 13.5px 宽（占 84%），数字快顶到边上，因此降一档。
+.size-medium {
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    font-size: 10px;
+}
+
+.size-small {
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    font-size: 9px;
+}
+
+// ---------- Circle (1–2 位内容) ----------
+// min-width + 左右 padding 会让两位数比高度宽（12px 字号下「99」约
+// 14px 文字 + 12px padding = 26px，而高只有 20px），渲染成 26×20 的扁
+// 胶囊而不是正圆。内容 ≤ 2 位时锁死 width == height，999px 圆角才成立；
+// 水平垂直居中由 .indicator 的 flex 居中保证。
+// 两格全角字（如「热更」）宽度超出圆直径，组件侧会判定为非正圆。
+.size-medium.circle {
+    width: 20px;
+    min-width: 0;
+    padding: 0;
+}
+
+.size-small.circle {
+    width: 16px;
+    min-width: 0;
+    padding: 0;
+}
+
+// ---------- Dot ----------
+// 定义在 size 之后，覆盖尺寸类的宽高
+.dot {
+    width: 10px;
+    min-width: 0;
+    height: 10px;
+    padding: 0;
+}
+
+// ---------- Color ----------
+// 与 Card / Tag 同一调色板；浅色底（app-yellow / lime-green / yellow-green）换深色文字保证可读
+.color-app-red {
+    background: #fc736d;
+    color: #fff;
+}
+
+.color-app-pink {
+    background: #f8a6b2;
+    color: #fff;
+}
+
+.color-app-orange {
+    background: #e59266;
+    color: #fff;
+}
+
+.color-app-yellow {
+    background: #f7cd67;
+    color: #725d42;
+}
+
+.color-app-teal {
+    background: #82d5bb;
+    color: #fff;
+}
+
+.color-app-green {
+    background: #8ac68a;
+    color: #fff;
+}
+
+.color-app-blue {
+    background: #889df0;
+    color: #fff;
+}
+
+.color-purple {
+    background: #b77dee;
+    color: #fff;
+}
+
+.color-lime-green {
+    background: #d1da49;
+    color: #3d5a1a;
+}
+
+.color-yellow-green {
+    background: #ecdf52;
+    color: #725d42;
+}
+
+.color-brown {
+    background: #9a835a;
+    color: #fff;
+}
+
+.color-warm-peach-pink {
+    background: #e18c6f;
+    color: #fff;
+}
+
+// ---------- Motion ----------
+@keyframes animal-badge-zoom-in {
+    from {
+        opacity: 0;
+        transform: translate(var(--badge-shift-x), var(--badge-shift-y)) scale(0.6);
+    }
+
+    to {
+        opacity: 1;
+        transform: translate(var(--badge-shift-x), var(--badge-shift-y)) scale(1);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .indicator {
+        animation: none;
+    }
+}

@@ -64,10 +64,9 @@ The full script list is in [repository-structure.md](./repository-structure.md).
 - Changed component count or coverage? Run `npm run badges` so `README.md` and `docs/README.zh-CN.md` stay in sync.
 - Changed an English file under `docs/`? Update its `docs/zh-CN/` counterpart in the same commit — `npm run check:docs`
   fails otherwise.
-- Added a runtime dependency? Don't — `naive-icons` is the only one; see
-  [build-and-release.md](./build-and-release.md) and [ADR 0001](../adr/0001-zero-runtime-dependencies.md).
+- Added a runtime dependency? Don't — `naive-icons` and `dayjs` are the only two; see
+  [build-and-release.md](./build-and-release.md) and [ADR 0005](../adr/0005-dayjs-as-the-date-layer.md).
 
 ## License
 
-Contributions are licensed under CC BY-NC 4.0, the license of this repository (see `LICENSE`). Commercial use is not
-permitted.
+Contributions are licensed under the MIT License, the license of this repository (see `LICENSE`).

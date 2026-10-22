@@ -7,10 +7,18 @@ import styles from './skill.module.less';
 
 type NaiveIcon = React.FC<{ size?: number | string }>;
 
-/** 按图标名解析 naive-icons 图标组件（如 'Book' → BookIcon） */
+/** forwardRef 组件在运行时是带 $$typeof / render 的对象，不是函数 */
+const isComponent = (v: unknown): v is React.FC<{ size?: number | string }> =>
+    typeof v === 'function' || (typeof v === 'object' && v !== null && '$$typeof' in v);
+
+/**
+ * 按图标名解析 naive-icons 图标组件（如 'Book' → BookIcon）
+ * 注意：naive-icons 导出的是 ForwardRefExoticComponent，不能用 typeof === 'function' 判断，
+ * 否则所有图标都会解析失败（Skill 页会一个图标都渲染不出来）。
+ */
 function resolveIcon(name: string): NaiveIcon | null {
     const Cmp = (Icons as Record<string, unknown>)[`${name}Icon`];
-    return typeof Cmp === 'function' ? (Cmp as NaiveIcon) : null;
+    return isComponent(Cmp) ? Cmp : null;
 }
 
 // ============================================

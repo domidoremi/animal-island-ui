@@ -9,7 +9,9 @@ type NaiveIcon = React.FC<{ size?: number | string; color?: string; style?: Reac
 /** 按图标名解析 naive-icons 图标组件（如 'Heart' → HeartIcon） */
 function resolveIcon(name: string): NaiveIcon | null {
     const Cmp = (Icons as Record<string, unknown>)[`${name}Icon`];
-    return typeof Cmp === 'function' ? (Cmp as NaiveIcon) : null;
+    // naive-icons 1.1.0 起组件由 forwardRef 创建（返回 {$$typeof, render} 对象而非函数）；
+    // 兼容两种形态，避免 `typeof === 'function'` 判定失败导致图标不渲染
+    return Cmp !== null && Cmp !== undefined ? (Cmp as NaiveIcon) : null;
 }
 
 // ============================================
@@ -271,6 +273,7 @@ const S = {
     } as React.CSSProperties,
     heroSubtitle: {
         fontSize: 17,
+        fontWeight: 500,
         color: '#7c5734',
         lineHeight: 1.7,
         margin: '0 0 28px',
@@ -391,6 +394,9 @@ const S = {
         marginBottom: 12,
     } as React.CSSProperties,
     footerLink: {
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 4,
         fontSize: 13,
         color: '#7c5734',
         cursor: 'pointer',
@@ -409,7 +415,7 @@ const features: Array<{ icon: string; title: string; desc: string }> = [
     {
         icon: 'Star',
         title: '30+ 个组件',
-        desc: 'Button / Input / Switch / Modal / Form / Table / Title / Tooltip / Typewriter / Card / Collapse / Cursor / Divider / Footer / Icon / Checkbox / Select / DatePicker / TimePicker / Tabs / CodeBlock / Radio / Tag / Notification / Progress',
+        desc: 'Button / Input / Switch / Modal / Form / Table / Title / Tooltip / Typewriter / Card / Collapse / Cursor / Divider / Footer / Icon / Checkbox / Select / DatePicker / TimePicker / Tabs / CodeBlock / Radio / Tag / Notification / Progress / CountUp',
     },
     {
         icon: 'Paintbrush',
@@ -436,9 +442,12 @@ const components = [
         desc: '受控/非受控、自定义文案、加载状态',
     },
     { key: 'checkbox', name: 'Checkbox', desc: '多选框组件，支持水平/垂直排列' },
+    { key: 'rate', name: 'Rate', desc: '评分组件，支持悬停预览与只读展示' },
     { key: 'date-picker', name: 'DatePicker', desc: '日期选择与范围选择，年/月/日面板、禁用日期、键盘导航' },
     { key: 'time-picker', name: 'TimePicker', desc: '时间选择，时/分/秒滚选、此刻/确定、步进' },
+    { key: 'calendar', name: 'Calendar', desc: '轻量月面板日历，事项通知与跨日期连续条' },
     { key: 'time', name: 'Time', desc: '实时时钟卡片，星期 + 月日 + HH:MM 每秒刷新' },
+    { key: 'countup', name: 'CountUp', desc: '计分数字滚动，缓动可调，结束可庆祝动效' },
     {
         key: 'pagination',
         name: 'Pagination',
@@ -455,6 +464,8 @@ const components = [
     { key: 'codeblock', name: 'CodeBlock', desc: '代码语法高亮组件' },
     { key: 'background', name: 'Background', desc: '奶油/深绿波点 + 彩色针糖 + 12 色 Card pattern 底色壁纸' },
     { key: 'image', name: 'Image', desc: '白色衬板图片，支持懒加载 / 点击预览' },
+    { key: 'avatar', name: 'Avatar', desc: '图片/图标/文字头像，圆形方形，头像组叠加与折叠' },
+    { key: 'badge', name: 'Badge', desc: '图标/头像右上角角标，封顶数字、小红点、独立使用' },
     { key: 'carousel', name: 'Carousel', desc: '自动播放、箭头/圆点与键盘导航' },
 ];
 
@@ -586,7 +597,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                                     Animal <br /> Island UI
                                 </>
                             )}
-                            <span style={S.heroVersion}>v1.12.0</span>
+                            <span style={S.heroVersion}>v2.2.1</span>
                         </h1>
                         <Typewriter speed={60}>
                             <p style={{ ...S.heroSubtitle, fontSize: isMobile ? 14 : 17 }}>
@@ -595,7 +606,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                         </Typewriter>
                         {/* 暂时隐藏：恢复时去掉 display: 'none' */}
                         <div style={{ ...S.heroActions, justifyContent: isMobile ? 'center' : 'flex-start' }}>
-                            <Button type="primary" size="large" onClick={() => onNavigate?.('/title')}>
+                            <Button type="primary" size="large" onClick={() => onNavigate?.('/skill')}>
                                 开始使用 →
                             </Button>
                         </div>
@@ -711,10 +722,23 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                         style={S.footerLink}
                         onClick={() => window.open('https://github.com/guokaigdg/animal-island-ui', '_blank')}
                     >
+                        <svg
+                            className="footer-link-icon"
+                            viewBox="0 0 16 16"
+                            width={14}
+                            height={14}
+                            aria-hidden="true"
+                            style={{ verticalAlign: 'middle', transform: 'translateY(-1px)' }}
+                        >
+                            <path
+                                fill="currentColor"
+                                d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"
+                            />
+                        </svg>
                         GitHub
                     </span>
                 </div>
-                <div>MIT License · React + TypeScript + Vite</div>
+                <div>© 2026 Animal Island. All Rights Reserved · MIT License</div>
             </div>
         </div>
     );

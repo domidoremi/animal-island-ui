@@ -1,14 +1,18 @@
 // ============================================
 // Progress — Animal Island Style
-// 进度条，fill（当前进度）背景为 sweet-corner.svg 场景图（组件内联注入）
+// 描边岛屿 Outlined：奶油轨道 + 2px 实描边，fill 为薄荷竖向渐变
+// 传 variant 时 fill 改为场景图（组件内联注入 background-image 覆盖渐变）
 // ============================================
 
 // ---------- Tokens (avoid importing variables.less in module CSS) ----------
-@stripe-bg: #f8f8f0; // fill 底色兜底（背景图加载前）
-
-@track-bg: #f8f8f0;
-@track-border: #e8dcc8;
-@track-inner: rgba(114, 93, 66, 0.08);
+@track-bg: #f8f8f0; // 轨道底色（与原始波点轨道一致：波点是半透明叠在底色上的，底色一变点就变味）
+@track-border: #e2d6bd; // 轨道描边
+@fill-top: #3dd4c6; // fill 渐变顶（primary-hover）
+@fill-mid: #19c8b9; // fill 渐变中（primary）
+@fill-bottom: #14b6a8; // fill 渐变底（略深，压出体积感）
+@fill-highlight: rgba(255, 255, 255, 0.45); // fill 顶部内高光
+@fill-done-top: #7fe0d5; // 100% 完成态渐变顶
+@fill-done-bottom: #3dd4c6; // 100% 完成态渐变底
 
 @text-on-track: #725d42;
 
@@ -47,25 +51,29 @@
 }
 
 // ---------- Track ----------
+// 实描边替掉原先的内阴影凹槽：内阴影在浅色底上几乎看不出凹陷，
+// 描边则无论轨道落在什么底色上都能界定边界。波点只保留原来的小点层
+// （28px 大点层去掉——描边已经在勾边，再叠大点会显脏）。
+// 点径从原来的 1px 提到 1.5px：2px 描边把画布吃掉了 4px（14px 档内腔
+// 只剩 10px），原尺寸的点在这个更小的画布里显得又小又稀。
+// 颜色 rgba(196,184,158,0.1)、14px 网格、7px 偏移均未改。
+// background-origin 默认 padding-box，所以波点从描边内侧起画。
 .track {
     position: relative;
+    box-sizing: border-box; // 高度含描边，保证 size 的 14/24/32px 是总高
     flex: 1 1 auto;
     width: 100%;
     min-width: 80px;
-    // 奶油色波点底（与 Background default / Card pattern-default 一致），fill 场景图覆盖其上
     background:
-        radial-gradient(circle, rgba(196, 184, 158, 0.15) 1.5px, transparent 1.5px) 0 0 / 28px 28px,
-        radial-gradient(circle, rgba(196, 184, 158, 0.1) 1px, transparent 1px) 7px 7px / 14px 14px,
+        radial-gradient(circle, rgba(196, 184, 158, 0.1) 1.5px, transparent 1.5px) 7px 7px / 14px 14px,
         @track-bg;
-    // border: 1px solid @track-border;
-    box-shadow: inset 0 2px 4px @track-inner;
+    border: 2px solid @track-border;
+    border-radius: 999px; // pill
     overflow: hidden;
-    border-radius: 999px;
 }
 
 .track.size-small {
     height: 14px;
-    border-width: 1.5px;
 }
 
 .track.size-middle {
@@ -76,7 +84,9 @@
     height: 32px;
 }
 
-// ---------- Fill (当前进度：sweet-corner.svg 场景图铺满，由 Progress.tsx 内联背景注入) ----------
+// ---------- Fill (当前进度) ----------
+// 默认竖向渐变 + 顶部内高光；传 variant 时 Progress.tsx 内联注入的
+// background-image 会整体覆盖这条渐变，场景图直接生效。
 .fill {
     position: absolute;
     top: 0;
@@ -84,18 +94,20 @@
     bottom: 0;
     width: 0;
     border-radius: 999px;
-    // 底色兜底；实际背景图（sweet-corner.svg，cover 铺满）由组件内联样式注入，替换原 -45° 条纹
-    // background-color: @stripe-bg;
+    background: linear-gradient(180deg, @fill-top 0%, @fill-mid 60%, @fill-bottom 100%);
+    box-shadow: inset 0 2px 0 @fill-highlight;
     transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
     overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    padding-right: 4px;
 }
 
 .fill.noTransition {
     transition: none;
+}
+
+// 100% 完成态：提亮为主，整体读作「已抵达」而不是「还在加载」。
+// 挂在根节点的 aria-valuenow 上，无需改动组件逻辑。
+.progress[aria-valuenow='100'] .fill {
+    background: linear-gradient(180deg, @fill-done-top 0%, @fill-done-bottom 100%);
 }
 
 // ---------- Reduced motion ----------

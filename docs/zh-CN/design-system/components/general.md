@@ -129,31 +129,60 @@ Props：
 </Cursor>
 ```
 
-样式文件为 **普通 CSS**（`cursor.css`，非 module）：`type` prop（默认 `'default'`）选择两种风格 —— `'default'` 手指箭头（28×28 内联 SVG，hotspot `6 4`）、`'raindrop'` 蓝色雨滴（32×32 内联 SVG，带浅色高光椭圆，hotspot `16 6`）；`forceAll` prop（默认 `true`）选择两种模式。根 `<div>` 挂 `animal-cursor` 加一个模式 class（雨滴风格额外追加 `animal-cursor--raindrop`）：
+样式文件为 **普通 CSS**（`cursor.css`，非 module）。`type` prop 选择两种风格，`forceAll` prop（默认 `true`）选择两种模式。根 `<div>` 挂 `animal-cursor` 加一个模式 class（雨滴风格追加 `animal-cursor--raindrop`）：
+
+- `'default'` —— 粗描边圆角箭头，32×32 内联 SVG，hotspot `8 5`
+- `'raindrop'` —— 蓝色水滴，32×32 内联 SVG，带浅色高光椭圆，hotspot `16 6`
+
+**箭头做法。** 箭头沿用经典的七顶点指针轮廓（`M6 4 L6 21 L10.5 16.5 L13.5 23 L16.8 21.5 L13.8 15.2 L20.5 15.2 Z`），但**每个角都圆化、描边刻意加粗** —— 这两件事凑一起就是这种风格的全部。粗轮廓裹住一小块亮色内芯，无论多大都读起来是厚实的贴纸式指针；细轮廓则只会读成线稿。剪影整体缩放 `1.12`，让图形连描边占 32×32 画布高约 75%：早先的 28×28 版本留白太多，被迫把描边加粗到亮色内芯整个消失。描边粗细因此按**图形宽度的比例（约 15%）**表达，而不是固定像素值，改缩放就得跟着重算。
+
+**改缩放系数不是一次等比编辑。** 系数只作用在七个基准顶点上；左缘那 `1.8` 的倾角和 `④` 上手工挪的 `1.2` 是在缩放**之后**叠加的，因此不跟着缩。`1.36` 时轴角是 `61.62°`、两条边长是 `23.19` / `7.87`；`1.12` 时轴角变成 `61.14°`、边长变成 `19.12` / `6.35`。**改缩放后下面每个数值都要重新量，绝不能按比例推。** 描边仍固定 `2.75`，所以剪影一小，它占外廓宽的比例就从 13.1% 升到 15.4% —— 这是故意的，小一号的光标同样需要同等视觉重量的轮廓；但 `1.12` 已经到实际下沿，再往下亮色内芯就合拢了。
+
+圆角的做法是每个角变成一条 `Q`、控制点落在原顶点上，半径逐顶点不统一（尖端 `3.1`、尾部 `2.8`、凹口 `1.2`）。**边本身保持直线**：每条边都是一条显式的 `L`，从上一个角的出点连到下一个角的入点，整条路径读起来是 `L Q L Q …`。第一版只发一串 `Q`、让每条二次曲线从一个角跨到下一个角 —— 边也被同一条曲线渲染了，于是角的控制点会把长边拽出一道约 `1` 个单位的浅弧，左缘最明显。尖端**刻意磨钝**：尖角会和粗描边打架，最后不再像一个光标。填充与描边走**同一条**闭合路径，不需要拆路写法。左缘下方的顶点往右挪 `1.8`，让这条边略微倾斜，带一点手工摆放的动态感。
+
+**整支箭头是严格镜像的。** 只有 `①``②``③``④` 四个顶点是自由的，`⑤``⑥``⑦` 分别是 `④``③``②` 关于「过箭尖、离竖直 28.86°」那条线的镜像。于是两条结论自动成立、**不要手工去"修"**：`①→②` 与 `①→⑦` 都等于 `19.12`，`②→③` 与 `⑥→⑦` 都等于 `6.35`。改一个自由顶点会**连带强制**它的镜像一起动；硬把镜像那一侧推过轴，配对就断了 —— 要动就通过镜像动，别绕过去。
+
+有两个此前的做法值得记下来，因为它们看着挺合理但都是错的：靠把凹口 `⑥` 右移来缩短横臂是自相矛盾的，那会把 `⑥` 推离它的镜像位置，破坏 `②→③ = ⑥→⑦`。另外对称轴**绝不是**竖直 —— 两条长边都约 19 单位长而画布只有 32 宽，真按竖直镜像，左缘会落到负 x。更早一版还独立手调过四个顶点、结果慢慢走样，现在那些偏移全部没有了。
+
+左右「对称」是外缘权重的判断，不是居中：即便把臂尖推到最右，墨迹重心仍然够不到画布中线（当前缩放下是 `14.5` 对 `16`），因为经典箭头天生不对称。调这一轴不要拿重心当依据，按真实 32px 看。
+
+水滴**保持原始几何图形** —— 一条圆角路径加一个高光椭圆。把它一并软化试过又回退了：磨圆水滴的顶端只会让它读起来像一坨。
+
+**选中文本。** `default` 变体还会重设其子树内的选区：底色 `#e9c46a`、文字 `#2b2620`。文字色不是可选项 —— 设计系统的正文色 `#794f27` 压在这个底上只有 **4.25:1**，正文达不到 AA；而 `#2b2620` 能到 **8.97:1**，过 WCAG AAA。
+
+两个变体靠自定义属性（`--animal-selection-bg` / `--animal-selection-fg`）区分，raindrop 那条规则把它们覆写成系统色 `Highlight` / `HighlightText`。这不是为了好看：写成 `.animal-cursor:not(.animal-cursor--raindrop) ::selection` 看着等价，实际会错两处，因为 Cursor 经常是嵌套在另一个 Cursor 里的（demo 就把整页包在一个 `default` Cursor 中）：
+
+- 后代组合器会命中**任意深度**上嵌套在 default 里的 raindrop，于是水滴被刷成 `#2b2620`
+- 顶层 raindrop 则**一条都匹配不上**，静默失去全部选区样式
+
+自定义属性按**最近的声明祖先**取值，所以永远是内层 Cursor 生效，不需要 `!important`，也不用折腾 `:not()`。
+
+**图像存放在 CSS 自定义属性里**，所有变体与模式规则共用；改图只需改每个变体一处声明：
 
 ```css
-/* force 模式（默认，forceAll={true}）：所有后代都使用自定义光标 */
+/* 图像与热点只声明一次，由所有后代继承 */
+.animal-cursor {
+    --animal-cursor-img: url("data:image/svg+xml,…粗描边箭头…");
+    --animal-cursor-hotspot: 8 5;
+}
+.animal-cursor--raindrop {
+    --animal-cursor-img: url("data:image/svg+xml,…水滴…");
+    --animal-cursor-hotspot: 16 6;
+}
+/* force 模式（默认，forceAll={true}）：所有后代都使用自定义光标。
+   自定义属性会继承，因此后代自动解析到正确的风格。 */
 .animal-cursor--force,
 .animal-cursor--force * {
-    cursor:
-        url("data:image/svg+xml,…箭头…") 6 4,
-        default !important;
+    cursor: var(--animal-cursor-img) var(--animal-cursor-hotspot), default !important;
 }
 
-/* 雨滴 force：双类切换 URL 与 hotspot */
-.animal-cursor--force.animal-cursor--raindrop,
-.animal-cursor--force.animal-cursor--raindrop * {
-    cursor:
-        url("data:image/svg+xml,…水滴…") 16 6,
-        default !important;
+/* scoped 模式（forceAll={false}）：仅容器自身使用自定义光标
+   （双类选择器，使嵌套在 force 内的 scoped 仍能胜出） */
+.animal-cursor.animal-cursor--scoped {
+    cursor: var(--animal-cursor-img) var(--animal-cursor-hotspot), default !important;
 }
 
-/* scoped 模式（forceAll={false}）：仅容器本身显示自定义光标 …
-   （双类选择器保证嵌套在 force Cursor 内部的 scoped Cursor 仍能胜出） */
-.animal-cursor.animal-cursor--scoped { cursor: url(…) 6 4, default !important; }
-.animal-cursor.animal-cursor--scoped.animal-cursor--raindrop { cursor: url(…) 16 6, default !important; }
-
-/* … 后代回退浏览器默认语义 */
+/* 后代回落到浏览器语义 */
 .animal-cursor--scoped *,
 .animal-cursor.animal-cursor--scoped * {
     cursor: auto !important;
@@ -195,5 +224,5 @@ Props：
 }
 ```
 
-- `cursor-icon.png` 热点坐标 `(4, 0)`；base64 data URI 是同图 fallback
+- 图像只有内联 SVG —— 不存在 `cursor-icon.png`，也没有 base64 fallback；两种风格都在 `cursor.css` 里定义一次，经 `--animal-cursor-img` 传给每条规则
 - 每条规则都带 `!important`，保证模式语义不被组件级 cursor 样式覆盖；`className` 挂在根 `<div>` 上，与固定的 `animal-cursor` class 并存

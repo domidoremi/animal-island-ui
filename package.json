@@ -84,5 +84,8 @@
         "type": "git",
         "url": "https://github.com/domidoremi/animal-island-ui"
     },
-    "homepage": "https://github.com/domidoremi/animal-island-ui#readme"
+    "homepage": "https://github.com/domidoremi/animal-island-ui#readme",
+    "dependencies": {
+        "dayjs": "^1.11.23"
+    }
 }

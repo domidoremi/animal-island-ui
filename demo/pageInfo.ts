@@ -6,7 +6,7 @@ export const PAGE_INFO: Record<string, { title: string; desc: string }> = {
     },
     input: {
         title: 'Input 输入框',
-        desc: '输入框组件 — 支持三种尺寸、clearable 清除、prefix / suffix 前后缀、error / warning 校验状态、disabled 禁用',
+        desc: '输入框组件 — 支持三种尺寸、allowClear 清除、prefix / suffix 前后缀、error / warning 校验状态、disabled 禁用',
     },
     switch: {
         title: 'Switch 开关',
@@ -50,11 +50,11 @@ export const PAGE_INFO: Record<string, { title: string; desc: string }> = {
     },
     icon: {
         title: 'Icon 图标',
-        desc: '图标组件 — 包含 101 个可爱图标，支持自定义尺寸，手绘特有的笨拙感，有些图标还带着一对小眼睛和微笑。全部图标为原创作品，个人与商业项目均可自由使用。',
+        desc: '图标组件 — naive-icons 手绘 SVG 图标库，125 个可爱图标，支持自定义尺寸与描边颜色。全部图标为原创作品，个人与商业项目均可自由使用。',
     },
     select: {
         title: 'Select 选择器',
-        desc: '下拉选择器组件 — 支持自定义选项列表，高亮当前选中项',
+        desc: '下拉选择器组件 — 支持自定义选项列表、allowClear 清空、showSearch 关键字过滤、键盘导航',
     },
     'date-picker': {
         title: 'DatePicker 日期选择',
@@ -63,6 +63,10 @@ export const PAGE_INFO: Record<string, { title: string; desc: string }> = {
     'time-picker': {
         title: 'TimePicker 时间选择',
         desc: '时间选择组件 — 时/分/秒三列滚选，此刻/确定快捷操作，支持受控/非受控、自定义格式、时/分/秒步进、allowClear 清空与键盘导航',
+    },
+    calendar: {
+        title: 'Calendar 日历',
+        desc: '日历组件（轻量月面板）— 事项通知与跨日期连续条、拖拽跨日期创建事项、受控/非受控与键盘导航',
     },
     tabs: {
         title: 'Tabs 标签页',
@@ -75,6 +79,10 @@ export const PAGE_INFO: Record<string, { title: string; desc: string }> = {
     radio: {
         title: 'Radio 单选框',
         desc: '单选框组件 — 支持受控/非受控、水平/垂直排列、三种尺寸、禁用单项或全部禁用',
+    },
+    rate: {
+        title: 'Rate 评分',
+        desc: '评分组件 — 支持受控/非受控、三种尺寸、只读展示',
     },
     tooltip: {
         title: 'Tooltip 气泡提示',
@@ -116,6 +124,10 @@ export const PAGE_INFO: Record<string, { title: string; desc: string }> = {
         title: 'Form 表单',
         desc: '表单组件 — 支持 useForm 命令式实例、多种校验规则、三种布局（horizontal / vertical / inline）、labelCol / wrapperCol 网格',
     },
+    upload: {
+        title: 'Upload 上传',
+        desc: '文件上传组件 — 点击 / 拖拽两种触发方式，text 与 picture-card 两种列表形态，beforeUpload 拦截、maxCount 上限、customRequest 接入真实上传，内置模拟进度',
+    },
     skeleton: {
         title: 'Skeleton 骨架屏',
         desc: '骨架屏加载占位组件 — 四种变体（text / circle / rect / paragraph），包含 Skeleton.Button / Skeleton.Input / Skeleton.Avatar 子组件，支持 loading 切换动画',
@@ -128,9 +140,21 @@ export const PAGE_INFO: Record<string, { title: string; desc: string }> = {
         title: 'Image 图片',
         desc: '图片组件 — 白色衬板相框 + 错误占位，支持懒加载、点击预览',
     },
+    avatar: {
+        title: 'Avatar 头像',
+        desc: '头像组件 — 图片 / 图标 / 文字三种形态，圆形 / 方形两种形状，预设三档与任意数值尺寸，图片加载失败自动回退，支持头像组叠加与超出折叠',
+    },
+    badge: {
+        title: 'Badge 徽标数',
+        desc: '徽标数组件 — 图标 / 头像右上角的圆形角标，支持数字、封顶数字（99+）、小红点、独立使用、两种尺寸与 12 色多彩徽标',
+    },
     countdown: {
         title: 'Countdown 倒计时',
         desc: '倒计时组件 — 接收结束时间，支持天/时/分/秒格式、三种尺寸、两种风格与归零回调',
+    },
+    countup: {
+        title: 'CountUp 数字滚动',
+        desc: '计分动效组件 — 从 start 滚到 end，支持缓动曲线、千分位 / 小数位格式化、暂停继续，以及结束时的庆祝动效（可附任意文案贴纸）',
     },
     time: {
         title: 'Time 时钟',

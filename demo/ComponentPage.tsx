@@ -5,6 +5,7 @@ import IconDemo from './components/Icon/IconDemo';
 import TabsDemo from './components/Tabs';
 import CheckboxDemo from './components/Checkbox';
 import RadioDemo from './components/Radio';
+import RateDemo from './components/Rate';
 import TooltipDemo from './components/Tooltip';
 import TitleDemo from './components/Title';
 import CodeBlockDemo from './components/CodeBlock';
@@ -12,6 +13,7 @@ import TableDemo from './components/Table/TableDemo';
 import PaginationDemo from './components/Pagination';
 import DrawerDemo from './components/Drawer/DrawerDemo';
 import FormDemo from './components/Form';
+import UploadDemo from './components/Upload';
 import TagDemo from './components/Tag';
 import NotificationDemo from './components/Notification';
 import ProgressDemo from './components/Progress';
@@ -19,6 +21,8 @@ import LoadingDemo from './components/Loading';
 import SkeletonDemo from './components/Skeleton';
 import BackTopDemo from './components/BackTop';
 import ImageDemo from './components/Image';
+import AvatarDemo from './components/Avatar';
+import BadgeDemo from './components/Badge';
 import ButtonDemo from './components/Button';
 import InputDemo from './components/Input';
 import SwitchDemo from './components/Switch';
@@ -30,9 +34,11 @@ import TypewriterDemo from './components/Typewriter';
 import DividerDemo from './components/Divider';
 import BackgroundDemo from './components/Background';
 import SelectDemo from './components/Select';
+import CalendarDemo from './components/Calendar';
 import DatePickerDemo from './components/DatePicker';
 import TimePickerDemo from './components/TimePicker';
 import CountdownDemo from './components/Countdown';
+import CountUpDemo from './components/CountUp';
 import TimeDemo from './components/Time';
 import CarouselDemo from './components/Carousel';
 import SkillDemo from './components/Skill';
@@ -64,9 +70,11 @@ const PAGES: Record<string, React.FC> = {
     select: SelectDemo,
     'date-picker': DatePickerDemo,
     'time-picker': TimePickerDemo,
+    calendar: CalendarDemo,
     tabs: TabsDemo,
     checkbox: CheckboxDemo,
     radio: RadioDemo,
+    rate: RateDemo,
     tooltip: TooltipDemo,
     title: TitleDemo,
     codeblock: CodeBlockDemo,
@@ -77,10 +85,14 @@ const PAGES: Record<string, React.FC> = {
     progress: ProgressDemo,
     loading: LoadingDemo,
     form: FormDemo,
+    upload: UploadDemo,
     skeleton: SkeletonDemo,
     backtop: BackTopDemo,
     image: ImageDemo,
+    avatar: AvatarDemo,
+    badge: BadgeDemo,
     countdown: CountdownDemo,
+    countup: CountUpDemo,
     time: TimeDemo,
     carousel: CarouselDemo,
     skill: SkillDemo,

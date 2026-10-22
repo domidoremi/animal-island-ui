@@ -8,7 +8,14 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 /**
  * a11y 烟雾测试专用配置
- * 独立于 vitest.config.ts，避免把 test/a11y.test.tsx 纳入 npm run test:run / ci
+ * 独立于 vitest.config.ts：主配置的 include 只覆盖 src/**，a11y 测试放在 test/ 下，
+ * 因此需要单独的 include 才能被收集。test/a11y.test.tsx 是跨组件集成测试，不归属任何单个组件。
+ *
+ * 为什么单独一个 config（而不是把 test/** 塞进主配置的 include）：
+ *   - test:cov 的覆盖率口径保持只统计 src/ 下的单测，a11y 不参与阈值计算
+ *   - 日常跑单测时 a11y 仍是独立的一档，可单独调试
+ * 注意：npm run test:run 会串联本 config，所以「全绿」= 单测 + a11y 都跑过了，
+ *      不要用 npx vitest run 直接指向 test/a11y.test.tsx（会被主配置的 include 过滤掉）。
  *
  * 与主配置唯一差异：
  *   - include 只指向 test/a11y.test.tsx

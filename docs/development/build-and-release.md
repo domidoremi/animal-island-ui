@@ -34,9 +34,15 @@ build logic without preserving the following breaks consumer tree-shaking:
   and `./items/*` to the copied item assets.
 - `sideEffects: false` lets bundlers drop unused modules.
 - `files` limits the published tarball to the build output plus the top-level type shim and docs.
-- `dependencies` holds exactly one runtime dependency, `naive-icons` (the icon set; pure
-  React + SVG, no transitive tree). Everything else third-party is a peerDependency or a
-  devDependency. Do not add further runtime dependencies.
+- `dependencies` holds exactly two runtime dependencies, both pure and dependency-free:
+  `naive-icons` (the icon set) and `dayjs` (the date layer, per
+  [ADR 0005](../adr/0005-dayjs-as-the-date-layer.md)). Everything else third-party is a
+  peerDependency or a devDependency. `dayjs` stays **out** of the `external` list, so it is
+  emitted once under `dist/**/node_modules/dayjs/` and shared by the date and time
+  components of this package — consumers get it without a separate install, though a host
+  application importing its own `dayjs` can still end up with an independent instance that
+  shares neither locale nor plugins. `preserveModules` still drops it for consumers who
+  import none. Do not add further runtime dependencies.
 
 `prepublishOnly` runs `npm run build`, so a publish always ships a fresh artifact.
 

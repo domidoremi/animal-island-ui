@@ -1,4 +1,4 @@
-import type { CardColor, CardProps, IconName, TagColor } from '../../../src';
+import type { CardColor, CardProps, TagColor } from '../../../src';
 
 // ============================================
 // Skill 介绍页数据 —— 事实来源：
@@ -6,7 +6,7 @@ import type { CardColor, CardProps, IconName, TagColor } from '../../../src';
 // 改技能内容时同步此处
 // ============================================
 
-export const INTRO_TAGS = ['React + TypeScript', '30 个组件', '唯一依赖 naive-icons', 'CC BY-NC 4.0'];
+export const INTRO_TAGS = ['React + TypeScript', '37 个组件', '唯一依赖 naive-icons', 'MIT License'];
 
 export interface QuickStep {
     title: string;
@@ -28,12 +28,13 @@ export const QUICK_STEPS: QuickStep[] = [
     },
     {
         title: '按规则验收',
-        desc: '产出必须满足技能里的硬性规则：只用库组件与 var(--animal-*) 令牌、无纯黑文字、无冷蓝焦点环、图标只用 <Icon />。不满足即视为 bug，可直接让代理按规则自查。',
+        desc: '产出必须满足技能里的硬性规则：只用库组件与 var(--animal-*) 令牌、无纯黑文字、无冷蓝焦点环、图标只用 naive-icons。不满足即视为 bug，可直接让代理按规则自查。',
     },
 ];
 
 export interface WorkflowStep {
-    icon: IconName;
+    /** naive-icons 导出名（不含 Icon 后缀），由 parts.tsx 的 resolveIcon 解析 */
+    icon: string;
     pattern: CardProps['pattern'];
     title: string;
     desc: string;
@@ -75,7 +76,8 @@ export const WORKFLOW: WorkflowStep[] = [
 
 export interface Scenario {
     title: string;
-    icon: IconName;
+    /** naive-icons 导出名（不含 Icon 后缀） */
+    icon: string;
     color: CardColor;
     agents: string[];
     desc: string;
@@ -107,7 +109,7 @@ export const SKILL_TREE = `animal-island-ui-style/
 └── references/
     ├── react-project.md         # 场景一：React 项目 + npm 包
     ├── standalone-html.md       # 场景二：单文件 HTML，无构建
-    └── components/              # 按分类的 props 参考（9 个文件、30 个组件）`;
+    └── components/              # 按分类的 props 参考（14 个文件、40 个组件）`;
 
 export interface CatalogRow {
     category: string;
@@ -132,8 +134,15 @@ export const CATALOG: CatalogRow[] = [
     {
         category: 'Form controls',
         color: 'app-blue',
-        components: ['Input', 'Switch', 'Checkbox', 'Radio', 'Select'],
+        components: ['Input', 'Switch', 'Checkbox', 'Radio', 'Rate', 'Select'],
         reference: 'form-controls.md',
+    },
+    { category: 'Upload', color: 'warm-peach-pink', components: ['Upload'], reference: 'upload.md' },
+    {
+        category: 'Date & time pickers',
+        color: 'yellow-green',
+        components: ['DatePicker', 'TimePicker'],
+        reference: 'date-time.md',
     },
     {
         category: 'Form container',
@@ -145,27 +154,41 @@ export const CATALOG: CatalogRow[] = [
     {
         category: 'Feedback',
         color: 'app-orange',
-        components: ['Progress', 'Skeleton', 'BackTop'],
+        components: ['Progress', 'Skeleton', 'BackTop', 'Loading', 'Countdown', 'Time'],
         reference: 'feedback.md',
     },
     { category: 'Notification', color: 'app-red', components: ['Notification'], reference: 'Notification.md' },
     {
         category: 'Data displays',
         color: 'app-green',
-        components: ['Table', 'CodeBlock', 'Tag'],
+        components: ['Table', 'CodeBlock', 'Tag', 'Badge', 'Pagination'],
         reference: 'data-display.md',
+    },
+    { category: 'Calendar', color: 'brown', components: ['Calendar'], reference: 'calendar.md' },
+    {
+        category: 'Count-up score',
+        color: 'app-teal',
+        components: ['CountUp'],
+        reference: 'CountUp.md',
+    },
+    {
+        category: 'Media',
+        color: 'lime-green',
+        components: ['Image', 'Avatar', 'Carousel'],
+        reference: 'media.md',
     },
     {
         category: 'Decorative',
         color: 'brown',
-        components: ['Time', 'Phone', 'Footer', 'Wallet'],
+        components: ['Footer', 'Divider', 'Cursor', 'Typewriter', 'Background'],
         reference: 'decorative.md',
     },
 ];
 
 export interface RuleGroup {
     title: string;
-    icon: IconName;
+    /** naive-icons 导出名（不含 Icon 后缀） */
+    icon: string;
     color: TagColor;
     rules: string[];
 }
@@ -177,7 +200,7 @@ export const RULE_GROUPS: RuleGroup[] = [
         color: 'app-red',
         rules: [
             '绝不编造 props —— 每个 prop 必须出现在组件参考或包内 TS 声明中。',
-            'Select 仅受控（options + value + onChange 全必填）；受控 Input / Switch / Checkbox / Radio 也必须带 onChange。',
+            'Select 仅受控（options + value + onChange 全必填）；受控 Input / Switch / Checkbox / Radio / Rate 也必须带 onChange。',
             '优先库组件而非裸 HTML：不出现可见的原生 button / input / select / checkbox / radio。',
         ],
     },
@@ -207,7 +230,7 @@ export const RULE_GROUPS: RuleGroup[] = [
         color: 'app-yellow',
         rules: [
             '可交互元素圆角不得小于 12px；按钮与输入框为 50px 胶囊。',
-            '3D 像素堆叠阴影只属于 primary / danger-primary 按钮；Card 无 box-shadow，Switch 无外阴影。',
+            '3D 像素堆叠阴影只属于 primary / danger-primary 按钮；Card 无 box-shadow，Switch 无外阴影，Input 阴影需显式 shadow={true}。',
             'Modal 必须保留 SVG 有机 blob 裁切；Title 是燕尾丝带，不是 blob / 胶囊 / 方块。',
         ],
     },
@@ -216,7 +239,7 @@ export const RULE_GROUPS: RuleGroup[] = [
         icon: 'Camera',
         color: 'app-teal',
         rules: [
-            '图标一律用 <Icon name="..." />（内置可爱图标集，共 101 个）或 <Icon icon={...} />（内置图标组件）—— 禁止 emoji、Unicode 符号、手写 SVG、第三方图标库。',
+            "图标一律用外部 naive-icons 包（如 import { FlowerIcon } from 'naive-icons'）—— 禁止 emoji、Unicode 符号、手写 SVG、第三方图标库。",
             '动效使用 cubic-bezier(0.4, 0, 0.2, 1)，时长 0.15–0.35s。',
         ],
     },

@@ -96,10 +96,16 @@
 }
 
 // ---------- Reduced motion ----------
-// 停止飘落（雪花静止在视口上方不可见）；opacity 过渡不属于位移运动，予以保留
+// 暂停飘落，而不是移除动画。
+// 雪花唯一的可见性来源就是这段动画，`.flake` 的静止位置在视口上方 top: -30px；
+// 一旦 `animation: none`，50 片雪花会整体冻在视口外，只剩一块夜空底黑屏
+// （纯落雪无 tip 时没有任何可见元素，看起来就是黑屏 bug）。
+// JSX 已为每片雪花注入负延迟（从周期中段起步），因此 paused 会把每片
+// 冻结在下落途中的随机高度，得到一张铺满视口的静态雪景。
+// opacity 过渡不属于位移运动，予以保留。
 @media (prefers-reduced-motion: reduce) {
     .flake {
-        animation: none;
+        animation-play-state: paused;
     }
 
     .loading {

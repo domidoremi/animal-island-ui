@@ -19,7 +19,7 @@
 **精确颜色值：**
 
 ```css
-background: #fffbe7;
+background: #fffdf7;         /* cream-deep —— 与 Select / DatePicker / TimePicker 弹层共用的一块面板色 */
 /* 无边框；总高度即 token 高度（32/40/48px），原边框占用的空间并入内容区 */
 /* 默认无 box-shadow；shadow={true} 时按上表中号取 0 3px 0 0 #d4c9b4 */
 
@@ -340,47 +340,217 @@ flex-direction: column;
 gap: 8px;
 ```
 
+## Rate
+
+星级评分组件。每颗星都是 `naive-icons` 的 `StarIcon`，星上叠了一个视觉隐藏的原生 radio，因此整组天然具备单选语义与键盘能力。
+
+Props：
+
+| name           | type                             | default    | 说明                                       |
+| -------------- | -------------------------------- | ---------- | ------------------------------------------ |
+| `value`        | `number`                         | —          | 受控评分                                   |
+| `defaultValue` | `number`                         | `0`        | 非受控默认评分                             |
+| `count`        | `number`                         | `5`        | 星星数量                                   |
+| `size`         | `'small' \| 'middle' \| 'large'` | `'middle'` | 尺寸                                       |
+| `readonly`     | `boolean`                        | `false`    | 只读：无悬停预览、无点击、input 禁用       |
+| `allowClear`   | `boolean`                        | `true`     | 再次点击当前星时把评分清空为 `0`           |
+| `onChange`     | `(value) => void`                | —          | 评分变化回调，清空时收到 `0`               |
+
+评分会被夹取到 `[0, count]` 并就近取整，因此传入 `4.6` 这类平均分会点亮 5 颗星并选中第 5 颗 —— 组件始终保证恰好有一颗星可以用 Tab 到达。
+
+**尺寸表（图标盒子、间距，以及把 22px 扩散基准映射到当前星尺寸的 splash 缩放）：**
+
+| 属性         | small   | middle      | large   |
+| ------------ | ------- | ----------- | ------- |
+| 星星盒子     | 20×20px | **26×26px** | 34×34px |
+| 间距         | 4px     | 6px         | 8px     |
+| splash 缩放  | 0.91    | 1.18        | 1.55    |
+
+**精确样式：**
+
+```css
+/* group */
+display: inline-flex; align-items: center;
+gap: var(--rate-gap); /* 按尺寸 4 / 6 / 8px */
+
+/* star —— 图标自带金色填充和一张脸，所以两者都交给 CSS 控制 */
+.star {
+    display: block;
+    width: var(--rate-size);
+    height: var(--rate-size);
+}
+.star .icon {
+    /* naive-icons 的 StarIcon 写死了描边 #2A2A2A、填充 #E9C46A 和两只眼睛 */
+    display: block; width: 100%; height: 100%;
+    stroke: #c4b89e; /* --animal-text-color-disabled —— 未选中只有描边 */
+    transition: stroke 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.star .icon path {
+    fill: #f5c31c; /* --animal-warning-color */
+    fill-opacity: 0;
+    transition: fill-opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.star .icon circle {
+    /* 图标上的两只眼睛只在点亮后出现 */
+    fill: #794f27;
+    opacity: 0;
+    transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.active .star .icon { stroke: #dba90e; /* --animal-warning-color-active */ }
+.active .star .icon path { fill-opacity: 1; }
+.active .star .icon circle { opacity: 1; }
+
+/* item 与 hover 上浮 */
+.item { transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
+.item:hover { transform: translateY(-1px); }
+
+/* focus-visible —— 焦点环画在星星上，隐藏的 radio 仍是焦点所有者 */
+.input:focus-visible ~ .star {
+    border-radius: 50%;
+    outline: 2px solid #f5c31c; /* @focus-yellow */
+    outline-offset: 1px;
+}
+
+/* 选中动画 —— 新点亮的星星弹一下，再补一组六点扩散 */
+@keyframes animal-rate-pop {
+    0% { transform: scale(0.55); }
+    60% { transform: scale(1.15); }
+    100% { transform: scale(1); }
+}
+/* .pop 以 0.35s cubic-bezier(0.4, 0, 0.2, 1) 播放，并用 60ms 逐颗延迟
+   （--rate-pop-delay），让新点亮的星星依次弹出 */
+
+.splash {
+    position: absolute; top: 50%; left: 50%;
+    width: 22px; height: 22px; margin: -11px 0 0 -11px;
+    border-radius: 50%;
+    transform: scale(var(--rate-splash-scale)); /* 22px 基准几何 → 当前星尺寸 */
+    animation: animal-rate-splash 0.6s ease forwards;
+    pointer-events: none;
+}
+/* animal-rate-splash 只画六个点，不铺底色 —— 最终被填充的只有星星本身。点向外飞到
+   36px/32px 并带负 spread，同时渐隐，颜色取 #f5c31c。同一时刻只挂载一个 splash
+   （被点击的那颗星），并以提交计数器作为 key，因此每次提交都能重放动画。 */
+
+/* 只读 —— 去掉 hover 上浮与手型光标，星星保持金色 */
+.readonly .item { cursor: default; }
+.readonly .item:hover { transform: none; }
+```
+
 ## Select
 
-受控下拉选择器，hover/click 展开下拉面板，选项支持键盘 ↑/↓ 导航 + Enter 确认 + Esc 取消。
+受控下拉选择器，click 展开下拉面板，选项支持键盘 ↑/↓ 导航 + Enter 确认 + Esc 取消。
 
 ```css
 .select {
     position: relative;
     display: inline-block;
-    min-width: 120px;
+    min-width: 140px;
 }
 .selectTrigger {
-    /* border 2px solid #e8dcc8，radius 12px */
-    /* 背景 #fff，hover 时 border-color 切为 #d4c4a8、背景切为 #fffdf7 */
-}
-.selectDropdown {
-    position: absolute;
-    top: calc(100% + 4px);
-    left: 0;
-    right: 0;
-    max-height: 240px;
-    overflow-y: auto;
-    background: #fffcef;
-    border: 1.5px solid @border-color-light;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 13px;
+    background: #fff;
+    border: 2px solid #e8dcc8;
     border-radius: 12px;
-    box-shadow: 0 6px 18px rgba(61, 52, 40, 0.12);
-    z-index: 1000;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    /* hover：border-color #d4c4a8，背景 #fffdf7 */
+}
+.selectValue {
+    flex: 1;
+    font-size: 14px;
+    color: #725d42;
+    font-weight: 600;
+    text-align: left;
+}
+.selectPlaceholder {
+    flex: 1;
+    font-size: 14px;
+    color: #a09080;
+    text-align: left;
+}
+.selectArrow {
+    color: #a09080;
+    transition: transform 0.2s ease;
+    /* .selectTrigger.isOpen：rotate(180deg)，color #19c8b9 */
+}
+
+/* showSearch —— input 取代 trigger 内的 label */
+.selectSearchInput {
+    flex: 1;
+    min-width: 0;
+    padding: 0;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    color: #725d42;
+    background: transparent;
+    border: none;
+    border-radius: 12px;
+    outline: none;
+    /* ::placeholder：#a09080，weight 400 */
+    /* :focus-visible：outline 2px solid #ffcc00，outline-offset 2px */
+}
+
+/* allowClear —— 与 Input 的清除按钮同一套规格 */
+.selectClear {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    margin-right: 6px;
+    color: #c4b89e;
+    background: transparent;
+    border: none;
+    border-radius: 50%;
+    transition: all var(--animal-motion-duration-fast) var(--animal-motion-ease);
+    /* hover：color #725d42，background rgba(114, 93, 66, 0.1) */
+    /* :focus-visible：outline 2px solid #19c8b9 */
+}
+
+.selectDropdown {
+    position: absolute; /* 偏移量由 JS 计算，并按视口方向翻转 */
+    padding: 12px 0;
+    background: #ffeea0;
+    border-radius: 28px;
+    z-index: 100;
+    animation: dropdownFadeIn 0.2s ease forwards;
 }
 .selectOption {
-    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 30px 10px 14px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #725d42;
+    white-space: nowrap;
     cursor: pointer;
-    color: @text-color-body;
+    /* hover / active：weight 700 */
+    /* hover::before：10px #f5a623 的三角游标从左侧滑入 */
 }
-.selectOption.isActive { background: @primary-color-bg; color: @primary-color; }
-.selectOption.isSelected { font-weight: 600; }
+.selectOptionPillBar {
+    /* 选中标记：height 14px，margin 0 20px，background #ffcc00，opacity 0.3，radius 7px */
+}
+.selectNotFound {
+    padding: 10px 14px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #a09080;
+    text-align: center;
+    white-space: nowrap;
+}
 ```
 
-> 完整交互行为：键盘 roving、滚动到选中项、点击外部关闭。
+> 完整交互行为：键盘 roving、按视口方向翻转下拉、点击外部关闭。开启 `showSearch` 时 `role="combobox"` 落在 trigger 内的 `<input>` 上（ARIA 1.2），而不是 trigger `<div>`；无匹配结果会渲染成一个禁用的 `role="option"`，保证 `listbox` 始终有合法子节点。
 
 ## DatePicker
 
-日历弹层日期选择器；值为纯 `YYYY-MM-DD` 字符串（不依赖日期库，零运行时依赖）。触发区沿用 Input 视觉规格，
+日历弹层日期选择器；值为纯 `YYYY-MM-DD` 字符串（面板的日期运算走 dayjs，见 [ADR 0005](../../adr/0005-dayjs-as-the-date-layer.md)）。触发区沿用 Input 视觉规格，
 弹层为奶油色卡片，支持 月 / 年 / 日 三级视图切换。
 
 **触发区（对齐 Input）：**
@@ -462,40 +632,3 @@ hover 背景加深为 `#e5a200`。起止端点使用 `#ffb400`，配 `#fff` 白�
 **选择结束日期时的悬停预览** —— 确定开始日期后，悬停会实时预览待选区间，且旧范围高亮让位：悬停晚于开始日期的日期时
 高亮 `[开始, 悬停]`，悬停日期作为潜在终点；悬停早于开始日期的日期时反向高亮 `[悬停, 开始]`，把悬停日期作为新的
 潜在起点（点击即重置开始日期）。与主流范围选择器的交互模型一致。
-
-## TimePicker
-
-时间弹出选择器；值为纯 `HH:mm:ss` 字符串（不依赖日期库，零运行时依赖）。触发区沿用 Input 视觉规格（奶油胶囊、
-无边框）；面板为 时 / 分 / 秒 三列滚选 + 底部按钮。
-
-**触发区（对齐 Input）：**
-
-| 属性        | small | middle | large |
-| ----------- | ----- | ------ | ----- |
-| 高度        | 32px  | 40px   | 48px  |
-| 内边距      | `0 14px` | `0 18px` | `0 22px` |
-| 字号        | 12px  | 14px   | 16px  |
-| 圆角        | 40px  | 50px   | 50px  |
-
-```css
-background: #fffbe7;      /* 无边框，同 Input */
-/* hover */ box-shadow: 0 3px 0 0 #c4b89e;
-/* 展开/聚焦 */ box-shadow: 0 3px 0 0 #e0b800, 0 0 0 3px rgba(255, 204, 0, 0.15);
-/* error */ box-shadow: 0 3px 0 0 #c94444;
-/* warning */ box-shadow: 0 3px 0 0 #dba90e;
-/* disabled */ background: #ece8dc; box-shadow: none; opacity: 0.6;
-```
-
-**面板**（宽 248px，`format` 不含 `ss` 时收窄至 172px）：时 / 分 / 秒 三列（`format` 不含 `ss` 时隐藏秒列）；
-每列为可滚动列表，选项为胶囊（高 28px、圆角 16px）：
-
-```css
-/* 选项 */ color: #725d42; border-radius: 16px;
-/* 选项 hover */ background: #ffd54f; color: #725d42;
-/* 选中选项 */ background: #ffb400; color: #fff; font-weight: 700;
-```
-
-**底部** —— `此刻`（待选值设为当前时间）+ `确定`（经 `onChange` 提交并以 0.2s 退场动效关闭）。点选某列数值时
-触发区实时更新；Esc / 点击外部丢弃待选值。
-
-**交互：** 键盘 Enter/空格/下箭头展开，Enter 确认，Esc 关闭；`hourStep` / `minuteStep` / `secondStep` 过滤列选项。

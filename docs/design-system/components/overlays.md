@@ -57,6 +57,10 @@ max-width: calc(100vw - 32px);
 max-height: calc(100vh - 64px);
 animation: animal-zoom-in 0.3s ease;
 
+/* prefers-reduced-motion: reduce — the scale(0.92) → scale(1) zoom is motion, so
+   it is dropped (the panel falls back to its resting scale(1), never invisible).
+   The mask's plain opacity fade is not motion and is kept. */
+
 /* clipped content area */
 clip-path: url(#animal-modal-clip);
 background: rgb(247, 243, 223);
@@ -114,6 +118,10 @@ border-color: rgba(255, 204, 0, 0.85);
 ## Drawer (recessed depth-of-field)
 
 **Recessed depth-of-field drawer — the background sinks, scales down and dims to push the panel forward.**
+
+- `pushBackground` (default `true`): on open, every non-fixed direct child of `document.body` gets `transform: scale(0.94)`, `border-radius: 14px` and `overflow: hidden` over `0.36s cubic-bezier(0.2, 0, 0.2, 1)`. Fixed-position elements, `[data-animal-drawer-ignore]` nodes and the component's own portal wrapper are excluded.
+- The pushed background deliberately carries **no `filter`**. `filter` is a non-composited property — it forces a fresh composited layer and a per-pixel gaussian blur across the viewport for each background element, so the *first* open stalls while the layers are rasterized from scratch and later opens feel fine. The depth read comes from `scale` + rounded corners + the dimming mask. `will-change: transform` is applied before the transition starts so layer promotion does not happen mid-animation.
+- `prefers-reduced-motion: reduce` disables **both** the background push (the sunken translate/scale) **and** the panel's own `translateX/Y(±100%) → none` slide-in, matching `Modal`, which drops its `scale(0.92) → scale(1)` zoom-in. The panel lands directly on its final transform — it never stops mid-flight or invisible. The mask's opacity transition is not motion and is kept.
 
 ```css
 /* mask — light black (0.18), lighter than Modal so the recessed background stays visible (key to the depth effect) */

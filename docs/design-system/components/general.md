@@ -129,29 +129,58 @@ Props:
 </Cursor>
 ```
 
-The stylesheet is **plain CSS** (`cursor.css`, not a CSS module) with two style variants selected by the `type` prop (`'default'` game finger arrow — 28×28 inline SVG, hotspot `6 4`; `'raindrop'` blue water drop — 32×32 inline SVG with a lighter highlight ellipse, hotspot `16 6`) and two modes selected by the `forceAll` prop (default `true`); the root `<div>` carries `animal-cursor` plus a mode class (`animal-cursor--raindrop` is appended for the drop):
+The stylesheet is **plain CSS** (`cursor.css`, not a CSS module) with two style variants selected by the `type` prop and two modes selected by the `forceAll` prop (default `true`); the root `<div>` carries `animal-cursor` plus a mode class (`animal-cursor--raindrop` is appended for the drop):
+
+- `'default'` — bold-outline rounded arrow, 32×32 inline SVG, hotspot `8 5`
+- `'raindrop'` — blue water drop, 32×32 inline SVG with a lighter highlight ellipse, hotspot `16 6`
+
+**Arrow construction.** The arrow keeps the classic seven-vertex pointer silhouette (`M6 4 L6 21 L10.5 16.5 L13.5 23 L16.8 21.5 L13.8 15.2 L20.5 15.2 Z`) but **every corner is rounded and the stroke is very heavy** — that pairing is the whole style. A thick outline wrapped around a small bright core reads as a chunky, sticker-like pointer at any size, where a thin outline reads as a line drawing. The silhouette is scaled `1.12` so the shape plus its stroke fills roughly 75% of the 32×32 canvas height: an earlier 28×28 version left too much dead space, which forced the stroke so thick that the bright core vanished entirely. Stroke weight is therefore expressed as a **ratio of shape width (~15%)**, not a fixed pixel value, and has to be recomputed whenever the scale changes.
+
+**Changing the scale factor is not a proportional edit.** The factor is applied to the seven base vertices only; the `1.8` left-edge tilt and the `1.2` hand-placed offset on `④` are applied *after* scaling and therefore stay fixed. At `1.36` that left the axis at `61.62°` and the edges at `23.19` / `7.87`; at `1.12` it moves the axis to `61.14°` and the edges to `19.12` / `6.35`. **Re-measure every number below after any scale change — never scale them by hand.** The stroke stays at `2.75`, so shrinking the silhouette raises its share of the outer width from 13.1% to 15.4%. That is deliberate — a smaller cursor still needs an outline of comparable visual weight — but `1.12` is the practical floor: any lower and the bright core starts closing up.
+
+Corners are rounded with uneven per-vertex radii (tip `3.1`, tail `2.8`, notches `1.2`), and each corner is a `Q` whose control point sits on the original vertex. The **edges stay straight**: each one is an explicit `L` from the previous corner's exit point to the next corner's entry point, so the path reads `L Q L Q …`. Emitting only the `Q` chain — letting each quadratic span corner-to-corner, as the first version did — also renders the edge, and the vertex control point then drags long edges into a shallow bow of roughly `1` unit, worst on the left edge. The tip is deliberately **blunt** — a sharp tip would fight the heavy stroke and stop reading as a cursor. Fill and stroke live on **one** closed path, so no split-path trick is needed. The left edge's lower vertex is nudged right by `1.8`, tilting that edge slightly for a bit of hand-placed dynamism.
+
+**The arrow is a strict mirror.** Only four vertices are free — `①` `②` `③` `④` — and `⑤` `⑥` `⑦` are each the reflection of `④` `③` `②` across the line through the tip at `61.14°` from horizontal (`28.86°` from vertical). Two consequences fall out for free and must not be "fixed" by hand: `①→②` and `①→⑦` are both `19.12`, and `②→③` and `⑥→⑦` are both `6.35`. Editing a free vertex therefore *forces* its partner to move, and pushing a partner past the axis breaks the pairing — work through the mirror, never around it.
+
+Two earlier attempts are worth recording because they look reasonable and are wrong. Shortening the arm by sliding the notch `⑥` right is self-defeating: it moves `⑥` off its mirror position and breaks `②→③ = ⑥→⑦`. And the symmetry axis is emphatically **not** the vertical — both long edges are ~19 units on a 32-wide canvas, so a true vertical mirror would put the left edge at negative x. A previous version also hand-tuned four vertices independently and drifted out of sync; every one of those offsets is now gone.
+
+Left-right "symmetry" here is a peripheral-weight judgement, not centring: even with the arm pushed as far right as it will go the ink centroid still falls short of the canvas centre (`14.5` against `16` at the current scale), because a classic arrow is asymmetric by construction. Never tune this axis against the centroid; judge it at real 32px.
+
+The drop is **left as plain geometric geometry** — a round-capped path plus a highlight ellipse. Softening it was tried and reverted: rounding a teardrop's apex just makes it read as a blob.
+
+**Text selection.** The `default` variant also restyles selected text inside its subtree: `#e9c46a` background with `#2b2620` text. The text color is not optional — the design system's body color `#794f27` on that background is only **4.25:1**, which misses AA for body text, while `#2b2620` reaches **8.97:1**, past WCAG AAA.
+
+The two variants are carried by custom properties (`--animal-selection-bg` / `--animal-selection-fg`) that the raindrop rule overwrites with the system colors `Highlight` / `HighlightText`. This is not cosmetic. A plain `.animal-cursor:not(.animal-cursor--raindrop) ::selection` looks equivalent but breaks twice over, because a Cursor is very often nested inside another one (the demo wraps its whole page in a `default` Cursor):
+
+- a descendant combinator matches a raindrop nested in a default at **any depth**, so the drop gets painted `#2b2620`
+- a top-level raindrop matches **nothing at all**, and silently loses any selection styling
+
+Custom properties resolve against the *nearest* declaring ancestor, so the innermost Cursor always wins with no `!important` and no `:not()` gymnastics.
+
+**The images live in CSS custom properties** so all the variant and mode rules share them; editing the artwork means editing one declaration per variant, not touching four rules:
 
 ```css
-/* force mode (default, forceAll={true}): every descendant gets the custom cursor */
+/* artwork + hotspot declared once, inherited down by every descendant */
+.animal-cursor {
+    --animal-cursor-img: url("data:image/svg+xml,…bold-outline arrow…");
+    --animal-cursor-hotspot: 8 5;
+}
+.animal-cursor--raindrop {
+    --animal-cursor-img: url("data:image/svg+xml,…water drop…");
+    --animal-cursor-hotspot: 16 6;
+}
+/* force mode (default, forceAll={true}): every descendant gets the custom cursor.
+   Custom properties inherit, so descendants resolve the right variant automatically. */
 .animal-cursor--force,
 .animal-cursor--force * {
-    cursor:
-        url("data:image/svg+xml,…arrow…") 6 4,
-        default !important;
-}
-
-/* raindrop force: double class switches the URL + hotspot */
-.animal-cursor--force.animal-cursor--raindrop,
-.animal-cursor--force.animal-cursor--raindrop * {
-    cursor:
-        url("data:image/svg+xml,…drop…") 16 6,
-        default !important;
+    cursor: var(--animal-cursor-img) var(--animal-cursor-hotspot), default !important;
 }
 
 /* scoped mode (forceAll={false}): only the container shows the custom cursor …
    (double-class selector so a scoped Cursor nested inside a force Cursor still wins) */
-.animal-cursor.animal-cursor--scoped { cursor: url(…) 6 0, default !important; }
-.animal-cursor.animal-cursor--scoped.animal-cursor--raindrop { cursor: url(…) 16 6, default !important; }
+.animal-cursor.animal-cursor--scoped {
+    cursor: var(--animal-cursor-img) var(--animal-cursor-hotspot), default !important;
+}
 
 /* … while descendants fall back to browser semantics */
 .animal-cursor--scoped *,
@@ -195,5 +224,5 @@ The stylesheet is **plain CSS** (`cursor.css`, not a CSS module) with two style 
 }
 ```
 
-- `cursor-icon.png` hotspot coordinates are `(4, 0)`; the base64 data URI is a same-image fallback
+- The artwork is inline SVG only — there is no `cursor-icon.png` and no base64 fallback; both variants are defined once in `cursor.css` and reach every rule through `--animal-cursor-img`
 - `!important` on every rule so the mode semantics survive component-level cursor styles; `className` is applied to the root `<div>` alongside the fixed `animal-cursor` class

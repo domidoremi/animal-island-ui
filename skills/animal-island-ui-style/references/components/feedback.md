@@ -5,7 +5,7 @@ Props/types below are copied from the library source. In an npm-installed projec
 
 ## Progress
 
-Horizontal bar whose fill is a **scene image** (`sweet-corner.svg` default) injected inline at `background-size` equal to the full track width, so the scene spans the whole bar; the fill is clipped from the left by progress width ("unveils from the left"). The track is a **cream dotted** pill (`#f8f8f0` + two cream radial-dot layers, same as Background default / Card pattern-default) with a soft inner dent and no border. The percent label always sits **right of the bar**.
+Horizontal bar whose fill defaults to a **mint vertical gradient** (`#3dd4c6 → #19c8b9 → #14b6a8`, top-lit, plus a `rgba(255,255,255,0.45)` inner highlight); when a `variant` is passed it becomes a **scene image** (`sweet-corner.svg`, `forest-grove.svg`, …) injected inline at `background-size` equal to the full track width, so the scene spans the whole bar; the fill is clipped from the left by progress width ("unveils from the left"). The track is a **cream pill** (`#f8f8f0`) carrying the old wallpaper track's fine dot texture — 1.5px-radius dots on a 14px grid, `rgba(196,184,158,0.1)`, base unchanged — inside a solid 2px sand outline (`#e2d6bd`); `box-sizing: border-box` means `size` is the total height including the border, so the dot radius is 1.5px rather than the pre-outline 1px to stay legible in the 4px the border takes. At `percent=100` the gradient fill brightens to `#7fe0d5 → #3dd4c6` so a full bar reads as finished, not loading. The percent label always sits **right of the bar**.
 
 ```ts
 type ProgressSize = 'small' | 'middle' | 'large';
@@ -15,7 +15,7 @@ interface ProgressProps {
     percent: number; // REQUIRED, 0-100, clamped; non-integer rounded for aria
     size?: ProgressSize; // default 'middle' (small=14px, middle=24px, large=32px)
     showInfo?: boolean; // default true; label sits right of the bar
-    variant?: ProgressVariant; // fill scene image; default 'sweet-corner'
+    variant?: ProgressVariant; // fill scene image; omit to use the mint gradient
     infoFormat?: (percent: number) => React.ReactNode; // default `${percent}%`
     duration?: number; // fill WIDTH transition in seconds; 0 disables; default 0.6
     className?: string;
@@ -25,7 +25,7 @@ interface ProgressProps {
 
 ```tsx
 <Progress percent={50} size="large" />
-<Progress percent={45} variant="forest-grove" />          {/* default variant 'sweet-corner' */}
+<Progress percent={45} variant="forest-grove" />          {/* no variant = mint gradient fill */}
 <Progress percent={50} infoFormat={(p) => `${Math.round(p / 10)} / 10`} />
 <Progress percent={pct} duration={0} />                   {/* no fill-width animation */}
 <Progress percent={66} showInfo={false} />
@@ -65,7 +65,7 @@ Notes:
 - **Exit sequence**: `active` → false keeps the screen mounted with an `exiting` class (opacity → 0, `pointer-events: none`); a `fadeDuration * 1000` ms timer then unmounts it. Restoring `active` mid-fade cancels the timer and snaps back to opaque instantly.
 - **`delay` prevents flash**: the timer re-arms on every `active` → `true` transition, so a 600ms load with `delay={300}` barely flickers.
 - **Flakes are generated once per mount** (`useMemo`): random size 1–6px, `left` 0–100%, duration 6–12s, and a *negative* delay that starts each flake mid-cycle so the first frame is already full of snow instead of waiting up to 10s.
-- **A11y**: the root carries `role="status"`; the snowfall wrapper and vignette are `aria-hidden`; without `tip`, a visually-hidden `加载中` span provides the accessible content. `prefers-reduced-motion: reduce` stops the falling animation but keeps the opacity fade.
+- **A11y**: the root carries `role="status"`; the snowfall wrapper and vignette are `aria-hidden`; without `tip`, a visually-hidden `加载中` span provides the accessible content. Under `prefers-reduced-motion: reduce` the snowfall is **paused rather than removed** — never use `animation: none` here: the flakes' only source of visibility is the animation and their static position is `top: -30px`, above the viewport, so removing it leaves a bare black backdrop. The built-in negative `animation-delay` is what makes pausing useful: each flake freezes at a random point along its fall, producing a static snow scene that fills the viewport. The opacity fade is kept since it is not motion.
 
 ## Skeleton
 
@@ -116,7 +116,7 @@ Notes:
 
 ## BackTop
 
-Floating back-to-top button that appears in the bottom-right corner after scrolling past a threshold. Default icon is an original sticker-style up-arrow SVG (inline data URI, 64px, with drop-shadow elevation); clicking smooth-scrolls to the top with an easeInOutQuad animation.
+Floating back-to-top button that appears in the bottom-right corner after scrolling past a threshold. Default icon is `RocketIcon` from `naive-icons` rendered at `size={64}` (cream `#FAEDCD` fuselage, teal `#2A9D8F` porthole, `#E76F51` flame and fins, ink `#2A2A2A` stroke) with a drop-shadow elevation; clicking smooth-scrolls to the top with an easeInOutQuad animation. There is no icon prop — the rocket is fixed, and per the icon rule it comes from `naive-icons` rather than a local asset.
 
 ```ts
 interface BackTopProps {
@@ -169,12 +169,20 @@ The remaining time never drops below zero and `onFinish` fires once. Without a `
 ## Time
 
 ```ts
-type TimeProps = React.HTMLAttributes<HTMLDivElement>;
+type TimeLocale = 'en' | 'zh-cn';
+
+interface TimeProps extends React.HTMLAttributes<HTMLDivElement> {
+    weekdayFormat?: string; // default 'dddd'
+    dateFormat?: string; // default 'MMM D'; 'M月D日' when locale is 'zh-cn'
+    locale?: TimeLocale; // default 'en'
+}
 ```
 
 ```tsx
 <Time />
+<Time locale="zh-cn" />
+<Time weekdayFormat="ddd" dateFormat="YYYY/MM/DD" />
 <Time className="island-clock" aria-label="岛屿时间" />
 ```
 
-Zero-config live clock card: a large `HH:MM` readout on top refreshed from `new Date()` every second, weekday + `Mon DD` in a date capsule below. Borderless panel on `var(--animal-bg-color)` with 20px radius and `--animal-shadow-sm` elevation, fading in on mount; clock 44px 900 tabular in `var(--animal-text-color)` with a blinking colon; the capsule is a 999px pill on `var(--animal-primary-color-bg)` with an uppercase `var(--animal-primary-color)` weekday. The root is `role="timer"` with `aria-live="off"` so the per-second refresh stays silent to screen readers.
+Live clock card: a large `HH:MM` readout on top refreshed from `new Date()` every second, weekday + month-day in a date capsule below. `weekdayFormat` / `dateFormat` accept dayjs core tokens (`dddd` / `ddd` / `MMM` / `M` / `D` / `YYYY`…); plugin-owned tokens do not expand. `locale="zh-cn"` is built in and needs no import. Borderless panel on `var(--animal-bg-color)` with 20px radius and `--animal-shadow-sm` elevation, fading in on mount; clock 44px 900 tabular in `var(--animal-text-color)` with a blinking colon; the capsule is a 999px pill on `var(--animal-primary-color-bg)` with an uppercase `var(--animal-primary-color)` weekday. The root is `role="timer"` with `aria-live="off"` so the per-second refresh stays silent to screen readers.

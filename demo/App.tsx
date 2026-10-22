@@ -64,7 +64,7 @@ const MENU_ITEMS: MenuItem[] = [
         label: '── 基础 ──',
         children: [
             // 隐藏：暂不展示，恢复时取消注释
-            { key: 'title', label: 'Title 标题', isNew: true },
+            { key: 'title', label: 'Title 标题' },
             { key: 'button', label: 'Button 按钮' },
             { key: 'divider-comp', label: 'Divider 分割线' },
             { key: 'icon', label: 'Icon 图标', isNew: true },
@@ -85,9 +85,12 @@ const MENU_ITEMS: MenuItem[] = [
             { key: 'select', label: 'Select 选择器' },
             { key: 'date-picker', label: 'DatePicker 日期选择' },
             { key: 'time-picker', label: 'TimePicker 时间选择' },
+            { key: 'calendar', label: 'Calendar 日历', isNew: true },
             { key: 'checkbox', label: 'Checkbox 多选框' },
             { key: 'radio', label: 'Radio 单选框' },
+            { key: 'rate', label: 'Rate 评分', isNew: true },
             { key: 'form', label: 'Form 表单' },
+            { key: 'upload', label: 'Upload 上传' },
         ],
     },
     {
@@ -100,7 +103,7 @@ const MENU_ITEMS: MenuItem[] = [
             { key: 'drawer', label: 'Drawer 抽屉' },
             { key: 'loading', label: 'Loading 加载' },
             { key: 'tooltip', label: 'Tooltip 气泡提示' },
-            { key: 'progress', label: 'Progress 进度条', isNew: true },
+            { key: 'progress', label: 'Progress 进度条' },
             { key: 'skeleton', label: 'Skeleton 骨架屏' },
             { key: 'backtop', label: 'BackTop 返回顶部' },
         ],
@@ -110,16 +113,19 @@ const MENU_ITEMS: MenuItem[] = [
         label: '── 数据展示 ──',
         children: [
             { key: 'card', label: 'Card 卡片' },
+            { key: 'avatar', label: 'Avatar 头像' },
+            { key: 'badge', label: 'Badge 徽标数', isNew: true },
             // 隐藏：暂不展示，恢复时取消注释
             { key: 'collapse', label: 'Collapse 折叠面板' },
             { key: 'tabs', label: 'Tabs 标签页' },
             { key: 'table', label: 'Table 表格' },
-            { key: 'pagination', label: 'Pagination 分页', isNew: true },
+            { key: 'pagination', label: 'Pagination 分页' },
             { key: 'typewriter', label: 'Typewriter 打字机' },
             { key: 'image', label: 'Image 图片' },
-            { key: 'carousel', label: 'Carousel 轮播图', isNew: true },
+            { key: 'carousel', label: 'Carousel 轮播图' },
             { key: 'time', label: 'Time 时钟' },
             { key: 'countdown', label: 'Countdown 倒计时' },
+            { key: 'countup', label: 'CountUp 数字滚动', isNew: true },
         ],
     },
 ];
@@ -229,7 +235,14 @@ const SidebarContent: React.FC<{
             <img
                 src={logo}
                 alt="Animal Island UI logo"
-                style={{ width: 25, height: 25, borderRadius: 8, marginRight: 8 }}
+                style={{
+                    display: 'block',
+                    width: 25,
+                    height: 25,
+                    borderRadius: 8,
+                    marginRight: 8,
+                    transform: 'translateY(-2px)',
+                }}
             />
             Animal Island UI
         </div>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Input } from '../../../src';
+import { Input, Card } from '../../../src';
 import { PhoneIcon } from 'naive-icons';
 import {
     labelStyle,
@@ -69,40 +69,46 @@ const InputDemo: React.FC = () => {
             <div style={sectionTitleStyle}>
                 Input <DemoTag>3 sizes</DemoTag>
             </div>
-            <div style={demoBodyStyle}>
-                <div style={labelStyle}>shadow 阴影控制</div>
-                <div style={{ ...(S.col as any), maxWidth: 360, gap: 12 }}>
-                    <Input placeholder="No shadow (default)" />
-                    <Input placeholder="With shadow" shadow={true} />
+            <Card pattern="brown" style={{ marginTop: 12, borderRadius: 18, padding: 20, borderColor: '#f1d5a4' }}>
+                <div style={demoBodyStyle}>
+                    <div style={labelStyle}>shadow 阴影控制</div>
+                    <div style={{ ...(S.col as any), maxWidth: 360, gap: 12 }}>
+                        <Input placeholder="No shadow (default)" />
+                        <Input placeholder="With shadow" shadow={true} />
+                    </div>
+                    <div style={labelStyle}>基础用法</div>
+                    <div style={{ ...(S.col as any), maxWidth: 360, gap: 12 }}>
+                        <Input placeholder="Basic input" />
+                        <Input
+                            placeholder="With clear"
+                            allowClear
+                            value={inputValue}
+                            onChange={(e) => setInputValue(e.target.value)}
+                            onClear={() => setInputValue('')}
+                        />
+                        <Input
+                            placeholder="Please enter your phone number"
+                            prefix={<PhoneIcon size={20} />}
+                            suffix="⏎"
+                        />
+                    </div>
+                    <div style={labelStyle}>size 尺寸</div>
+                    <div style={{ ...(S.col as any), maxWidth: 360, gap: 12 }}>
+                        <Input placeholder="Small" size="small" />
+                        <Input placeholder="Middle (default)" size="middle" />
+                        <Input placeholder="Large" size="large" />
+                    </div>
+                    <div style={labelStyle}>status 校验状态</div>
+                    <div style={{ ...(S.col as any), maxWidth: 360, gap: 12 }}>
+                        <Input placeholder="Error status" status="error" />
+                        <Input placeholder="Warning status" status="warning" />
+                    </div>
+                    <div style={labelStyle}>disabled 禁用</div>
+                    <div style={{ ...(S.col as any), maxWidth: 360, gap: 12 }}>
+                        <Input placeholder="Disabled" disabled />
+                    </div>
                 </div>
-                <div style={labelStyle}>基础用法</div>
-                <div style={{ ...(S.col as any), maxWidth: 360, gap: 12 }}>
-                    <Input placeholder="Basic input" />
-                    <Input
-                        placeholder="With clear"
-                        allowClear
-                        value={inputValue}
-                        onChange={(e) => setInputValue(e.target.value)}
-                        onClear={() => setInputValue('')}
-                    />
-                    <Input placeholder="Please enter your phone number" prefix={<PhoneIcon size={20} />} suffix="⏎" />
-                </div>
-                <div style={labelStyle}>size 尺寸</div>
-                <div style={{ ...(S.col as any), maxWidth: 360, gap: 12 }}>
-                    <Input placeholder="Small" size="small" />
-                    <Input placeholder="Middle (default)" size="middle" />
-                    <Input placeholder="Large" size="large" />
-                </div>
-                <div style={labelStyle}>status 校验状态</div>
-                <div style={{ ...(S.col as any), maxWidth: 360, gap: 12 }}>
-                    <Input placeholder="Error status" status="error" />
-                    <Input placeholder="Warning status" status="warning" />
-                </div>
-                <div style={labelStyle}>disabled 禁用</div>
-                <div style={{ ...(S.col as any), maxWidth: 360, gap: 12 }}>
-                    <Input placeholder="Disabled" disabled />
-                </div>
-            </div>
+            </Card>
             <CodeBlock
                 code={`import React, { useState } from 'react';
 import { Input } from 'animal-island-ui';

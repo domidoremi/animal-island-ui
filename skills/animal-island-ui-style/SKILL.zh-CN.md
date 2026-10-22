@@ -11,7 +11,7 @@
 
 ## 正文对照
 
-animal-island-ui 是采用原创治愈系海岛风格设计的 React + TypeScript 组件库 —— 31 个组件、唯一运行时依赖 `naive-icons`（图标）、CC BY-NC 4.0（仅限非商业使用）
+animal-island-ui 是采用原创治愈系海岛风格设计的 React + TypeScript 组件库 —— 40 个组件、两个运行时依赖（`naive-icons` 图标、`dayjs` 日期）、MIT License
 
 源码与设计规范定义：https://github.com/guokaigdg/animal-island-ui
 
@@ -51,14 +51,19 @@ props 参考按大类分组在 `references/components/` 下（props、合法取�
 | 大类 | 组件 | 参考文件 |
 | --- | --- | --- |
 | 通用 | Button, Typewriter, Cursor | [general.md](references/components/general.md) |
-| 布局 | Card, Title, Divider, Collapse, Tabs, Background, Carousel | [layout.md](references/components/layout.md) |
-| 表单控件 | Input, Switch, Checkbox, Radio, Select, DatePicker, TimePicker | [form-controls.md](references/components/form-controls.md) |
+| 布局 | Card, Title, Divider, Collapse, Tabs | [layout.md](references/components/layout.md) |
+| 表单控件 | Input, Switch, Checkbox, Radio, Rate, Select | [form-controls.md](references/components/form-controls.md) |
+| 上传 | Upload | [upload.md](references/components/upload.md) |
+| 日期时间 | DatePicker, TimePicker | [date-time.md](references/components/date-time.md) |
 | 表单容器 | Form (+ FormItem, useForm) | [Form.md](references/components/Form.md) |
 | 浮层 | Modal, Drawer, Tooltip | [overlays.md](references/components/overlays.md) |
 | 反馈 | Progress, Skeleton, BackTop, Loading, Countdown, Time | [feedback.md](references/components/feedback.md) |
 | 通知 | Notification（命令式 API） | [Notification.md](references/components/Notification.md) |
-| 数据展示 | Table, CodeBlock, Tag, Pagination, Image | [data-display.md](references/components/data-display.md) |
-| 装饰 | Footer, Divider, Cursor, Typewriter | [decorative.md](references/components/decorative.md) |
+| 数据展示 | Table, CodeBlock, Tag, Badge, Pagination | [data-display.md](references/components/data-display.md) |
+| 日历 | Calendar | [calendar.md](references/components/calendar.md) |
+| 计分滚动 | CountUp | [CountUp.md](references/components/CountUp.md) |
+| 媒体 | Image, Avatar, Carousel | [media.md](references/components/media.md) |
+| 装饰 | Footer, Divider, Cursor, Typewriter, Background | [decorative.md](references/components/decorative.md) |
 
 ### 硬规则（违反即 bug）
 
@@ -71,8 +76,8 @@ props 参考按大类分组在 `references/components/` 下（props、合法取�
 7. Modal 必须保留 SVG blob clip-path，不可换圆角矩形；Title 是燕尾飘带，不是 blob/pill/普通块（`Card type="title"` 已不存在）。**Title 默认用 `variant="ribbon"`**（燕尾横幅），不用缺省的 `layer`
 8. 字体 Nunito + Noto Sans SC；字重不低于 400；UI 文字不用等宽字体（CodeBlock 除外）
 9. 动效统一 `cubic-bezier(0.4, 0, 0.2, 1)`，时长 0.15–0.35s
-10. 图标一律使用外部 `naive-icons` 包（如 `import { FlowerIcon } from 'naive-icons'`）—— 不用 emoji、Unicode 符号（✓ ✕ →）、手写 SVG 或第三方图标库。能用到图标的地方优先用 `naive-icons` 图标组件，而非 emoji
-11. Select 仅受控（`options` + `value` + `onChange` 都必填）；受控的 `Input`/`Switch`/`Checkbox`/`Radio` 也要配 `onChange`
+10. 图标一律使用外部 `naive-icons` 包（如 `import { FlowerIcon } from 'naive-icons'`）—— 不用 emoji、Unicode 符号（✓ ✕ →）、手写 SVG 或第三方图标库。能用到图标的地方优先用 `naive-icons` 图标组件，而非 emoji。唯一例外是 `Cursor`：它的图形必须手写内联 SVG，因为 CSS `cursor` 只接受图片 URL —— 别去动它
+11. Select 仅受控（`options` + `value` + `onChange` 都必填）；受控的 `Input`/`Switch`/`Checkbox`/`Radio`/`Rate` 也要配 `onChange`
 12. 优先用库组件而非裸 HTML：可见 UI 不允许原生 `<button>`、`<input>`、`<select>`、原生 checkbox/radio
 13. 只从包根和 `animal-island-ui/style` 导入，不做深路径导入
 14. 自定义元素用 `var(--animal-*)` token 上色，不硬编码颜色；不用 `className`/`style` 覆盖组件的颜色、圆角、阴影

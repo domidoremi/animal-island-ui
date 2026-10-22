@@ -96,3 +96,4 @@
 16. **图标一律使用外部 `naive-icons` 包，禁止内联 SVG 或 Unicode 符号**
     - ❌ 直接写 Unicode 符号（✓ ✕ ✗ → ←）、硬编码 `<svg>`、或引入其他第三方图标库
     - ✅ `import { FlowerIcon } from 'naive-icons'` 后渲染 `<FlowerIcon />`；如无匹配图标，用纯 CSS 装饰元素替代
+    - **唯一例外：`Cursor`。** 它的图形必须手写内联 SVG —— CSS `cursor` 属性只接受图片 URL，React 图标组件在那里根本渲染不了。那是该组件自有的图形、不是 UI 图标，别"顺手修正"成 `naive-icons`。

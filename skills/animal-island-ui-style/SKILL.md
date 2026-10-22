@@ -14,8 +14,8 @@ description: >
 > **RN fork:** [Native host API](references/components/native-host.md) for `animal-island-ui-rn`; the rest of this skill retains the upstream Web contract.
 
 animal-island-ui is a React + TypeScript component library with an original
-cozy island-style design — 35 components, a single runtime dependency (`naive-icons`
-for icons), CC BY-NC 4.0 (non-commercial use only).
+cozy island-style design — 40 components, two runtime dependencies (`naive-icons`
+for icons, `dayjs` for dates), MIT License.
 
 Source & canonical design definition: https://github.com/guokaigdg/animal-island-ui
 
@@ -68,13 +68,18 @@ values, defaults — copied from source):
 | --- | --- | --- |
 | General | Button, Typewriter, Cursor | [general.md](references/components/general.md) |
 | Layout | Card, Title, Divider, Collapse, Tabs | [layout.md](references/components/layout.md) |
-| Form controls | Input, Switch, Checkbox, Radio, Select | [form-controls.md](references/components/form-controls.md) |
+| Form controls | Input, Switch, Checkbox, Radio, Rate, Select | [form-controls.md](references/components/form-controls.md) |
+| Upload | Upload | [upload.md](references/components/upload.md) |
+| Date & time | DatePicker, TimePicker | [date-time.md](references/components/date-time.md) |
 | Form container | Form (+ FormItem, useForm) | [Form.md](references/components/Form.md) |
 | Overlays | Modal, Drawer, Tooltip | [overlays.md](references/components/overlays.md) |
-| Feedback | Progress, Skeleton, BackTop | [feedback.md](references/components/feedback.md) |
+| Feedback | Progress, Skeleton, BackTop, Loading, Countdown, Time | [feedback.md](references/components/feedback.md) |
 | Notification | Notification (imperative API) | [Notification.md](references/components/Notification.md) |
-| Data display | Table, CodeBlock, Tag | [data-display.md](references/components/data-display.md) |
-| Decorative | Footer, Divider, Cursor, Typewriter | [decorative.md](references/components/decorative.md) |
+| Data display | Table, CodeBlock, Tag, Badge, Pagination | [data-display.md](references/components/data-display.md) |
+| Calendar | Calendar | [calendar.md](references/components/calendar.md) |
+| Count-up score | CountUp | [CountUp.md](references/components/CountUp.md) |
+| Media | Image, Avatar, Carousel | [media.md](references/components/media.md) |
+| Decorative | Footer, Divider, Cursor, Typewriter, Background | [decorative.md](references/components/decorative.md) |
 
 ## Hard rules (violations are bugs)
 
@@ -96,9 +101,10 @@ values, defaults — copied from source):
 9. Motion uses `cubic-bezier(0.4, 0, 0.2, 1)` over 0.15–0.35s.
 10. Icons come from the external `naive-icons` package (e.g. `import { FlowerIcon } from 'naive-icons'`)
     — never emoji, Unicode symbols (✓ ✕ →), hand-rolled SVG, or third-party icon libraries. Prefer
-    `naive-icons` icon components over emoji everywhere you can.
+    `naive-icons` icon components over emoji everywhere you can. `Cursor` is the single exception: its
+    artwork is hand-authored inline SVG because CSS `cursor` accepts image URLs only — leave it alone.
 11. Select is controlled-only (`options` + `value` + `onChange` all required). Controlled
-    `Input`/`Switch`/`Checkbox`/`Radio` need `onChange` too.
+    `Input`/`Switch`/`Checkbox`/`Radio`/`Rate` need `onChange` too.
 12. Prefer library components over raw HTML: no visible native `<button>`, `<input>`,
     `<select>`, checkbox/radio — wrap or use the library equivalents.
 13. Import only from the package root and `animal-island-ui/style` — no deep imports.
