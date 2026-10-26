@@ -118,6 +118,27 @@ describe('CodeBlock', () => {
         expect(colors).toContain(CODE_COLORS.number);
     });
 
+    it('shell 安装命令保留命令名、子命令、参数及标志的上游颜色', async () => {
+        const code = 'npm install naive-icons --save\npnpm add animal-island-ui';
+        const runs = tokenizeCode(code);
+        expect(runs.map((run) => run.text).join('')).toBe(code);
+        expect(runs.find((run) => run.text === 'npm')?.color).toBe(CODE_COLORS.jsx);
+        expect(runs.find((run) => run.text === 'install')?.color).toBe(CODE_COLORS.string);
+        expect(runs.find((run) => run.text === '--save')?.color).toBe(CODE_COLORS.operator);
+        expect(runs.some((run) => run.color === CODE_COLORS.default && run.text.includes('naive-icons'))).toBe(true);
+        const { getByTestId } = await render(<CodeBlock code={code} testID="cb" />);
+        expect(textOf(getByTestId('cb-code'))).toBe(code);
+    });
+
+    it('shell 注释使用斜体且不会改变 JSX 注释样式', async () => {
+        const code = '// install with npm\nnpm install animal-island-ui';
+        const { getByTestId } = await render(<CodeBlock code={code} testID="cb" />);
+        const comment = runsOf(getByTestId('cb-code')).find((run) => textOf(run) === '// install with npm')!;
+        expect(comment).toHaveStyle({ color: CODE_COLORS.comment, fontStyle: 'italic', fontWeight: '400' });
+        const jsx = tokenizeCode('// comment\nconst value = true;');
+        expect(jsx[0]).toEqual({ text: '// comment', color: CODE_COLORS.comment });
+    });
+
     it('空 code 不挂掉', async () => {
         const { getByTestId } = await render(<CodeBlock code="" testID="cb" />);
         expect(textOf(getByTestId('cb-code'))).toBe('');

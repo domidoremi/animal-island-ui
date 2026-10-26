@@ -1,9 +1,17 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import dayjs, { type Dayjs } from 'dayjs';
+// Import the locale value so tree-shaking cannot remove it. Apply it per instance,
+// without relying on the host's registration or changing dayjs's global locale.
+import zhCn from 'dayjs/locale/zh-cn';
 import { boxShadow, colors, duration, fontSize, spacing } from '../../theme/tokens';
+import { useTheme } from '../../theme/ThemeProvider';
 
-const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] as const;
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as const;
+/** 日期行语言：决定 `dddd` / `MMM` 等 token 输出的语言名 */
+export type TimeLocale = 'en' | 'zh-cn';
+
+/** 日期格式的语言默认值：中文习惯「6月8日」，英文「Jun 8」 */
+const getDefaultDateFormat = (locale: TimeLocale) => (locale === 'zh-cn' ? 'M月D日' : 'MMM D');
 
 const pad = (value: number) => String(value).padStart(2, '0');
 
@@ -20,6 +28,12 @@ const CLOCK_FONT_SIZE = 44;
 const BLINK_HALF_PERIOD = 500;
 
 export interface TimeProps {
+    /** 星期格式，支持 dayjs 核心 token（dddd / ddd / dd 等），默认 dddd */
+    weekdayFormat?: string;
+    /** 月日格式，支持 dayjs 核心 token（YYYY / MMM / M / D / dddd 等），默认 MMM D，zh-cn 下默认 M月D日 */
+    dateFormat?: string;
+    /** 日期行语言，决定 dddd / MMM 输出的语言名，默认 en */
+    locale?: TimeLocale;
     /**
      * 自定义样式（作用于最外层容器）。
      *
@@ -55,14 +69,19 @@ export interface TimeProps {
  *      必须显式 `accessible`（RNTL 的 `isAccessibilityElement` 对非 Text 宿主
  *      只在显式设置 `accessible` 时才返回 true）。这里子节点全是 Text、无交互内容，
  *      合并成一个节点是符合 `role="timer"` 语义的（对比 Collapse 刻意不设 `accessible`）。
+ *   6. 星期 / 月日支持 dayjs 核心 token，并按实例设置 locale。
  */
 export const Time: React.FC<TimeProps> = ({
+    weekdayFormat = 'dddd',
+    dateFormat,
+    locale = 'en',
     style,
     testID,
     nativeID,
     'aria-label': ariaLabel,
     'aria-labelledby': ariaLabelledBy,
 }) => {
+    const { theme, reducedMotion } = useTheme();
     const [now, setNow] = useState(() => new Date());
 
     // Web: `const timer = window.setInterval(...)`；RN 无 window，直接用全局 setInterval。
@@ -71,6 +90,8 @@ export const Time: React.FC<TimeProps> = ({
         return () => clearInterval(timer);
     }, []);
 
+    const local: Dayjs = dayjs(now).locale(locale === 'zh-cn' ? zhCn : 'en');
+
     // ---------- 挂载淡入：`@keyframes animal-time-fade-in`，0.35s（= @motion-duration-slow） ----------
     // opacity 是原生可驱动属性，用 useNativeDriver: true。测试里它不产生 JS 帧，
     // 因此不会污染 act()（见 RN-PORT.md「JS 驱动的 Animated 需要假定时器」）。
@@ -78,13 +99,13 @@ export const Time: React.FC<TimeProps> = ({
     useEffect(() => {
         const animation = Animated.timing(fade, {
             toValue: 1,
-            duration: duration.slow,
+            duration: reducedMotion ? 0 : duration.slow,
             easing: EASE,
             useNativeDriver: true,
         });
         animation.start();
         return () => animation.stop();
-    }, [fade]);
+    }, [fade, reducedMotion]);
 
     // ---------- 冒号闪烁：`@keyframes animal-time-blink { 50% { opacity: 0 } }`，1s step-end infinite ----------
     // step-end 的含义是「跳变，不插值」：0～0.5s 保持 1，0.5s 瞬间变 0，1s 瞬间变回 1。
@@ -92,6 +113,10 @@ export const Time: React.FC<TimeProps> = ({
     // 后者会变成淡入淡出，与 step-end 的硬切不一致。
     const blink = useRef(new Animated.Value(1)).current;
     useEffect(() => {
+        if (reducedMotion) {
+            blink.setValue(1);
+            return;
+        }
         const animation = Animated.loop(
             Animated.sequence([
                 Animated.timing(blink, {
@@ -110,7 +135,7 @@ export const Time: React.FC<TimeProps> = ({
         );
         animation.start();
         return () => animation.stop();
-    }, [blink]);
+    }, [blink, reducedMotion]);
 
     return (
         <Animated.View
@@ -121,7 +146,7 @@ export const Time: React.FC<TimeProps> = ({
             aria-label={ariaLabel}
             aria-labelledby={ariaLabelledBy}
             nativeID={nativeID}
-            style={[styles.time, { opacity: fade }, style]}
+            style={[styles.time, { opacity: fade, backgroundColor: theme.colors.bg }, style]}
             testID={testID}
         >
             {/*
@@ -129,22 +154,25 @@ export const Time: React.FC<TimeProps> = ({
              * 数字与冒号在**同一段文本流**里，由字体基线对齐 —— RN 用嵌套 <Text> 复刻
              * （而不是 flexDirection: 'row' 三个 Text，那样基线要靠 alignItems: 'baseline' 手动对齐）。
              */}
-            <Text style={styles.clock} numberOfLines={1}>
+            <Text style={[styles.clock, { color: theme.colors.text }]} numberOfLines={1}>
                 {pad(now.getHours())}
                 <Animated.Text style={[styles.colon, { opacity: blink }]}>:</Animated.Text>
                 {pad(now.getMinutes())}
             </Text>
-            <View style={styles.date}>
+            <View style={[styles.date, { backgroundColor: theme.colors.primaryBg }]}>
                 {/* Web: <span className={styles.weekday}>；大小写由 CSS text-transform 控制 */}
-                <Text style={[styles.dateText, styles.weekday]} numberOfLines={1}>
-                    {WEEKDAYS[now.getDay()]}
+                <Text style={[styles.dateText, styles.weekday, { color: theme.colors.primary }]} numberOfLines={1}>
+                    {local.format(weekdayFormat)}
                 </Text>
                 {/* Web: <span className={styles.dot} aria-hidden="true">·</span> */}
-                <Text style={[styles.dateText, styles.dot]} aria-hidden>
+                <Text style={[styles.dateText, styles.dot, { color: theme.colors.textDisabled }]} aria-hidden>
                     ·
                 </Text>
-                <Text style={[styles.dateText, styles.monthDay]} numberOfLines={1}>
-                    {MONTHS[now.getMonth()]} {now.getDate()}
+                <Text
+                    style={[styles.dateText, styles.monthDay, { color: theme.colors.textSecondary }]}
+                    numberOfLines={1}
+                >
+                    {local.format(dateFormat ?? getDefaultDateFormat(locale))}
                 </Text>
             </View>
         </Animated.View>

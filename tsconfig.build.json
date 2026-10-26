@@ -1,8 +1,9 @@
 {
-    // `extends` 不继承 `include` / `exclude`，必须与 tsconfig.json 的已移植子集保持一致。
+    // Build coverage must match tsconfig.json; tests stay excluded from declarations and JS.
     //
     // 为什么这里不能用 `moduleResolution: "Node"`（node10）：
-    //   RN 0.87 的类型在 `react-native/types_generated/index.d.ts`，只通过
+    //   The installed RN types use
+    //   `react-native/types_generated/index.d.ts` and
     //   package.json 的 `exports` 映射暴露；node10 解析不读 `exports`，会报
     //   `TS7016: Could not find a declaration file for module 'react-native'`。
     //   `module: "node16"` 会读 `exports`，且因本包 package.json 未声明
@@ -57,7 +58,13 @@
         "src/components/TimePicker",
         "src/components/Title",
         "src/components/Typewriter",
-        "src/components/Tooltip"
+        "src/components/Tooltip",
+        "src/components/Avatar",
+        "src/components/Badge",
+        "src/components/Calendar",
+        "src/components/CountUp",
+        "src/components/Rate",
+        "src/components/Upload"
     ],
     "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx", "node_modules", "dist"]
 }

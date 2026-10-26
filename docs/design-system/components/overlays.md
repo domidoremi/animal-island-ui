@@ -1,8 +1,14 @@
 # Overlays — pixel spec
 
 > **RN fork:** Modal has a keyboard-avoiding wrapper, host-provided safe-area insets, scrollable body and fixed footer; dark mode recolors its organic surface. Modal and Tooltip suppress decorative transitions for reduced motion. [RN contract](../../../RN-PORT.md). The remaining tables describe the upstream Web/light skin.
+>
+> Drawer adds dark surfaces, keyboard avoidance, scrolling and reduced-motion immediate lifetime. Background push and Web focus trapping are still unsupported; native focus requires physical verification. [Native differences](native-adaptations.md).
+
 
 On Android, Modal's transparent window extends behind the status bar (`statusBarTranslucent`), so opening it does not introduce a separate system-bar strip. Host-provided `contentInsets` still protect the dialog content; they must not inset the backdrop itself.
+
+The native game variant gives its background SVG explicit `100%` width and height. The content-sized panel, not the
+SVG's intrinsic square viewBox, determines the artwork bounds. This remains a background approximation, not content clipping.
 
 Exact values for the layered surfaces that sit above page content: Modal, Drawer and Tooltip.
 

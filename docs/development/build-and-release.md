@@ -1,5 +1,7 @@
 # Build and Release
 
+> **RN branch:** `npm run build` is TypeScript CommonJS/declaration emission into `dist/`, not Vite/CSS bundling. dayjs is external. The package is private; its manifest/license discrepancy is unresolved. Use [native-workflow.md](./native-workflow.md); Web publishing steps below are not native release authority.
+
 `npm run build` produces the published artifact: `vite build` emits JavaScript, CSS, and assets into `dist/`, then
 `tsc --project tsconfig.build.json --emitDeclarationOnly` emits declarations into `dist/types/`. The rationale behind
 the choices below is recorded in [../adr/](../adr/); this page is the contract itself.

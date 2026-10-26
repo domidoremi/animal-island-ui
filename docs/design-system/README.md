@@ -1,5 +1,8 @@
 # Design System
 
+On the `rn` branch, read [native adaptations](components/native-adaptations.md) for
+native visual differences. The Web/Less inventories below remain upstream references.
+
 This directory is the single source of truth for the animal-island-ui design language. The component library source code is its implementation; every other usage document is a derived summary of what is written here.
 
 ## Design language

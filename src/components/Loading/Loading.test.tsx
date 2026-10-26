@@ -1,8 +1,9 @@
 import React from 'react';
-import { Dimensions } from 'react-native';
+import { Animated, Dimensions } from 'react-native';
 import { act, render } from '@testing-library/react-native';
 import type { TestInstance } from 'test-renderer';
 import { Loading } from './Loading';
+import { ThemeProvider } from '../../theme/ThemeProvider';
 
 /**
  * RN 版测试，对应 Web 版 `Loading.test.tsx` 的 14 个用例。
@@ -39,9 +40,8 @@ import { Loading } from './Loading';
  *   - **雪花飘落本身**：`useNativeDriver: true` 在 jest 里是空操作，帧不会推进，
  *     所以只断言静态规格（尺寸 / 水平位置 / 时长 / 起始相位），不断言它真的在动。
  *   - **暗角渐变的观感**：只断言渲染出了 `react-native-svg` 的渐变节点。
- *   - **`prefers-reduced-motion`**：Web 版用媒体查询停掉落雪；RN 0.87 **没有导出
- *     `useReducedMotion`**（只有异步的 `AccessibilityInfo.isReduceMotionEnabled`），
- *     这条**整段丢弃**，没有对应实现可测。
+ *   - Physical motion remains unverified; ThemeProvider tests only prove that the
+ *     reduced-motion path does not schedule animations and retains a static snow scene.
  */
 const styleOf = (node: TestInstance) => {
     const merged: Record<string, unknown> = {};
@@ -73,6 +73,35 @@ afterEach(() => {
 });
 
 describe('Loading', () => {
+    it('reduced motion keeps a visible static snow scene and skips decorative animation', async () => {
+        const timing = jest.spyOn(Animated, 'timing'),
+            loop = jest.spyOn(Animated, 'loop');
+        try {
+            const { getByTestId, getAllByTestId, queryByTestId, rerender } = await render(
+                <ThemeProvider reducedMotion>
+                    <Loading testID="l" />
+                </ThemeProvider>
+            );
+            expect(styleOf(getByTestId('l')).opacity).toBe(1);
+            const flakes = getAllByTestId('l-flake', HIDDEN);
+            expect(flakes).toHaveLength(50);
+            expect(
+                flakes.some((flake) => (styleOf(flake).transform as { translateY: number }[])[0].translateY > 30)
+            ).toBe(true);
+            expect(timing).not.toHaveBeenCalled();
+            expect(loop).not.toHaveBeenCalled();
+            await rerender(
+                <ThemeProvider reducedMotion>
+                    <Loading testID="l" active={false} />
+                </ThemeProvider>
+            );
+            expect(queryByTestId('l')).toBeNull();
+        } finally {
+            timing.mockRestore();
+            loop.mockRestore();
+        }
+    });
+
     describe('渲染', () => {
         it('默认渲染全屏落雪 role=status 与兜底读屏文案', async () => {
             const { getByRole, getByTestId, getByText } = await render(<Loading testID="l" />);

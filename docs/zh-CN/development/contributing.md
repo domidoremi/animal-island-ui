@@ -1,5 +1,7 @@
 # 贡献指南
 
+> **RN 分支：**通过 [native-workflow.md](./native-workflow.md) 验证原生流水线和独立文档检查。贡献说明不授予暂存、提交、推送、发布、启动服务器或执行设备/Provider 测试的权限。
+
 欢迎提交 Issue 与 Pull Request。
 
 ## 提交 Issue

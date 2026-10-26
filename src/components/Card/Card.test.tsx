@@ -395,7 +395,7 @@ describe('Card', () => {
             expect(primary.pattern.props.patternUnits).toBe(1); // 1 = userSpaceOnUse
             expect(primary.dot.props.cx).toBe(14);
             expect(primary.dot.props.cy).toBe(14);
-            expect(primary.dot.props.r).toBe(1.5);
+            expect(primary.dot.props.r).toBe(1.4);
             // 14px 网格、偏移 (7,7)、圆心仍在 tile 中心（= 绝对坐标 14,14）、r=1
             expect(secondary.pattern.props.x).toBe(7);
             expect(secondary.pattern.props.y).toBe(7);

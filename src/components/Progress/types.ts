@@ -11,7 +11,7 @@ export type ProgressSize = 'small' | 'middle' | 'large';
 
 /**
  * 进度条 fill 背景场景图
- *  - sweet-corner: 甜点店角（默认）
+ *  - sweet-corner: 甜点店角
  *  - forest-grove: 森林树丛
  *  - starry-camp:  星空露营
  *  - coffee-break: 咖啡时光
@@ -25,7 +25,7 @@ export interface ProgressProps {
     size?: ProgressSize;
     /** 是否显示百分比文字（显示在进度条右侧） */
     showInfo?: boolean;
-    /** fill 背景场景图；不传时为纯色 fill（`#19c8b9`） */
+    /** fill 背景场景图；不传时为主色竖向渐变，完成时提亮 */
     variant?: ProgressVariant;
     /** 自定义文字格式化（默认 `${percent}%`） */
     infoFormat?: (percent: number) => React.ReactNode;
@@ -41,6 +41,6 @@ export interface ProgressProps {
     'aria-labelledby'?: string;
     /** Unknown progress must not announce a fabricated percentage. */
     indeterminate?: boolean;
-    /** Optional host status color; omitting it keeps the scene fill. */
+    /** Optional host status color; overrides the gradient and scene fill. */
     fillColor?: string;
 }

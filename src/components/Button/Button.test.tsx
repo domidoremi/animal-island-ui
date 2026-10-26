@@ -96,6 +96,38 @@ const contrast = (foreground: string, background: string) => {
 };
 
 describe('Button', () => {
+    it.each(['small', 'middle', 'large'] as const)(
+        'keeps the ordinary %s button single-line and opts into an unconstrained multiline label',
+        async (size) => {
+            const onPress = jest.fn();
+            const tree = (multiline: boolean, loading = false) => (
+                <ThemeProvider reducedMotion>
+                    <Button size={size} multiline={multiline} loading={loading} testID="wrapped" onPress={onPress}>
+                        Confirm 123 filtered pending memories
+                    </Button>
+                </ThemeProvider>
+            );
+            const screen = await render(tree(false));
+            expect(screen.getByText('Confirm 123 filtered pending memories').props.numberOfLines).toBe(1);
+            const originalHeight = styleOf(screen.getByTestId('wrapped')).height;
+            await screen.rerender(tree(true));
+            const text = screen.getByText('Confirm 123 filtered pending memories');
+            expect(text.props.numberOfLines ?? 0).toBe(0);
+            expect(text).toHaveStyle({ minWidth: 0, flexShrink: 1, textAlign: 'center' });
+            const style = styleOf(screen.getByTestId('wrapped'));
+            expect(style.height).toBeUndefined();
+            expect(style.minHeight).toBe(originalHeight);
+            expect(style.paddingVertical).toBeGreaterThan(0);
+            await fireEvent.press(screen.getByTestId('wrapped'));
+            expect(onPress).toHaveBeenCalledTimes(1);
+            await screen.rerender(tree(true, true));
+            await fireEvent.press(screen.getByTestId('wrapped'));
+            expect(onPress).toHaveBeenCalledTimes(1);
+            expect(screen.getByTestId('wrapped').props.accessibilityState.busy).toBe(true);
+            await screen.unmount();
+        }
+    );
+
     it.each(['primary', 'default', 'dashed', 'text', 'link'] as const)(
         '%s loading 的文案和图标在强调色变化后仍清晰可见',
         async (type) => {

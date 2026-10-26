@@ -1,6 +1,9 @@
 # Form controls — pixel spec
 
 > **RN fork:** Input and Select use dark surfaces, text and borders; Switch uses dark track/handle colors. Disabled options cannot be selected. Compact touch targets use hitSlop without changing the visual geometry. [RN contract](../../../RN-PORT.md). The remaining tables describe the upstream Web/light skin.
+>
+> Input uses the revised cream surface, a shrinkable text face and theme-aware clear foreground. Select search/clear/modal viewport bounds are native adaptations; disabled state and value ownership remain explicit. [Native differences](native-adaptations.md).
+
 
 Pixel-level styling for the interactive input controls: Input, Switch, Checkbox, Radio and Select.
 

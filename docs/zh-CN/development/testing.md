@@ -1,5 +1,7 @@
 # 测试
 
+> **RN 分支：**测试使用当前 React Native 的 Jest preset 与 `@testing-library/react-native`，不是 Vitest/jsdom。命令、异步 render 和物理测试边界见 [native-workflow.md](./native-workflow.md)。本页其余部分是上游 Web 参照。
+
 单测跑在 jsdom 上的 Vitest 里，无障碍冒烟测试跑在第二份 Vitest 配置里。两者都是 `npm run ci` 的一部分。
 
 ## 配置

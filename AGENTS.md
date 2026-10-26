@@ -1,5 +1,10 @@
 # AGENTS.md — working in this repository
 
+On this checkout's `rn` branch, the native source and manifest take precedence:
+read [docs/development/native-workflow.md](docs/development/native-workflow.md) and
+[RN-PORT.md](RN-PORT.md) first. The Web stack and release commands below describe
+retained upstream guidance, not native build or execution authority.
+
 animal-island-ui is a React 18 + TypeScript 5.7 component library (40 components, Less
 Modules, Vite 7 library build, Vitest 4) inspired by a cozy island-style UI.
 One runtime dependency: `naive-icons` (the icon set); everything else is a peerDependency

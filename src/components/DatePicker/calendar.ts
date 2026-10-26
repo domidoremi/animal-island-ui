@@ -7,8 +7,13 @@
  * 所以翻边 / 对齐这些**判断**在组件测试里一个都跑不到。日期算术虽然能跑，
  * 但挪到这里可以按边界逐条测（月末、闰年、跨年、首尾补格），不必靠点击 UI。
  *
- * 全部函数与上游 `DatePicker.tsx` 的同名局部函数**逐行对应**，未改动语义。
+ * Dates remain native Date values at this boundary; parsing and arithmetic use dayjs.
  */
+
+import dayjs from 'dayjs';
+import customParseFormat from 'dayjs/plugin/customParseFormat.js';
+
+dayjs.extend(customParseFormat);
 
 /** 星期表头，与上游 `WEEKDAYS` 一致 */
 export const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六'] as const;
@@ -42,43 +47,27 @@ export const PANEL_HEIGHT_ESTIMATE = 340;
 /** 面板与触发区的间距 —— 上游的 `marginTop / marginBottom: 6px` */
 export const PANEL_GAP = 6;
 
-const pad = (n: number) => `${n}`.padStart(2, '0');
-
-/** 将 YYYY[-MM[-DD]] 字符串解析为本地时间 Date，非法输入返回 null */
+/** Strict YYYY-MM-DD / YYYY-MM (also unpadded month/day); invalid dates return null. */
 export const parseValue = (value: string | null | undefined): Date | null => {
     if (!value) return null;
-    const match = /^(\d{4})-(\d{1,2})(?:-(\d{1,2}))?$/.exec(value);
-    if (!match || Number(match[2]) > 12) return null;
-    const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3] ?? 1));
-    return Number.isNaN(date.getTime()) ? null : date;
+    const parsed = dayjs(value, ['YYYY-MM-DD', 'YYYY-M-D', 'YYYY-MM-D', 'YYYY-M-DD', 'YYYY-MM', 'YYYY-M'], true);
+    return parsed.isValid() ? parsed.toDate() : null;
 };
 
 /** 将 Date 序列化为 YYYY-MM-DD */
-export const toValue = (date: Date): string =>
-    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+export const toValue = (date: Date): string => dayjs(date).format('YYYY-MM-DD');
 
 /** 将 Date 序列化为 YYYY-MM（月份选择模式的值） */
-export const toMonthValue = (date: Date): string => `${date.getFullYear()}-${pad(date.getMonth() + 1)}`;
+export const toMonthValue = (date: Date): string => dayjs(date).format('YYYY-MM');
 
 /**
- * 按模板格式化日期，支持 YYYY / MM / DD / M / D 占位符。
- *
- * ⚠️ 顺序敏感：必须先替换 `YYYY`，否则 `YYYY` 里的 `Y` 会被 `M`/`D` 的替换误伤；
- * 且 `MM` 必须早于 `M`。这里逐字照搬上游 `formatDate` 的替换顺序。
+ * Core dayjs tokens; instance-local English keeps formatting independent of host locale changes.
  */
-export const formatDate = (date: Date, format: string): string =>
-    format
-        .replace('YYYY', `${date.getFullYear()}`)
-        .replace('MM', pad(date.getMonth() + 1))
-        .replace('DD', pad(date.getDate()))
-        .replace('M', `${date.getMonth() + 1}`)
-        .replace('D', `${date.getDate()}`);
+export const formatDate = (date: Date, format: string): string => dayjs(date).locale('en').format(format);
 
-export const isSameDay = (a: Date, b: Date): boolean =>
-    a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+export const isSameDay = (a: Date, b: Date): boolean => dayjs(a).isSame(b, 'day');
 
-export const isSameMonth = (a: Date, b: Date): boolean =>
-    a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth();
+export const isSameMonth = (a: Date, b: Date): boolean => dayjs(a).isSame(b, 'month');
 
 export type DateRange = [Date, Date];
 
@@ -98,16 +87,9 @@ export const parseRange = (value: string | [string, string] | null): DateRange |
  * 「是否属于当前视图月」由调用方自己比对 `getMonth()`（上游的 `outside`）。
  */
 export const buildCells = (vDate: Date): Date[] => {
-    const vYear = vDate.getFullYear();
-    const vMonth = vDate.getMonth();
-    const cells: Date[] = [];
-    const startWeekday = new Date(vYear, vMonth, 1).getDay();
-    const daysInMonth = new Date(vYear, vMonth + 1, 0).getDate();
-    const daysInPrevMonth = new Date(vYear, vMonth, 0).getDate();
-    for (let i = startWeekday - 1; i >= 0; i--) cells.push(new Date(vYear, vMonth - 1, daysInPrevMonth - i));
-    for (let d = 1; d <= daysInMonth; d++) cells.push(new Date(vYear, vMonth, d));
-    for (let d = 1; cells.length < GRID_CELLS; d++) cells.push(new Date(vYear, vMonth + 1, d));
-    return cells;
+    const first = dayjs(vDate).date(1).startOf('day');
+    const start = first.subtract(first.day(), 'day');
+    return Array.from({ length: GRID_CELLS }, (_, index) => start.add(index, 'day').toDate());
 };
 
 /** 年份选择网格：12 个年份，从 `startYear - 1` 起 —— 上游 `yearCells` */

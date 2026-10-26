@@ -1,5 +1,8 @@
 # Design System
 
+`rn` 分支的原生视觉差异见 [原生适配](components/native-adaptations.md)；
+下文 Web/Less 清单仍是上游参照。
+
 本目录是 animal-island-ui 设计语言的唯一真源。组件库源码是它的实现，其余所有使用类文档都是对这里内容的派生摘要。
 
 ## 设计语言

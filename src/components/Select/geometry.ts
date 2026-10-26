@@ -144,3 +144,22 @@ export const computeDropdownPosition = (trigger: Rect, win: WindowSize, optionCo
 
     return pos;
 };
+
+/** Preserve upstream side placement when it fits; constrain native Modal content to the viewport. */
+export const constrainDropdownPosition = (
+    position: DropdownPosition,
+    win: WindowSize,
+    panel: WindowSize,
+    gutter = 12
+): DropdownPosition => {
+    const width = Math.min(panel.width, Math.max(1, win.width - gutter * 2));
+    const height = Math.min(panel.height, Math.max(1, win.height - gutter * 2));
+    const left = position.left ?? win.width - (position.right ?? gutter) - width;
+    const top = position.top ?? win.height - (position.bottom ?? gutter) - height;
+    const x = Math.max(gutter, Math.min(left, Math.max(gutter, win.width - gutter - width)));
+    const y = Math.max(gutter, Math.min(top, Math.max(gutter, win.height - gutter - height)));
+    return {
+        ...(position.left !== undefined ? { left: x } : { right: win.width - x - width }),
+        ...(position.top !== undefined ? { top: y } : { bottom: win.height - y - height }),
+    };
+};

@@ -2,15 +2,20 @@ import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import {
     Animated,
     Easing,
+    KeyboardAvoidingView,
     Modal,
+    Platform,
     Pressable,
+    ScrollView,
     StyleSheet,
     Text,
     View,
+    useWindowDimensions,
     type StyleProp,
     type ViewStyle,
 } from 'react-native';
 import { Cursor } from '../Cursor';
+import { useTheme } from '../../theme/ThemeProvider';
 
 export type DrawerPlacement = 'left' | 'right' | 'top' | 'bottom';
 
@@ -31,7 +36,7 @@ export interface DrawerProps {
      * 背景下沉景深效果，默认 true。
      *
      * ⚠️ **在 RN 里是空操作（no-op）**：上游的实现是遍历 `document.body.children`，
-     * 给非 fixed 的子元素写 `transform: scale(0.94)` / `filter: blur(1px)` /
+     * 给非 fixed 的子元素写 `transform: scale(0.94)` /
      * `borderRadius: 14px` / `overflow: hidden`。RN 既没有 `document`，
      * 也无法从组件内部改宿主 App 的其它视图。保留 prop 只为守住上游 API 的形状。
      */
@@ -57,7 +62,6 @@ const SLIDE_EASING = Easing.bezier(0.2, 0, 0.2, 1);
 const PANEL_BG = 'rgb(247, 243, 223)';
 const TITLE_COLOR = 'rgba(114, 93, 66, 1)';
 const CLOSE_COLOR = 'rgba(114, 93, 66, 0.6)';
-const BODY_COLOR = '#8a7b66';
 const MASK_BG = 'rgba(0, 0, 0, 0.18)';
 
 /**
@@ -108,6 +112,8 @@ export const Drawer: React.FC<DrawerProps> = ({
     maskStyle,
     testID,
 }) => {
+    const { theme, mode, reducedMotion } = useTheme();
+    const window = useWindowDimensions();
     const [mounted, setMounted] = useState(open);
     const slide = useRef(new Animated.Value(open ? 1 : 0)).current;
     const maskOpacity = useRef(new Animated.Value(open ? 1 : 0)).current;
@@ -116,34 +122,54 @@ export const Drawer: React.FC<DrawerProps> = ({
     const titleId = `${idPrefix}-title`;
 
     useEffect(() => {
+        if (reducedMotion) {
+            slide.setValue(open ? 1 : 0);
+            maskOpacity.setValue(open ? 1 : 0);
+            setMounted(open);
+            return;
+        }
         if (open) setMounted(true);
 
         // useNativeDriver：真实设备上走原生线程；测试里是 no-op，
         // 所以卸载不能挂在动画回调上（回调不会来），用定时器兜底（同 TimePicker）。
-        Animated.timing(slide, {
+        const slideAnimation = Animated.timing(slide, {
             toValue: open ? 1 : 0,
             duration: SLIDE_DURATION_MS,
             easing: SLIDE_EASING,
             useNativeDriver: true,
-        }).start();
-        Animated.timing(maskOpacity, {
+        });
+        const maskAnimation = Animated.timing(maskOpacity, {
             toValue: open ? 1 : 0,
             duration: SLIDE_DURATION_MS,
             easing: Easing.ease,
             useNativeDriver: true,
-        }).start();
+        });
+        slideAnimation.start();
+        maskAnimation.start();
 
-        if (open) return undefined;
-        const id = setTimeout(() => setMounted(false), SLIDE_DURATION_MS);
-        return () => clearTimeout(id);
+        const id = open ? undefined : setTimeout(() => setMounted(false), SLIDE_DURATION_MS);
+        return () => {
+            clearTimeout(id);
+            slideAnimation.stop();
+            maskAnimation.stop();
+        };
         // pushBackground 有意忽略（_pushBackground 不可读），故不进依赖数组
-    }, [open, slide, maskOpacity]);
+    }, [open, slide, maskOpacity, reducedMotion]);
 
     const handleMaskPress = useCallback(() => {
         if (maskClosable) onClose?.();
     }, [maskClosable, onClose]);
 
-    const panelStyle: ViewStyle = placement === 'left' || placement === 'right' ? { width } : { height };
+    const panelStyle: ViewStyle =
+        placement === 'left' || placement === 'right'
+            ? { width: Math.min(width, Math.max(1, window.width - 32)) }
+            : { height: Math.min(height, window.height) };
+    const nativeNode = (node: React.ReactNode) =>
+        typeof node === 'string' || typeof node === 'number' ? (
+            <Text style={{ color: theme.colors.textSecondary, fontSize: 20, fontWeight: '600' }}>{node}</Text>
+        ) : (
+            node
+        );
 
     const horizontal = placement === 'left' || placement === 'right';
     const [from, to] = slideRange(placement, horizontal ? 'x' : 'y');
@@ -153,71 +179,88 @@ export const Drawer: React.FC<DrawerProps> = ({
     return (
         <Modal transparent visible={mounted} animationType="none" onRequestClose={onClose}>
             <Cursor>
-                <Animated.View
-                    style={[styles.mask, { opacity: maskOpacity }, maskStyle]}
-                    testID={testID ? `${testID}-mask` : undefined}
-                >
-                    <Pressable
-                        style={StyleSheet.absoluteFill}
-                        onPress={handleMaskPress}
-                        disabled={!maskClosable}
-                        testID={testID ? `${testID}-mask-hit` : undefined}
-                    />
+                <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
                     <Animated.View
-                        // `accessible` 是必需的：RNTL 的 `getByRole` 受 `isAccessibilityElement`
-                        // 门控，非 Text 宿主只有显式 `accessible` 才会进无障碍树（与 Collapse 的
-                        // `region` 同款坑）。对 dialog 来说把内容合成一个节点也正好是上游的语义
-                        // （`aria-modal="true"` 意味着外部内容都不可达）。
-                        accessible
-                        role="dialog"
-                        aria-modal
-                        aria-hidden={!open}
-                        aria-labelledby={title ? titleId : undefined}
-                        // 上游 `onClick={e => e.stopPropagation()}`：
-                        // 抢下 responder，遮罩的 Pressable 就收不到这次触摸。
-                        onStartShouldSetResponder={() => true}
                         style={[
-                            styles.panel,
-                            placement === 'right' && styles.panelRight,
-                            placement === 'left' && styles.panelLeft,
-                            placement === 'top' && styles.panelTop,
-                            placement === 'bottom' && styles.panelBottom,
-                            panelStyle,
-                            style,
-                            { transform: slideTransform as never },
+                            styles.mask,
+                            { opacity: maskOpacity, backgroundColor: mode === 'dark' ? theme.colors.mask : MASK_BG },
+                            maskStyle,
                         ]}
-                        testID={testID ? `${testID}-panel` : undefined}
+                        testID={testID ? `${testID}-mask` : undefined}
                     >
-                        {title && (
-                            <View style={styles.header}>
-                                <Text
-                                    nativeID={titleId}
-                                    style={styles.title}
-                                    testID={testID ? `${testID}-title` : undefined}
-                                >
-                                    {title}
-                                </Text>
-                                <Pressable
-                                    accessibilityRole="button"
-                                    aria-label="关闭"
-                                    onPress={onClose}
-                                    style={styles.close}
-                                    testID={testID ? `${testID}-close` : undefined}
-                                >
-                                    <Text style={styles.closeText}>×</Text>
-                                </Pressable>
-                            </View>
-                        )}
-                        <View style={styles.body} testID={testID ? `${testID}-body` : undefined}>
-                            {children}
-                        </View>
-                        {footer && (
-                            <View style={styles.footer} testID={testID ? `${testID}-footer` : undefined}>
-                                {footer}
-                            </View>
-                        )}
+                        <Pressable
+                            style={StyleSheet.absoluteFill}
+                            onPress={handleMaskPress}
+                            disabled={!maskClosable}
+                            testID={testID ? `${testID}-mask-hit` : undefined}
+                        />
+                        <Animated.View
+                            // Keep interactive descendants separate; modal isolation does not
+                            // mean aggregating every control into one accessibility element.
+                            accessible={false}
+                            role="dialog"
+                            aria-modal
+                            aria-hidden={!open}
+                            aria-labelledby={title ? titleId : undefined}
+                            // 上游 `onClick={e => e.stopPropagation()}`：
+                            // 抢下 responder，遮罩的 Pressable 就收不到这次触摸。
+                            onStartShouldSetResponder={() => true}
+                            style={[
+                                styles.panel,
+                                mode === 'dark' && { backgroundColor: theme.colors.bgSecondary },
+                                placement === 'right' && styles.panelRight,
+                                placement === 'left' && styles.panelLeft,
+                                placement === 'top' && styles.panelTop,
+                                placement === 'bottom' && styles.panelBottom,
+                                panelStyle,
+                                style,
+                                { transform: slideTransform as never },
+                            ]}
+                            testID={testID ? `${testID}-panel` : undefined}
+                        >
+                            {title && (
+                                <View style={styles.header}>
+                                    <Text
+                                        nativeID={titleId}
+                                        style={[styles.title, mode === 'dark' && { color: theme.colors.text }]}
+                                        testID={testID ? `${testID}-title` : undefined}
+                                    >
+                                        {title}
+                                    </Text>
+                                    <Pressable
+                                        accessibilityRole="button"
+                                        aria-label="关闭"
+                                        onPress={onClose}
+                                        style={styles.close}
+                                        testID={testID ? `${testID}-close` : undefined}
+                                    >
+                                        <Text
+                                            style={[
+                                                styles.closeText,
+                                                mode === 'dark' && { color: theme.colors.textSecondary },
+                                            ]}
+                                        >
+                                            ×
+                                        </Text>
+                                    </Pressable>
+                                </View>
+                            )}
+                            <ScrollView
+                                style={{ flex: 1 }}
+                                contentContainerStyle={styles.body}
+                                keyboardShouldPersistTaps="handled"
+                                testID={testID ? `${testID}-body` : undefined}
+                            >
+                                {nativeNode(children)}
+                            </ScrollView>
+                            {footer && (
+                                <View style={styles.footer} testID={testID ? `${testID}-footer` : undefined}>
+                                    {nativeNode(footer)}
+                                </View>
+                            )}
+                        </Animated.View>
                     </Animated.View>
-                </Animated.View>
+                </KeyboardAvoidingView>
             </Cursor>
         </Modal>
     );
@@ -238,8 +281,6 @@ const styles = StyleSheet.create({
         flexDirection: 'column',
         overflow: 'hidden',
     },
-    // ⚠️ `max-width: calc(100vw - 32px)` —— RN 不支持 `calc()`，
-    //    这里退化为 `maxWidth: '100%'`，也就是丢掉那 32px 的内缩。
     panelRight: {
         top: 0,
         right: 0,
@@ -308,13 +349,9 @@ const styles = StyleSheet.create({
     },
     // `.body { flex:1; overflow-y:auto; padding: 0 24px 24px; font-size:20px; font-weight:600; line-height:1.6; color:#8a7b66 }`
     body: {
-        flex: 1,
+        flexGrow: 1,
         paddingHorizontal: 24,
         paddingBottom: 24,
-        fontSize: 20,
-        fontWeight: '600',
-        lineHeight: 32,
-        color: BODY_COLOR,
     },
     // `.footer { display:flex; align-items:center; justify-content:flex-end; gap:12px; padding: 0 24px 24px }`
     footer: {

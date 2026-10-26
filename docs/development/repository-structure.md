@@ -1,5 +1,7 @@
 # Repository Structure
 
+> **RN branch:** the current manifest defines React/React Native/SVG peers, dayjs runtime dependency, Jest, TypeScript and StyleSheet. It has no Web dev/demo/deploy command. Read [native-workflow.md](./native-workflow.md) for the actual native layout and commands; the following stack is the upstream Web reference.
+
 ## Project
 
 animal-island-ui is a React + TypeScript UI component library inspired by _a cozy island-style UI_, released as

@@ -6,15 +6,8 @@ import { Clipboard, Platform, Pressable, StyleSheet, Text, View, type StyleProp,
  *
  * ## 高亮方案（移植时的关键决定）
  *
- * 上游 Web 版**没有**用 Prism / Shiki / highlight.js，也**没有**用
- * `dangerouslySetInnerHTML` —— 它在本文件里手写了一个正则分词器
- * （上游 `highlightJSX`，见下），把源码切成 `{start, end, color}` 的 token，
- * 再渲染成一串 `<span style={{ color }}>`。
- *
- * 这套逻辑是**纯字符串运算 + 彩色文本片段**，没有任何 DOM 依赖，所以
- * **完整保留**：分词器原样搬成纯函数 `tokenizeCode`（返回 `{ text, color }` 数组，
- * 便于单测），渲染层把 `<span>` 换成 RN 的 `<Text>`（嵌套 `<Text>` 会内联排版，
- * 等价于 Web 的 `<span>`）。**没有引入任何新依赖，也没有降级掉高亮。**
+ * JSX/TypeScript 与 Shell 使用上游正则分词器；纯字符串逻辑不依赖 DOM，
+ * 用嵌套 Text 代替 Web 的 span，不引入 Prism / Shiki 等运行时依赖。
  *
  * ## 与上游的结构性差异
  *
@@ -26,9 +19,9 @@ import { Clipboard, Platform, Pressable, StyleSheet, Text, View, type StyleProp,
  * 2. **`.wrapper` + `<pre>` 两层合并成一层**：Web 的 `<pre>` 会横向滚动
  *    （`overflow: auto`），绝对定位的复制按钮必须放在滚动容器**外**，
  *    所以才要多一层 `.wrapper`。RN 版代码块不滚动，复制按钮直接作为
- *    代码块容器的子节点即可，视觉与上游一致，少一层嵌套。
+ *    代码块容器的子节点即可。
  *    代价：上游把 `style` 的布局属性（width / margin*）提到 `.wrapper`、
- *    其余落到 `<pre>`；RN 版 `style` 统一作用于代码块本身，结果等价。
+ *    其余落到 `<pre>`；RN 版 `style` 统一作用于代码块本身。
  * 3. **长代码换行而不横向滚动**：`overflow: auto` 没有 RN 等价物（除非再套一层
  *    横向 `ScrollView`，会把 `style` 的落点再拆一次），这里选择换行并如实记录。
  */
@@ -56,13 +49,53 @@ export const CODE_COLORS = {
 export interface CodeRun {
     text: string;
     color: string;
+    italic?: boolean;
 }
 
 interface Token {
     start: number;
     end: number;
     color: string;
+    italic?: boolean;
 }
+
+const renderCodeRuns = (code: string, tokens: Token[]): CodeRun[] => {
+    tokens.sort((a, b) => a.start - b.start);
+    const runs: CodeRun[] = [];
+    let pos = 0;
+    for (const token of tokens) {
+        if (token.start < pos) continue;
+        if (token.start > pos) runs.push({ text: code.slice(pos, token.start), color: CODE_COLORS.default });
+        runs.push({
+            text: code.slice(token.start, token.end),
+            color: token.color,
+            ...(token.italic ? { italic: true } : {}),
+        });
+        pos = token.end;
+    }
+    if (pos < code.length) runs.push({ text: code.slice(pos), color: CODE_COLORS.default });
+    return runs;
+};
+
+const looksLikeShell = (code: string): boolean => /^\s*(npm|yarn|pnpm|npx|node|git|cd|ls|mkdir|rm|cp|mv)\b/m.test(code);
+
+const tokenizeShell = (code: string): CodeRun[] => {
+    const tokens: Token[] = [];
+    const addPattern = (regex: RegExp, color: string, italic = false) => {
+        let match: RegExpExecArray | null;
+        while ((match = regex.exec(code)) !== null) {
+            tokens.push({ start: match.index, end: match.index + match[0].length, color, italic });
+        }
+    };
+    addPattern(/\/\/.*$/gm, CODE_COLORS.comment, true);
+    addPattern(/^\s*(npm|yarn|pnpm|npx|node|git|cd|ls|mkdir|rm|cp|mv)\b/gm, CODE_COLORS.jsx);
+    addPattern(
+        /(?<=\s)(install|add|remove|uninstall|run|start|dev|build|test|lint|publish|init|create|exec|global|link|upgrade|update|clone|commit|push|pull|checkout|branch|merge|rebase|status|log|diff)\b/g,
+        CODE_COLORS.string
+    );
+    addPattern(/(?<=\s)(-{1,2}[\w-]+)/g, CODE_COLORS.operator);
+    return renderCodeRuns(code, tokens);
+};
 
 /**
  * 上游 `highlightJSX` 的分词部分，抽成纯函数。
@@ -76,6 +109,7 @@ interface Token {
  * 抽出来的原因：这是**唯一有分支的算术**，放在渲染函数里就只能靠断言颜色来间接验证。
  */
 export const tokenizeCode = (code: string): CodeRun[] => {
+    if (looksLikeShell(code)) return tokenizeShell(code);
     const tokens: Token[] = [];
 
     const addPattern = (regex: RegExp, color: string) => {
@@ -111,24 +145,7 @@ export const tokenizeCode = (code: string): CodeRun[] => {
     addPattern(/>|===|!==|==|!=|<=|>=|&&|\|\||[+\-*/%=<>!&|^~?:]/g, CODE_COLORS.operator);
     addPattern(/[{}[\]();,]/g, CODE_COLORS.operator);
 
-    tokens.sort((a, b) => a.start - b.start);
-
-    const runs: CodeRun[] = [];
-    const push = (text: string, color: string) => {
-        // 上游也会产出长度 0 的 span（不会有），这里顺手挡掉，视觉等价
-        if (text.length > 0) runs.push({ text, color });
-    };
-
-    let pos = 0;
-    for (const token of tokens) {
-        if (token.start < pos) continue;
-        if (token.start > pos) push(code.slice(pos, token.start), CODE_COLORS.default);
-        push(code.slice(token.start, token.end), token.color);
-        pos = token.end;
-    }
-    if (pos < code.length) push(code.slice(pos), CODE_COLORS.default);
-
-    return runs;
+    return renderCodeRuns(code, tokens);
 };
 
 /**
@@ -144,7 +161,7 @@ const MONO_FONT = Platform.select({ ios: 'Menlo', android: 'monospace', default:
 const RESET_DELAY = 2000;
 
 export interface CodeBlockProps {
-    /** 要高亮的 JSX / TypeScript 源码 */
+    /** 要高亮的 JSX / TypeScript 或 Shell 源码 */
     code: string;
     /** 自定义样式（作用于代码块本身） */
     style?: StyleProp<ViewStyle>;
@@ -218,7 +235,14 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({ code, style, copyable = tr
              */}
             <Text style={styles.code} testID={testID ? `${testID}-code` : undefined}>
                 {runs.map((run, index) => (
-                    <Text key={index} style={{ color: run.color }}>
+                    <Text
+                        key={index}
+                        style={{
+                            color: run.color,
+                            fontStyle: run.italic ? 'italic' : undefined,
+                            fontWeight: run.italic ? '400' : undefined,
+                        }}
+                    >
                         {run.text}
                     </Text>
                 ))}

@@ -1,5 +1,7 @@
 # Contributing
 
+> **RN branch:** verify the native pipeline and standalone documentation checker via [native-workflow.md](./native-workflow.md). These contribution notes do not grant permission to stage, commit, push, publish, start servers or run device/provider tests.
+
 Issues and pull requests are welcome.
 
 ## Filing an Issue

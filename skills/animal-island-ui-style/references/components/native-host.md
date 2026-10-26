@@ -5,6 +5,11 @@ Use installed `dist/index.d.ts` as authority. Build declarations after source AP
 The other component references retain the upstream Web API; do not pass DOM props to RN.
 Source and native divergences: [RN-PORT.md](https://github.com/domidoremi/animal-island-ui/blob/rn/RN-PORT.md).
 
+Read only the relevant native API reference:
+[Avatar/Badge](native-profile.md), [Calendar](native-calendar.md),
+[CountUp/Rate](native-count-rate.md), [Upload](native-upload.md),
+[Select search/clear](native-select.md).
+
 ## Provider and package entry points
 
 Import components, `ThemeProvider` and `useTheme` from `animal-island-ui-rn`.
@@ -27,7 +32,9 @@ export interface ThemeProviderProps {
 `mode` defaults to `light`; `reducedMotion` defaults to `false`. Accent only replaces
 `colors.primary`, not every brand color. Provider-aware colors: Button, Input, Switch,
 Select, Card, Background, Modal and Progress. Motion-aware: Button, Switch, Select, Card,
-Modal, Progress and Tooltip. Other components retain their static skin.
+Modal, Progress and Tooltip. Avatar, Badge, Calendar, CountUp, Rate, Upload and Drawer
+also use provider colors; Badge, CountUp, Rate, Loading and Drawer honor reduced motion.
+Coverage is not universal; Form's inherited neutral-gray skin remains unchanged.
 
 ## RadioGroup — custom radio layouts
 
@@ -82,10 +89,14 @@ export interface ButtonProps {
     textStyle?: StyleProp<TextStyle>;
     /** Extend a compact visual control's accessible touch target. */
     hitSlop?: PressableProps['hitSlop'];
+    /** Wrap the full label and grow from the size's minimum height. Defaults to false. */
+    multiline?: boolean;
 }
 ```
 
 Use `onPress`, not `onClick`. Loading disables presses and announces busy state.
+`multiline` retains the size's minimum height and adds vertical padding instead of a
+fixed height. The host must bound button width and allow its action row to wrap.
 
 ## Input — added host props (verbatim excerpt)
 
@@ -109,6 +120,8 @@ Top-level `onChange` emits the Form-compatible event (`target.value` / `nativeEv
 scroll and native test ID props in `inputProps`. Top-level value, disabled, focus/blur
 remain controlled by Input; use `inputRef` to focus the native field. `style` affects
 the wrapper; `inputStyle` affects text. Multiline sizing policy belongs to the host.
+The default text face can shrink (`minWidth: 0`) beside affixes and clear.
+Clear uses the theme text foreground; explicit input styles keep their precedence.
 
 ## Switch — added host prop (verbatim excerpt)
 
@@ -174,12 +187,12 @@ Omit `open` for the fork's press-and-hold policy; set it for host-owned visibili
 export interface ProgressProps {
     /** Unknown progress must not announce a fabricated percentage. */
     indeterminate?: boolean;
-    /** Optional host status color; omitting it keeps the scene fill. */
+    /** Optional host status color; overrides the gradient and scene fill. */
     fillColor?: string;
 }
 ```
 
 Indeterminate progress uses a static partial fill, omits `aria-valuenow` and the default
 percentage label. Supply `infoFormat` for localized status text. `fillColor` replaces
-the scene artwork. Both host reduced motion and the existing OS preference suppress
+the gradient/scene artwork. Both host reduced motion and the existing OS preference suppress
 progress transitions.

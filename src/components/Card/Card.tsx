@@ -136,14 +136,14 @@ const COLOR_SPEC: Record<Exclude<CardColor, 'default'>, Face> = {
 /**
  * 花纹变体 —— 逐条对应 `.pattern-{pattern}`。
  *
- * Web 用两层 CSS `radial-gradient` 点阵平铺（28px 网格上的 1.5px 大点 +
+ * Web 用两层 CSS `radial-gradient` 点阵平铺（28px 网格上的 1.4px 大点 +
  * 14px 网格上偏移 (7,7) 的 1px 小点），外加底色、1.5px 实线描边与文字色。
  * **RN 没有渐变背景**，所以点阵改用 `react-native-svg` 的 `<Pattern>` 复刻：
  * 一个 tile 内画一个圆点，再平铺成 `<Rect>` 的 fill —— 等价于 CSS 的
  * `background-repeat: repeat`。几何换算见 DOT_PRIMARY / DOT_SECONDARY。
  */
 type PatternSpec = Face & {
-    /** 第一层（28px 网格、r=1.5）的点色 */
+    /** 第一层（28px 网格、r=1.4）的点色 */
     dotPrimary: string;
     /** 第二层（14px 网格、r=1、偏移 7px）的点色 */
     dotSecondary: string;
@@ -278,7 +278,7 @@ const PATTERN_SPEC: Record<Exclude<CardPattern, 'none'>, PatternSpec> = {
  * 两层算下来圆心都是 (14, 14)：28px 网格上的点每 28px 一个，14px 网格上的点
  * 每 14px 一个（相对前者偏移半个 tile）。
  */
-const DOT_PRIMARY = { tile: 28, radius: 1.5, offset: 0 } as const;
+const DOT_PRIMARY = { tile: 28, radius: 1.4, offset: 0 } as const;
 const DOT_SECONDARY = { tile: 14, radius: 1, offset: 7 } as const;
 
 /** 只把 Face 里属于 ViewStyle 的键取出来（`Object.assign` 会带上点色等额外键） */

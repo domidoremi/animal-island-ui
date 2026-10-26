@@ -1,5 +1,7 @@
 # Form —— 精确样式规范
 
+> **RN fork：**反馈使用共享上游 Close 素材；原生 form/滚动边界与 DOM 事件分离。见 [原生适配](native-adaptations.md)。下文表格描述保留的 Web 皮肤。
+
 Form 容器及其伴生导出 `Form.Item`（FormItem）、`Form.useForm` 的像素级样式规范。
 
 ## Form（容器、FormItem + useForm）

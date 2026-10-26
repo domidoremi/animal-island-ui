@@ -1,6 +1,6 @@
 /// <reference types="node" />
 import React from 'react';
-import { View } from 'react-native';
+import { View, processColor } from 'react-native';
 import fs from 'fs';
 import path from 'path';
 import { AccessibilityInfo } from 'react-native';
@@ -63,7 +63,7 @@ it('respects host reduced motion, dark track and indeterminate/custom fill seman
  *     所以那边的 `getByRole('region')` 恒为 null）。
  *
  * **测不到的**：轨道宽度来自 `onLayout`，测试里靠 `fireEvent(track, 'layout', …)` 伪造；
- * 真机上的实际布局、`boxShadow: inset …` 的渲染、以及进度动画的流畅度都必须上真机看。
+ * 真机上的实际布局、SVG 图案与渐变的渲染、以及进度动画的流畅度都必须上真机看。
  */
 const HIDDEN = { includeHiddenElements: true } as const;
 
@@ -300,35 +300,81 @@ describe('Progress', () => {
 
     // ---------- RN 专有 ----------
 
-    it('轨道自带奶油色波点底（复用 Background 的 default 图案）', async () => {
+    it('outlined track uses only the upstream 14-unit small-dot layer', async () => {
         const { getByTestId } = await render(<Progress percent={50} testID="p" />);
         const track = getByTestId('p-track', HIDDEN);
-        // @track-bg: #f8f8f0 = tokens.colors.bg
-        expect(track).toHaveStyle({ backgroundColor: colors.bg });
-        // .track { box-shadow: inset 0 2px 4px @track-inner }
-        expect(track).toHaveStyle({ boxShadow: 'inset 0 2px 4px rgba(114, 93, 66, 0.08)' });
+        expect(track).toHaveStyle({ backgroundColor: colors.bg, borderWidth: 2, borderColor: '#e2d6bd' });
+        expect(styleOf(track).boxShadow).toBeUndefined();
 
         const patternLayer = getByTestId('p-track-pattern', HIDDEN);
-        expect(collect(patternLayer, 'RNSVGPattern')).toHaveLength(1);
-        expect(collect(patternLayer, 'RNSVGCircle')).toHaveLength(10); // 与 Background default 同款
+        const patterns = collect(patternLayer, 'RNSVGPattern');
+        expect(patterns).toHaveLength(1);
+        expect(patterns[0].props).toEqual(expect.objectContaining({ width: 14, height: 14 }));
+        const circles = collect(patternLayer, 'RNSVGCircle');
+        expect(circles).toHaveLength(4);
+        circles.forEach((circle) => expect(Number(circle.props.r)).toBe(1.5));
     });
 
     it('测量到轨道宽度后，场景图按轨道宽度铺满（替代 background-size: <trackW>px auto）', async () => {
-        const { getByTestId } = await render(<Progress percent={50} testID="p" />);
+        const { getByTestId } = await render(<Progress percent={50} variant="sweet-corner" testID="p" />);
         const fill = getByTestId('p-fill', HIDDEN);
-        // 未测量前不画图（见 Progress.tsx 的差异说明）
         expect(collect(fill, 'RNSVGSvgView')).toHaveLength(0);
 
         await fireEvent(getByTestId('p-track', HIDDEN), 'layout', layout(400, 24));
 
         const svgs = collect(getByTestId('p-fill', HIDDEN), 'RNSVGSvgView');
         expect(svgs).toHaveLength(1);
-        // 宽 = 轨道宽 400；高 = 400 / (2560/1440) = 225，只露出上部
-        expect(svgs[0].props.bbWidth).toBe(400);
-        expect(Number(svgs[0].props.bbHeight)).toBeCloseTo(225, 3);
+        // clientWidth excludes both sides of the 2-unit outline.
+        expect(svgs[0].props.bbWidth).toBe(396);
+        expect(Number(svgs[0].props.bbHeight)).toBeCloseTo(222.75, 3);
         expect(svgs[0].props.vbWidth).toBe(2560);
         expect(svgs[0].props.vbHeight).toBe(1440);
     });
+
+    it('default mint gradient brightens at the upstream rounded 100% boundary', async () => {
+        const screen = await render(<Progress percent={50} duration={0} testID="p" />);
+        // SVG serializes ARGB stops as signed integers even when processColor returns unsigned.
+        const gradient = () =>
+            (
+                collect(screen.getByTestId('p-fill-gradient', HIDDEN), 'RNSVGLinearGradient')[0].props
+                    .gradient as number[]
+            ).map((value, index) => (index % 2 && value < 0 ? value + 4294967296 : value));
+        expect(gradient()).toEqual([
+            0,
+            processColor('#3dd4c6'),
+            0.6,
+            processColor('#19c8b9'),
+            1,
+            processColor('#14b6a8'),
+        ]);
+        await screen.rerender(<Progress percent={99.6} duration={0} testID="p" />);
+        expect(gradient()).toEqual([0, processColor('#7fe0d5'), 1, processColor('#3dd4c6')]);
+        await screen.rerender(<Progress percent={100} indeterminate duration={0} testID="p" />);
+        expect(gradient()).toEqual([
+            0,
+            processColor('#3dd4c6'),
+            0.6,
+            processColor('#19c8b9'),
+            1,
+            processColor('#14b6a8'),
+        ]);
+    });
+
+    it('host status color overrides both gradient and scene artwork', async () => {
+        const screen = await render(<Progress percent={100} variant="forest-grove" fillColor="#e05a5a" testID="p" />);
+        await fireEvent(screen.getByTestId('p-track', HIDDEN), 'layout', layout(300));
+        expect(collect(screen.getByTestId('p-fill', HIDDEN), 'RNSVGSvgView')).toHaveLength(0);
+        expect(screen.getByTestId('p-fill', HIDDEN)).toHaveStyle({ backgroundColor: '#e05a5a' });
+    });
+
+    it.each([Number.NaN, Number.POSITIVE_INFINITY, -1])(
+        'invalid duration %s settles immediately without scheduling an animation',
+        async (duration) => {
+            const screen = await render(<Progress percent={10} duration={duration} testID="p" />);
+            await screen.rerender(<Progress percent={80} duration={duration} testID="p" />);
+            expect(fillWidth(screen.getByTestId('p-fill', HIDDEN))).toBe('80%');
+        }
+    );
 
     it('4 个 variant 各自渲染出正确的场景图（用 <use> 数量核对）', async () => {
         const variants = [

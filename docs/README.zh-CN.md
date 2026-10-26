@@ -4,16 +4,17 @@
 > **本仓库是 fork 的 `rn` 分支：上游库的 React Native 移植版。**
 >
 > 上游（`guokaigdg/animal-island-ui`）是 **React DOM（Web）** 组件库。
-> 本分支把全部 **34 个组件**重新实现为 **React Native** 版本。以下所有内容
+> 本分支把全部 **40 个组件 API**适配为 **React Native** 版本。以下所有内容
 > —— 徽章、安装命令、`animal-island-ui/style` 样式引入、用法示例 ——
 > 描述的都是**上游的 Web 包，在本分支上不适用**：
 >
 > - 没有 `animal-island-ui/style` 入口；RN 没有全局 CSS
 > - `className` 换成 `style` + `testID`
 > - 少数 props 在 Web 概念于 RN 无对应物时是**有文档的空操作**
->   （`Cursor`、`Drawer.pushBackground`、`Form.scrollToField`、键盘导航）
+>   （`Cursor`、`Drawer.pushBackground`、`Form.scrollToField`）；原生和 Web 键盘
+>   适配另有记录，并非全部丢弃
 >
-> 移植契约、**12 条与上游的有意分歧**、以及**未被测试覆盖的部分**见
+> 移植契约、**已记录的上游分歧**、以及**未被测试覆盖的部分**见
 > **[`RN-PORT.md`](../RN-PORT.md)**（中文版 [`docs/RN-PORT.zh-CN.md`](./RN-PORT.zh-CN.md)）。
 >
 > 未经改动的上游 Web 库在 [`main`](../../tree/main) 分支上。
@@ -62,6 +63,7 @@
 
 - 图标（**naive-icons**）：<https://github.com/guokaigdg/naive-icons>
 - Vue 版本（**animal-island-vue**）：<https://github.com/guokaigdg/animal-island-vue>
+- 微信小程序版本（**animal-island-wx**，社区移植，原生 WXML/WXSS、零运行时依赖，43 个组件）：<https://github.com/lns567/animal-island-wx>
 
 ## 用 AI 工具生成 animal-island-ui 风格页面
 

@@ -6,9 +6,9 @@
 本 fork 的 `rn` 分支把组件库从 React DOM 移植到 React Native。本文记录**决策**、
 **与上游的有意分歧**、以及**测试覆盖不到的部分** —— 让下一个人不必重新推导一遍。
 
-上游 `main` 未被改动：Web 版组件库（34 个组件、Less Modules、Vitest、Vite）仍留在磁盘上。
-RN 移植是**增量**的 —— 它靠 `tsconfig.json`、`tsconfig.build.json`、`jest.config.js`
-三处显式 include 白名单隔离，未移植的 Web 组件不会进入 RN 的 typecheck 或测试。
+上游 Web 历史与保留的 Less/demo 源码只是参照，不是本分支的运行时。
+`rn` 分支使用原生实现，并由 `tsconfig.json`、`tsconfig.build.json`、`jest.config.js`
+的显式 include 白名单限定范围。不要通过合并恢复 Web 组件体，也不要因保留文件而推断 Web 构建可用。
 
 ## 状态
 
@@ -23,65 +23,79 @@ Jest 优先使用当前运行时内置的 preset，不存在时使用 0.87 拆�
 编译器、Metro 和原生 autolinking 必须使用宿主同一份 React/React Native/SVG。
 独立安装 fork 依赖可能替换 workspace 链接，因此构建消费应用前需重新运行应用的安装步骤。
 
+**全部 40 个组件 API 已有原生适配**，包括 Avatar、Badge、Calendar、CountUp、
+Rate 与 Upload。其中仍有下文明确记录的空操作；不承诺 DOM 行为或设备上的像素级动画一致。
 
-**34 个组件全部移植完成。**
+2026 年 10 月 23 日本地验证：串行全量 Jest **1300/1300 项、55/55 套件通过**，
+源码类型检查通过。数量来自该次运行的 Jest JSON，不来自覆盖率徽章。
+后续运行必须重新绑定源码与构建产物，不代表已完成浏览器渲染、安装设备或真实 Provider 验收。
 
-下表用例数取自 `npx jest --json`（可复现），不是抄任何文档。
+2026 年 10 月 26 日检查点：`npm run ci` 的格式检查、lint（**0 错误、41 警告**）、
+源码类型检查、**55/55 套件中的 1316/1316 测试**与 JS/声明构建均通过。
+单独执行的 `node scripts/check-docs-sync.mjs` 也通过。
+这仅记录本地原生验证，不代表远端 CI 或设备/发布验收。
 
-| 组件          | 用例  | 备注                                                                 |
-| ------------- | ----- | -------------------------------------------------------------------- |
-| design tokens | 52    | `src/theme/tokens.ts`，与 `src/styles/variables.less` 1:1 对应       |
-| theme（暗色） | 23    | `appearance.ts` —— 暗色板 + `resolveNativeTheme`（见分歧）           |
-| ThemeProvider | 7     | `ThemeProvider.tsx` —— `useTheme` context；RN 独有，上游无           |
-| BackTop       | 18    | 删掉 `duration`，新增 `scrollY`（见分歧）                            |
-| Background    | 12    | CSS 平铺 → SVG `<Pattern>`；场景图 → `src/assets/image/rn/`          |
-| Button        | 27    | 另建了一套 RN 图标集（`src/icons/`）                                 |
-| Card          | 23    | CSS `radial-gradient` 波点 → SVG `<Pattern>`                         |
-| Carousel      | 23    | `ScrollView` + `pagingEnabled`；下标算术抽到 `geometry.ts`           |
-| Checkbox      | 27    | `Pressable` + `accessibilityRole="checkbox"`                         |
-| CodeBlock     | 15    | 高亮的 tokenise 保留，渲染成 `<Text>` 片段                           |
-| Collapse      | 14    | CSS Grid `0fr → 1fr` → 测量高度 + `Animated`                         |
-| Countdown     | 15+26 | 另有 26 条在 `format.test.ts`（时间格式化抽出来了）                  |
-| Cursor        | 7     | **有文档的空操作** —— 见分歧                                         |
-| DatePicker    | 37+46 | 日历算术抽到 `calendar.ts`；`focusedDate` 状态整体删除               |
-| Divider       | 12    | wave / squiggle 平铺用 `react-native-svg` 重建                       |
-| Drawer        | 22    | `createPortal` → RN `Modal`；`pushBackground` 是有文档的空操作       |
-| Footer        | 9     | `<footer>` → `Text`（RN 没有 `contentinfo` role）                    |
-| Image         | 29    | `react-dom` 的 portal → `Modal`；`naive-icons` 图标 → `src/icons/`   |
-| Form          | 57    | 不再 extends `FormHTMLAttributes`；删掉 `onSubmit`/`onReset`         |
-| Input         | 31    | `TextInput`；聚焦样式由 `onFocus`/`onBlur` 驱动                      |
-| Loading       | 19    | 保留绝对定位而非 `Modal`，好让 `zIndex` 这个 prop 仍有意义           |
-| Modal         | 17    | `createPortal` → RN `Modal`；`game` 的 `clip-path` → SVG 底图        |
-| Notification  | 23    | 模块级 store + `<NotificationHost />`（见分歧）                      |
-| Pagination    | 47    | 页码省略折叠逻辑照搬                                                 |
-| Progress      | 29    | `prefers-reduced-motion` → `AccessibilityInfo.isReduceMotionEnabled` |
-| Radio         | 25+21 | `Pressable` + 共享 Web `RadioGroup` 键盘导航                         |
-| Select        | 22+16 | `Modal` 面板；另有 16 条在 `geometry.test.ts`                        |
-| Skeleton      | 29    | `@keyframes` → `Animated.loop`                                       |
-| Switch        | 24    | `Pressable` + `accessibilityRole="switch"`                           |
-| Table         | 16    | `table`/`rowgroup`/`row`/`columnheader`/`cell` 这些 role RN 都有     |
-| Tabs          | 19    |                                                                      |
-| Tag           | 28    | `:hover` 丢弃                                                        |
-| Time          | 11    |                                                                      |
-| TimePicker    | 22+15 | 面板在 `Modal` 里；另有 15 条在 `geometry.test.ts`                   |
-| Title         | 18    | `clip-path` / 135° 切角 → `react-native-svg`；默认 `ribbon`          |
-| Tooltip       | 19+20 | hover → 按住显示；定位算术抽到 `geometry.ts`                         |
-| Typewriter    | 13    |                                                                      |
+### 上游同步与原生变更
 
-没有剩下的未移植组件。Web 源码仍留在磁盘上（它们是对照物，且在 `main` 上仍然能构建），
-但全部落在本分支任何 include 名单之外。
+本地已有的 upstream main 版本 `2d855fc6c1cb56cc4152290f50c43439d4a4920f`
+在适配快照之前，已包含在保存的 RN 版本 `ce23f9af7fd7d28fbb634cddfd46641f9d85fd2b` 中。
+2026 年 10 月 26 日检查点将本文所述原生适配与文档一并保存为本地 RN 提交，
+没有推送或发布。宿主 pin 必须指向该快照的完整 SHA，并要求工作树干净。
+本地提交身份不代表远端 CI/EAS 已能获取这些输入。
 
-`npm run ci` = `format:check` + `lint` + `typecheck` + `test` + `build`。当前 **1000 用例 / 45 套件**。
+2026 年 10 月 24 日（UTC）的只读远端查询得到实际上游 main
+`f35813856ea241d022b85f0fbafac0f4223d5e71`，比上述已知版本多两次提交。
+完整树比较仅改变 `README.md` 和 `docs/README.zh-CN.md`，新增微信小程序社区移植链接。
+这两处内容在本次快照之前已同步到 RN 工作树，原生 API、素材和依赖均未改变。
+比较时，查询得到的上游提交对象在本地不可用；创建本次快照没有执行 fetch 或 merge。
+本地提交保存了镜像文档，不代表包含该上游提交，也不代表远端可重新获取并构建。
+
+- Avatar、Select、Form、Upload、BackTop、Rate 共用 `src/icons/`，素材复制自已验证的
+  `naive-icons@1.6.0` 源码并适配 `react-native-svg`；MIT 声明保留在 `src/icons/base.tsx`。
+  不安装第二份 React/DOM 图标运行时。
+- Background/Card 点阵半径、暖桃色与修订色板、Input 表面、Button 文本高度、
+  Countdown 溢出和 BackTop 偏移按上游源码同步。
+- Progress 使用 2 单位描边、单层 14 单位网格/1.5 半径小点、SVG 薄荷渐变和完成提亮。
+  宿主 `fillColor` 覆盖渐变/场景。
+- Time 按实例进行中英文 dayjs 格式化；DatePicker 严格解析与 TimePicker 的
+  `2000-01-01` 固定锚点使用原有 dayjs 依赖。TypeScript 构建外置 dayjs，不打包私有副本。
+- CodeBlock 保留 JSX/TypeScript、Shell 分词器。原生复制仍使用当前运行时已废弃的 Clipboard；
+  代码换行并非 Web 的横向滚动。
+- Select 支持搜索、清空、筛选和宿主远端结果。原生搜索位于 Modal 内，键盘避让边界限制
+  测量/兜底面板位置；Web 键盘、焦点、ARIA 适配与原生事件 API 分离。
+- Drawer 尊重减少动态、暗色表面、键盘避让和滚动正文；对话框不压平交互子节点。
+  Web 焦点陷阱仍不支持，原生焦点/滚动/键盘行为还需物理验证。
+- Loading 在减少动态时保留静态雪景；CountUp、Rate 关闭装饰效果，但不抑制值更新或完成语义。
+
+### 新组件边界
+
+Avatar 支持原生图像描述符和加载失败回退；Avatar.Group 不覆盖子组件明确选择。
+Badge 提供可访问的完整计数。Calendar 是六周原生网格，具有受控日期/月回调、有界事项层与
+长按 responder 范围创建；Web 键盘适配不等于设备手势验证。原生事项色板/标签和拖动入口与上游不同。
+CountUp 保留暂停、重置、重播与格式化；原生光环、星芒、贴纸是近似实现
+（平面贴纸填充和缩放序列，而非精确 Web 旋转）。Rate 使用上游星形素材与原生触控目标，hover 仅用于 Web。
+
+Upload **绝不模拟上传成功**。宿主提供 `onPickFiles`，负责权限与 URI 生命周期。
+缺少 picker 时禁用选择；选择后缺少 `action`/`customRequest` 会变为错误而不是 `done`。
+选择、转换后元数据、请求配置、异步移除与晚到回调均设有隔离栅栏，描述符脱离宿主可变输入。
+原生 multipart 使用 URI/name/type 而不是 DOM File，Web action 上传要求宿主在描述符中提供 blob。
+卸载/移除会中止活动工作；选择本身不会删除 URI、弹权限窗口或调用 Provider。
+
+原生 API 见有界的 [宿主参考](../skills/animal-island-ui-style/references/components/native-host.md)。
+manifest 为 private 且声明 CC-BY-NC-4.0，而根目录/上游 LICENSE 为 MIT。
+此包装/许可差异仍未解决，不能视作分发批准。
 
 ### ⚠️ 本分支放弃了什么
 
 为 RN 重写 `package.json` **移除了 Web 工具链**（vite、vitest、less、`@testing-library/react`）。
 eslint 被重新接回，但按 RN 的方式 —— 见「Linting」。因此在 `rn` 分支上：
 
-- `npm run ci` 是 **RN** 流水线。上游的 `ci` 还跑了 `check:docs` 与 `test:a11y`，
-  这两项在本分支没有对应物。
-- 仍在磁盘上的 Web 源码在本分支**不受任何验证** —— 每个组件现在都有 RN 孪生体，
-  但只有 RN 侧在 include 名单里。它们的流水线在 `main` 上。若你在这里改 Web 组件，后果自负。
+- `npm run ci` 是 **RN** 流水线。单独运行 `node scripts/check-docs-sync.mjs`：
+  保留的上游文档检查器未加入当前 manifest 的 CI 链。
+  本分支没有已安装的 Web axe/Vitest 无障碍流水线。
+- 保留的 Web Less/demo 文件**未在本分支验收为可运行 Web 库**。
+  本分支组件体为原生实现；可运行的上游 DOM 库是独立源码/运行时。
+  原生 include 白名单不能代替其验收。
 - `.githooks/pre-commit` **未启用**（`core.hooksPath` 未设置），所以没有东西会自动跑 `ci`
   —— 提交前请自己跑。
 
@@ -145,29 +159,29 @@ fork `domidoremi/animal-island-ui` 的**默认分支是 `rn`**（上游 Web 库�
 
 ## 移植契约（Web → RN）
 
-| Web                                                                                      | RN                                                      | 备注                                                   |
-| ---------------------------------------------------------------------------------------- | ------------------------------------------------------- | ------------------------------------------------------ |
-| `className` + `*.module.less`                                                            | `style`（组件文件内 `StyleSheet.create`）+ `testID`     | RN 没有 class 体系；Less 文件留在磁盘上供 Web 构建用   |
-| `onClick`                                                                                | `Pressable` 的 `onPress`                                |                                                        |
-| `:hover`                                                                                 | —                                                       | 丢弃：触摸端没有 hover                                 |
-| `:active`                                                                                | `Pressable` style 回调给的 `pressed`                    |                                                        |
-| `onMouseDown={e => e.preventDefault()}`（保持焦点）                                      | —                                                       | 丢弃：`View` 没有焦点语义                              |
-| `ResizeObserver` / `clientWidth`                                                         | `onLayout`                                              |                                                        |
-| CSS `repeating-linear-gradient`                                                          | SVG `strokeDasharray`                                   | Divider                                                |
-| CSS data-URI SVG 平铺                                                                    | 循环里的 `<Path transform="translate(...)">`            | Divider                                                |
-| CSS Grid `grid-template-rows: 0fr → 1fr`                                                 | 先 `onLayout` 测量，再用 `Animated.Value` 驱动 `height` | Collapse                                               |
-| `@keyframes`                                                                             | `Animated.loop` + `Easing.linear`                       | Button 的 loading 转圈                                 |
-| `box-shadow: <字符串>`                                                                   | `boxShadow: <字符串>`（RN 0.76+，CSS 语法）             | **Android 上需要新架构**                               |
-| `@font-face` + woff2                                                                     | —                                                       | woff2 是 Web 专属；宿主 App 需自行提供 ttf/otf（见下） |
-| `position: absolute` 的 popover（放在 `position: relative` 包裹层里）                    | `Modal` + `measureInWindow` 定位                        | TimePicker —— 见「结构性分歧」                         |
-| `document.addEventListener('mousedown')`（点击外部）                                     | `Modal` 内的全屏透明 `Pressable`                        | 行为一致，但没有视觉遮罩                               |
-| `window.innerHeight` / `innerWidth`                                                      | `useWindowDimensions()`                                 |                                                        |
-| `list.scrollTop` / `list.clientHeight`                                                   | `ScrollView` + `onLayout` + `scrollTo({ y })`           | TimePicker 的列                                        |
-| `onKeyDown`（Enter / Escape / 方向键）                                                   | —                                                       | `Modal.onRequestClose` 覆盖 Android 返回键             |
-| `role`、`aria-label`、`aria-labelledby`、`aria-expanded`、`aria-disabled`、`aria-hidden` | 同名 prop                                               | RN 0.87 支持 ARIA 风格 props                           |
-| `aria-controls`、`aria-haspopup`                                                         | —                                                       | **RN 没有对应物**                                      |
-| `tabIndex={0}` / `{-1}`                                                                  | `tabIndex` → `focusable`                                |                                                        |
-| SVG `stroke="currentColor"`                                                              | 把颜色显式传进图标                                      | RN 没有 `currentColor`                                 |
+| Web                                                                                      | RN                                                      | 备注                                                                                                   |
+| ---------------------------------------------------------------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `className` + `*.module.less`                                                            | `style`（StyleSheet）+ `testID`                         | 保留的 Less 是上游视觉参照，不等于本分支可运行 Web 构建。                                              |
+| `onClick`                                                                                | `Pressable` 的 `onPress`                                |                                                                                                        |
+| `:hover`                                                                                 | —                                                       | 丢弃：触摸端没有 hover                                                                                 |
+| `:active`                                                                                | `Pressable` style 回调给的 `pressed`                    |                                                                                                        |
+| `onMouseDown={e => e.preventDefault()}`（保持焦点）                                      | —                                                       | 丢弃：`View` 没有焦点语义                                                                              |
+| `ResizeObserver` / `clientWidth`                                                         | `onLayout`                                              |                                                                                                        |
+| CSS `repeating-linear-gradient`                                                          | SVG `strokeDasharray`                                   | Divider                                                                                                |
+| CSS data-URI SVG 平铺                                                                    | 循环里的 `<Path transform="translate(...)">`            | Divider                                                                                                |
+| CSS Grid `grid-template-rows: 0fr → 1fr`                                                 | 先 `onLayout` 测量，再用 `Animated.Value` 驱动 `height` | Collapse                                                                                               |
+| `@keyframes`                                                                             | `Animated.loop` + `Easing.linear`                       | Button 的 loading 转圈                                                                                 |
+| `box-shadow: <字符串>`                                                                   | `boxShadow: <字符串>`（RN 0.76+，CSS 语法）             | **Android 上需要新架构**                                                                               |
+| `@font-face` + woff2                                                                     | —                                                       | woff2 是 Web 专属；宿主 App 需自行提供 ttf/otf（见下）                                                 |
+| `position: absolute` 的 popover（放在 `position: relative` 包裹层里）                    | `Modal` + `measureInWindow` 定位                        | TimePicker —— 见「结构性分歧」                                                                         |
+| `document.addEventListener('mousedown')`（点击外部）                                     | `Modal` 内的全屏透明 `Pressable`                        | 行为一致，但没有视觉遮罩                                                                               |
+| `window.innerHeight` / `innerWidth`                                                      | `useWindowDimensions()`                                 |                                                                                                        |
+| `list.scrollTop` / `list.clientHeight`                                                   | `ScrollView` + `onLayout` + `scrollTo({ y })`           | TimePicker 的列                                                                                        |
+| `onKeyDown`（Enter / Escape / 方向键）                                                   | 独立 Web adapter 或原生 TextInput 事件                  | Select、Calendar、Rate、RadioGroup 保留已记录的 Web 键盘行为；Android Back 使用 Modal.onRequestClose。 |
+| `role`、`aria-label`、`aria-labelledby`、`aria-expanded`、`aria-disabled`、`aria-hidden` | 同名 prop                                               | RN 0.87 支持 ARIA 风格 props                                                                           |
+| `aria-controls`、`aria-haspopup`                                                         | —                                                       | **RN 没有对应物**                                                                                      |
+| `tabIndex={0}` / `{-1}`                                                                  | `tabIndex` → `focusable`                                |                                                                                                        |
+| SVG `stroke="currentColor"`                                                              | 把颜色显式传进图标                                      | RN 没有 `currentColor`                                                                                 |
 
 ## 结构性分歧（不只是改名）
 
@@ -280,9 +294,10 @@ RN 没有鼠标指针 —— RN 的 `cursor` 样式只接受 `'auto' | 'pointer'
     而非具体颜色 —— 没有上游真值可比。`reducedMotion` 由宿主传入，不再另起一个
     `AccessibilityInfo` 监听，以与宿主自身设置保持一致。以 `./theme` 子路径导出
     （见 `package.json` 的 `exports`），好让构建工具不拉入 React Native 就能读 token。
-    Button、Input、Switch、Select、Card、Background、Modal 和 Progress 已消费 Provider，
-    用于暗色表面与文字。Button、Switch、Select、Card、Modal、Progress 和 Tooltip 尊重宿主减少动态设置。
-    其余组件仍使用原来的静态皮肤，Provider 尚未覆盖全部组件。
+    Button、Input、Switch、Select、Card、Background、Modal、Progress、Avatar、Badge、
+    Calendar、CountUp、Rate、Upload、Drawer 消费 Provider 颜色；Button、Switch、Select、
+    Card、Modal、Progress、Tooltip、Badge、CountUp、Rate、Loading、Drawer 尊重减少动态。
+    Provider 覆盖并非普遍，Form 继承的样式仍为中性灰。
 
 ## 消费 RN fork
 
@@ -313,15 +328,16 @@ fork revision；使用完整 commit SHA 才可重复构建。单测不能证明�
 | TimePicker 面板定位                                | jest preset 把 `measureInWindow` mock 成裸 `jest.fn()`（`@react-native/jest-preset/jest/MockNativeMethods.js`）—— 它**从不回调**。所以面板渲染在兜底位置 `{ top: 0, left: 0 }`。                                  |
 | TimePicker 列的居中                                | `ScrollView.scrollTo` 需要原生滚动节点，测试渲染器里没有。**改为对算术做单测。**                                                                                                                                  |
 | `boxShadow` 真的渲染出来                           | 全仓没有任何视觉断言。且 Android 上需要新架构；旧架构下阴影会被静默丢弃。                                                                                                                                         |
-| 字体                                               | `fontFamily` 默认是 `undefined`。woff2 在 RN 里用不了；想要海岛观感的宿主 App 必须自带 Nunito + Noto Sans SC 的 ttf/otf，并通过 theme 覆盖。                                                                      |
+| 字体                                               | 宿主提供原生 ttf/otf 与文本样式；ThemeProvider 没有字体注入 prop，woff2 不能作为原生字体输入。                                                                                                                    |
 | `onStartShouldSetResponder` 是否真的挡住了触摸穿透 | RNTL 触发事件时会**向上**走树找 handler；而 Modal 的 backdrop 是**兄弟**节点，所以即使没有这道防护，朴素的 `fireEvent.press(panel)` 也会通过。测试改为断言机制本身（`onStartShouldSetResponder()` 返回 `true`）。 |
 
-### 兜底定位为什么不会闪
+### 兜底位置不等于视觉验收
 
-`measureInWindow` 是回调式的，所以面板先挂载在兜底位置，下一帧才被纠正。它不闪，
-因为面板同时在用 200ms 从 `opacity: 0` 淡入 —— 淡入开头的一帧位置纠正是看不出来的。
+测量通过 callback 返回；面板先使用兜底边界，收到测量后再更新。
+淡入可能遮盖修正，但 renderer 测试不能证明用户看不到它；减少动态会主动跳过淡入。
+真实原生/Web 位置、键盘缩减与初始定位仍是独立验收事项。
 
-## 测试笔记（RNTL v14 + RN 0.87 的坑）
+## 测试笔记（RNTL v14 + linked RN 的坑）
 
 - **`render` 与 `fireEvent` 是 async 的** —— React 19 的异步 `act`。永远要 `await`。
 - **节点类型统一写 `import type { TestInstance } from 'test-renderer';`。**
@@ -388,7 +404,7 @@ fork revision；使用完整 commit SHA 才可重复构建。单测不能证明�
 ## 加下一个组件
 
 1. 移植到 `src/components/<Name>/<Name>.tsx`，保留上游的 prop 名，去掉 `className`
-   （改为加 `testID` 与 `style`）。每处分歧都在改动点写注释，并注明它替换掉的上游行。
+   （改为加 `testID` 与 `style`）。差异记录在原生参考；源码注释仅说明无法从实现还原的不变量。
 2. 在 `src/index.ts` 加 barrel 导出。
 3. 目录要登记在**三处**，否则会静默逃出门禁：
    `tsconfig.json` → `include`、`tsconfig.build.json` → `include`、

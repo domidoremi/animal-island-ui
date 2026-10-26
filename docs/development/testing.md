@@ -1,5 +1,7 @@
 # Testing
 
+> **RN branch:** tests run with the installed React Native Jest preset and `@testing-library/react-native`, not Vitest/jsdom. Commands, asynchronous render and physical-test limits: [native-workflow.md](./native-workflow.md). The rest of this page is the upstream Web reference.
+
 Unit tests run through Vitest in jsdom; accessibility smoke tests run through a second Vitest config. Both are part of
 `npm run ci`.
 

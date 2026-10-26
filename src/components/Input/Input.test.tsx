@@ -53,6 +53,79 @@ const warningShadow = `0 3px 0 0 ${colors.warningActive}`; // @warning-color-act
 const focusRing = '0 0 0 3px rgba(245, 195, 28, 0.25)';
 
 describe('Input', () => {
+    it.each(['small', 'middle', 'large'] as const)(
+        'keeps the %s text face shrinkable beside prefix suffix and clear controls',
+        async (size) => {
+            const screen = await render(
+                <Input
+                    testID="shrink"
+                    size={size}
+                    defaultValue="  temperature  "
+                    allowClear
+                    prefix={<View style={{ width: 18, height: 18 }} />}
+                    suffix={<View style={{ width: 16, height: 16 }} />}
+                    style={{ width: 240 }}
+                    inputStyle={{ fontSize: 24, lineHeight: 26 }}
+                />
+            );
+            expect(screen.getByTestId('shrink-input')).toHaveStyle({
+                flex: 1,
+                minWidth: 0,
+                fontSize: 24,
+                lineHeight: 26,
+            });
+            expect(screen.getByTestId('shrink-prefix')).toHaveStyle({ flexShrink: 0 });
+            expect(screen.getByTestId('shrink-suffix')).toHaveStyle({ flexShrink: 0 });
+            expect(screen.getByTestId('shrink-clear')).toHaveStyle({ width: 20, height: 20 });
+            expect(screen.getByTestId('shrink-clear').props.hitSlop).toBe(12);
+        }
+    );
+
+    it.each(['light', 'dark'] as const)('uses theme foreground for clear contrast in %s mode', async (mode) => {
+        const screen = await render(
+            <ThemeProvider mode={mode}>
+                <Input testID="contrast" value="draft" allowClear />
+            </ThemeProvider>
+        );
+        const clear = screen.getByTestId('contrast-clear');
+        expect(styleOf(child(clear.children[0])).color).toBe(resolveNativeTheme(mode).colors.text);
+        expect(clear).toHaveAccessibleName('清除');
+    });
+
+    it('preserves explicit native text-style overrides after the shrink default', async () => {
+        const screen = await render(
+            <Input
+                testID="override"
+                inputStyle={{ minWidth: 8, fontSize: 24, lineHeight: 26 }}
+                inputProps={{ style: { minWidth: 16 }, selection: { start: 1, end: 1 } }}
+            />
+        );
+        const field = screen.getByTestId('override-input');
+        expect(field).toHaveStyle({ minWidth: 16, fontSize: 24, lineHeight: 26 });
+        expect(field.props.selection).toEqual({ start: 1, end: 1 });
+    });
+
+    it.each([false, true])(
+        'preserves clear callback order and value ownership when controlled=%s',
+        async (controlled) => {
+            const calls: string[] = [];
+            const screen = await render(
+                <Input
+                    testID="ownership"
+                    {...(controlled ? { value: 'draft' } : { defaultValue: 'draft' })}
+                    allowClear
+                    onClear={() => calls.push('clear')}
+                    onChange={(event) => calls.push(`form:${event.target.value}`)}
+                    onChangeText={(value) => calls.push(`text:${value}`)}
+                />
+            );
+            await fireEvent.press(screen.getByTestId('ownership-clear'));
+            expect(calls).toEqual(['clear', 'form:', 'text:']);
+            expect(screen.getByTestId('ownership-input').props.value).toBe(controlled ? 'draft' : '');
+            expect(screen.queryByTestId('ownership-clear') !== null).toBe(controlled);
+        }
+    );
+
     it('does not render a raw empty string inside the native wrapper when clear is enabled', async () => {
         const screen = await render(<Input testID="empty" allowClear value="" />);
         // Renderer children discard empty strings; inspect the raw View props so
@@ -365,7 +438,7 @@ describe('Input', () => {
             const { getByTestId } = await render(<Input testID="i" shadow style={{ marginTop: 4, height: 99 }} />);
             const root = getByTestId('i');
             expect(root).toHaveStyle({ marginTop: 4, height: 99 });
-            expect(root).toHaveStyle({ backgroundColor: 'rgb(250, 248, 243)' });
+            expect(root).toHaveStyle({ backgroundColor: '#fffdf7' });
         });
 
         it('placeholder / placeholderTextColor / nativeID / aria-label 透传到输入框', async () => {

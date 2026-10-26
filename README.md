@@ -5,16 +5,17 @@
 > library.**
 >
 > Upstream (`guokaigdg/animal-island-ui`) is a **React DOM (web)** component library.
-> This branch re-implements all **34 components** for **React Native**. Everything below
+> This branch adapts all **40 component APIs** for **React Native**. Everything below
 > — the badges, the install command, the `animal-island-ui/style` CSS import, the usage
 > examples — describes **upstream's web package and does not apply here**:
 >
 > - there is no `animal-island-ui/style` entry point; RN has no global CSS
 > - `className` is replaced by `style` + `testID`
 > - a few props are documented no-ops where the web concept has no RN counterpart
->   (`Cursor`, `Drawer.pushBackground`, `Form.scrollToField`, keyboard navigation)
+>   (`Cursor`, `Drawer.pushBackground`, `Form.scrollToField`); native and Web keyboard
+>   adapters are documented separately, not universally dropped
 >
-> Read **[`RN-PORT.md`](./RN-PORT.md)** for the porting contract, the **12 deliberate
+> Read **[`RN-PORT.md`](./RN-PORT.md)** for the porting contract, the **documented
 > divergences from upstream**, and what is **not** covered by tests
 > (also available [in Chinese](./docs/RN-PORT.zh-CN.md)).
 >
@@ -65,6 +66,7 @@ A lightweight React + TypeScript component library with an original, cozy island
 
 - Icons (**naive-icons**): <https://github.com/guokaigdg/naive-icons>
 - Vue version (**animal-island-vue**): <https://github.com/guokaigdg/animal-island-vue>
+- WeChat Mini Program version (**animal-island-wx**, community port — native WXML/WXSS with no runtime dependency, 43 components): <https://github.com/lns567/animal-island-wx>
 
 ## Use AI to Generate animal-island-ui Pages
 

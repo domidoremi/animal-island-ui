@@ -1,5 +1,7 @@
 # Component Development
 
+> **RN branch:** use native props, StyleSheet, source exports and the explicit Jest/TypeScript include lists. Read [native-workflow.md](./native-workflow.md) before changing components. The rest of this page describes the retained upstream Web workflow.
+
 This is the end-to-end workflow for adding a component or changing an existing one. It stays at the structural level:
 individual component props live in `skills/animal-island-ui-style/references/components/*.md`, and individual component
 pixel specs live in [../design-system/components/](../design-system/components/). Never duplicate either here.

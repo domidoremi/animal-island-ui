@@ -1,5 +1,10 @@
 # Upload — pixel spec
 
+> **RN fork:** use [native adaptations](native-adaptations.md) and the native Upload API.
+> The host supplies a picker; missing action/customRequest is error, never simulated done.
+> Native URIs remain host-owned, and drag is a visual skin only.
+> The DOM/File/ObjectURL and simulated strategy below are retained upstream references.
+
 Source: `src/components/Upload/Upload.tsx` + `upload.module.less`.
 
 File upload with a cream-capsule trigger (text mode) or a dashed drop zone (`drag`), plus a file list in two shapes: `text` rows and `picture-card` tiles. Without `customRequest` the component simulates upload progress with a timer (roughly 1.5s to done) so the UI can be wired up before a real endpoint exists.

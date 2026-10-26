@@ -118,7 +118,7 @@ describe('Background', () => {
 
         const circles = collect(pattern, 'RNSVGCircle');
         expect(circles).toHaveLength(10); // 9 个小点 + 1 个大点
-        const big = circles.filter((c) => c.props.r === 1.5);
+        const big = circles.filter((c) => c.props.r === 1.4);
         const small = circles.filter((c) => c.props.r === 1);
         expect(big).toHaveLength(1);
         expect(big[0].props).toMatchObject({ cx: 14, cy: 14, fill: solid('rgba(196, 184, 158, 0.15)') });
@@ -231,7 +231,8 @@ describe('Background', () => {
         const { getByTestId: getPink } = await render(<Background type="dots-pink" testID="bg" />);
         expect(getPink('bg')).toHaveStyle({ backgroundColor: '#fde4e8' });
         const pink = collect(getPink('bg-pattern', HIDDEN), 'RNSVGCircle').map((c) => c.props.fill.payload);
-        expect(pink).toContain(processColor('rgba(248, 166, 178, 0.18)'));
+        expect(pink).toContain(processColor('rgba(248, 166, 178, 0.26)'));
+        expect(pink).toContain(processColor('rgba(255, 200, 210, 0.18)'));
     });
 
     it('场景图按 cover 铺满：底色 #fdf3e3 + preserveAspectRatio=xMidYMid slice，且整棵 SVG 树完整渲染', async () => {
@@ -342,9 +343,10 @@ describe('Background', () => {
         }
     });
 
-    it('16 个图案类在 spec 表里都有条目（type 与 spec 不会脱节）', () => {
+    it('17 pattern variants include the upstream warm peach skin', () => {
         const patternTypes = Object.keys(BACKGROUND_PATTERN_SPEC);
-        expect(patternTypes).toHaveLength(16);
+        expect(patternTypes).toHaveLength(17);
+        expect(patternTypes).toContain('dots-warm-peach-pink');
         expect(patternTypes).not.toContain('sweet-corner');
         expect(patternTypes).not.toContain('coffee-break');
         for (const key of patternTypes) {

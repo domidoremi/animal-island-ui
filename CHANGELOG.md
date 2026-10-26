@@ -38,11 +38,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- `Background` 新增 `dots-gray` 变体：白底浅灰波点，补齐 dots-* 系列的第 13 种底色
+- `Background` 新增 `dots-gray` 变体：白底浅灰波点，补齐 `dots-*` 系列的第 13 种底色
 
 ### Changed
 
-- `Background` 与 `Card` 的波点纹理统一收细：dots-* / pattern-* 的 `radial-gradient` 半径 1.5px → 1.4px，部分底色的波点不透明度上调（0.12 → 0.18、0.18 → 0.26），让波点在浅色底上更清晰
+- `Background` 与 `Card` 的波点纹理统一收细：`dots-*` / `pattern-*` 的 `radial-gradient` 半径 1.5px → 1.4px，部分底色的波点不透明度上调（0.12 → 0.18、0.18 → 0.26），让波点在浅色底上更清晰
 - 文档与 skill 参考中移除对 antd 的引用，改为直接陈述本库自身的设计理由
 
 ### Fixed

@@ -60,6 +60,23 @@ describe('Time', () => {
         expect(getByText('09:05')).toBeTruthy();
     });
 
+    it('locale="zh-cn" 渲染中文星期与月日', async () => {
+        const { getByText } = await render(<Time locale="zh-cn" />);
+        expect(getByText('星期一')).toBeTruthy();
+        expect(getByText('6月8日')).toBeTruthy();
+    });
+
+    it('weekdayFormat / dateFormat 按 dayjs token 输出', async () => {
+        const { getByText } = await render(<Time weekdayFormat="ddd" dateFormat="YYYY/MM/DD" />);
+        expect(getByText('Mon')).toBeTruthy();
+        expect(getByText('2026/06/08')).toBeTruthy();
+    });
+
+    it('自定义 dateFormat 与 zh-cn 语言组合', async () => {
+        const { getByText } = await render(<Time locale="zh-cn" dateFormat="YYYY年M月D日" />);
+        expect(getByText('2026年6月8日')).toBeTruthy();
+    });
+
     it('每秒刷新，跨分钟后更新显示', async () => {
         const { getByText, queryByText } = await render(<Time />);
         await act(async () => {

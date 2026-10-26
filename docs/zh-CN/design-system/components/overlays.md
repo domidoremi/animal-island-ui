@@ -1,8 +1,13 @@
 # Overlays — 精确样式规范
 
 > **RN fork:** Modal 使用键盘避让、宿主安全区、滚动正文与固定页脚；暗色模式调整有机外框表面颜色。Modal 和 Tooltip 在减少动态时禁用装饰性过渡。 [RN contract](../../../RN-PORT.zh-CN.md). 其余表格描述上游 Web/亮色皮肤。
+>
+> Drawer 新增暗色表面、键盘避让、滚动与减少动态立即生命周期；背景 push 与 Web 焦点陷阱仍不支持，原生焦点还需物理验证。 [原生差异](native-adaptations.md).
+
 
 Android 上，Modal 的透明窗口通过 `statusBarTranslucent` 延伸到状态栏后方，打开弹窗时不会出现独立的系统栏色带。宿主提供的 `contentInsets` 仍用于保护弹窗内容，不应缩进遮罩背景本身。
+
+原生 game 变体的背景 SVG 显式使用 `100%` 宽度和高度。由正文决定大小的面板限定图形边界，而不是由 SVG 固有的正方形 viewBox 决定。它仍是背景近似，并不裁切内容。
 
 浮在页面内容之上的层：Modal、Drawer、Tooltip 的精确取值
 

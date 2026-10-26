@@ -13,6 +13,12 @@ description: >
 
 > **RN fork:** [Native host API](references/components/native-host.md) for `animal-island-ui-rn`; the rest of this skill retains the upstream Web contract.
 
+For the RN fork, read native declarations and bounded native references instead of DOM
+props/examples. All 40 APIs have adaptations, including documented no-ops. The native
+manifest is private and declares CC-BY-NC-4.0 while the retained LICENSE is MIT; do not
+infer distribution approval from the upstream notice. Upload requires a host picker and
+real action/customRequest; no transport is an error, never simulated success.
+
 animal-island-ui is a React + TypeScript component library with an original
 cozy island-style design — 40 components, two runtime dependencies (`naive-icons`
 for icons, `dayjs` for dates), MIT License.

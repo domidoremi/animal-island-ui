@@ -180,8 +180,8 @@ const SIZE_SPEC: Record<InputSize, SizeSpec> = {
     },
 };
 
-/** `.wrapper { background: rgb(250, 248, 243) }`（Less 里是硬编码，照搬） */
-const WRAPPER_BG = 'rgb(250, 248, 243)';
+/** `.wrapper { background: #fffdf7 }`（Less 里是硬编码，照搬） */
+const WRAPPER_BG = '#fffdf7';
 /** `.wrapper-disabled { background: #ece8dc }` */
 const DISABLED_BG = '#ece8dc';
 /** `.input { color: #794f3f }` */
@@ -358,6 +358,8 @@ export const Input: React.FC<InputProps> = ({
 
     const inputFace: TextStyle = {
         flex: 1,
+        // Browser intrinsic widths otherwise displace the fixed affixes and clear action.
+        minWidth: 0,
         height: '100%', // CSS `.input { height: 100% }`
         // CSS 的 `border: none; outline: none; padding: 0` 在 RN 里只剩「去掉内边距」
         // —— RN 的 TextInput 自带平台默认内边距，不清掉会让文字偏离垂直居中。
@@ -435,7 +437,7 @@ export const Input: React.FC<InputProps> = ({
                     testID={testID ? `${testID}-clear` : undefined}
                 >
                     {/* `.clear { font-size: 13px; line-height: 1 }` —— RN 里行高不设会按字体默认值撑高 */}
-                    <Text style={styles.clearText}>×</Text>
+                    <Text style={[styles.clearText, { color: theme.colors.text }]}>×</Text>
                 </Pressable>
             )}
 
@@ -497,7 +499,6 @@ const styles = StyleSheet.create({
         // 所以按下态同样不加（保持无反馈，与上游一致）。
     },
     clearText: {
-        color: '#c4b89e',
         fontSize: 13,
         fontWeight: '700',
         lineHeight: 13, // CSS line-height: 1

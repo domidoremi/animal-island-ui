@@ -1,5 +1,7 @@
 # 编码规范
 
+> **RN 分支：**当前 TypeScript 配置与 RN ESLint flat config 优先于下文 Web 默认值。使用 StyleSheet 和实例级 dayjs，不引入 DOM 图标/运行时依赖。见 [native-workflow.md](./native-workflow.md)。
+
 适用于仓库内每个文件的语言、样式与工具链规则。组件层面的约定（props 形态、代码骨架、命名、demo）见 [component-development.md](./component-development.md)，视觉规则见 [../design-system/design-rules.md](../design-system/design-rules.md)。
 
 ## TypeScript

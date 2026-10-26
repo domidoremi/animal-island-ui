@@ -1,6 +1,9 @@
 # Data display — 精确样式规范
 
 > **RN fork:** Image 预览仅将内容标记为 modal，装饰性关闭遮罩不进入无障碍树；原生读屏行为仍需设备验证。 [RN contract](../../../RN-PORT.zh-CN.md). 其余表格描述上游 Web/亮色皮肤。
+>
+> Avatar/Badge/Calendar/CountUp 使用原生节点与 Provider 色，Rate 使用上游 Star 素材；CodeBlock 支持 Shell 高亮。原生适配尺寸、事项色板与庆祝效果仍有已记录差异。 [原生差异](native-adaptations.md).
+
 
 承载内容展示的组件：Table、Pagination、CodeBlock、Tag、Badge、Image、Avatar、CountUp、Calendar 的精确取值
 

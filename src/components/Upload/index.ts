@@ -8,4 +8,6 @@ export type {
     UploadChangeParam,
     UploadShowUploadList,
     UploadOnChange,
+    UploadNativeFile,
+    UploadPickerOptions,
 } from './Upload';

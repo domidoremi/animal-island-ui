@@ -1,6 +1,9 @@
 # Decorative — 精确样式规范
 
 > **RN fork:** Background 使用 Provider 暗色画布与圆点颜色，同时保留图案几何与场景素材。 [RN contract](../../../RN-PORT.zh-CN.md). 其余表格描述上游 Web/亮色皮肤。
+>
+> Background/Card 色板与点阵按上游修订同步；Time 按实例选择 dayjs locale，Loading 在减少动态时保留静态雪景。 [原生差异](native-adaptations.md).
+
 
 ## 主题过渡（RN 宿主）
 

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import dayjs from 'dayjs';
 import {
     Animated,
     Easing,
@@ -188,7 +189,7 @@ export const Countdown: React.FC<CountdownProps> = ({
     'aria-label': ariaLabel,
     'aria-labelledby': ariaLabelledBy,
 }) => {
-    const getRemaining = useCallback(() => Math.max(0, toTimestamp(value) - Date.now()), [value]);
+    const getRemaining = useCallback(() => Math.max(0, dayjs(toTimestamp(value)).diff(dayjs())), [value]);
     const [remaining, setRemaining] = useState(getRemaining);
     const finishedRef = useRef(false);
     const onChangeRef = useRef(onChange);

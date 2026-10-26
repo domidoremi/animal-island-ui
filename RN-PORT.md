@@ -6,10 +6,10 @@ parts that are **not covered by tests** — so the next person doesn't have to r
 
 中文镜像：[`docs/RN-PORT.zh-CN.md`](docs/RN-PORT.zh-CN.md). This English file is authoritative.
 
-Upstream `main` is untouched: the Web library (34 components, Less Modules, Vitest, Vite)
-still lives on disk. The RN port is **additive** — it is fenced off by explicit include
-lists in `tsconfig.json`, `tsconfig.build.json` and `jest.config.js`, so the un-ported Web
-components never enter the RN typecheck or test run.
+The upstream Web history and retained Less/demo sources are references, not this branch’s
+runtime. The `rn` branch uses native implementations and explicit include lists in
+`tsconfig.json`, `tsconfig.build.json` and `jest.config.js`. Do not restore Web component
+bodies through a merge or infer Web build support from the retained files.
 
 ## Status
 
@@ -25,65 +25,94 @@ Jest selects the installed runtime's bundled preset when available, otherwise th
 host React/React Native/SVG installation; standalone fork installs can replace those
 workspace links, so rerun the consuming app's install before building it.
 
+**All 40 component APIs have native adaptations**, including Avatar, Badge, Calendar,
+CountUp, Rate and Upload. This includes the documented no-ops below; it does not promise
+DOM behavior or pixel-identical animation on a device.
 
-**All 34 components ported.** `npm run ci` = `format:check` + `lint` + `typecheck` +
-`test` + `build`. Currently **1000 tests / 45 suites**.
+Local verification on October 23, 2026: **1300/1300 tests, 55/55 suites** in the full
+serial Jest run, plus a passing source typecheck. Counts come from that run’s Jest JSON,
+not coverage badges. Later runs must bind their own sources and built artifacts.
+No rendered-browser, installed-device or real-provider acceptance is implied.
 
-Test counts below come from `npx jest --json` (reproducible), not from any document.
+At the October 26, 2026 checkpoint, `npm run ci` passes format checking, lint
+(**0 errors, 41 warnings**), source typecheck, **1316/1316 tests in 55/55 suites** and
+the JS/declaration build. The separate `node scripts/check-docs-sync.mjs` also passes.
+This records local native verification, not remote CI or device/release acceptance.
 
-| Component     | Tests | Notes                                                                |
-| ------------- | ----- | -------------------------------------------------------------------- |
-| design tokens | 52    | `src/theme/tokens.ts`, 1:1 with `src/styles/variables.less`          |
-| theme (dark)  | 23    | `appearance.ts` — dark palette + `resolveNativeTheme` (see below)    |
-| ThemeProvider | 7     | `ThemeProvider.tsx` — `useTheme` context; RN-only, no upstream       |
-| BackTop       | 18    | `duration` dropped; new `scrollY` prop (see divergences)             |
-| Background    | 12    | CSS tiling → SVG `<Pattern>`; scene images → `src/assets/image/rn/`  |
-| Button        | 27    | plus a self-built RN icon set (`src/icons/`)                         |
-| Card          | 23    | CSS `radial-gradient` dots → SVG `<Pattern>`                         |
-| Carousel      | 23    | `ScrollView` + `pagingEnabled`; index arithmetic in `geometry.ts`    |
-| Checkbox      | 27    | `Pressable` + `accessibilityRole="checkbox"`                         |
-| CodeBlock     | 15    | highlighting tokeniser kept, rendered as `<Text>` runs               |
-| Collapse      | 14    | CSS Grid `0fr → 1fr` → measured height + `Animated`                  |
-| Countdown     | 15+26 | +26 in `format.test.ts` (extracted time formatting)                  |
-| Cursor        | 7     | **documented no-op** — see divergences                               |
-| DatePicker    | 37+46 | calendar arithmetic in `calendar.ts`; `focusedDate` state dropped    |
-| Divider       | 12    | wave / squiggle tiling rebuilt on `react-native-svg`                 |
-| Drawer        | 22    | `createPortal` → RN `Modal`; `pushBackground` is a documented no-op  |
-| Footer        | 9     | `<footer>` → `Text` (RN has no `contentinfo` role)                   |
-| Form          | 57    | no `FormHTMLAttributes`; `onSubmit`/`onReset` removed — see below    |
-| Image         | 29    | `react-dom` portal → `Modal`; `naive-icons` image → `src/icons/`     |
-| Input         | 31    | `TextInput`; focus styling from `onFocus`/`onBlur`                   |
-| Loading       | 19    | absolute positioning kept (not `Modal`) so `zIndex` stays meaningful |
-| Modal         | 17    | `createPortal` → RN `Modal`; `game` `clip-path` → SVG backdrop       |
-| Notification  | 23    | module-level store + `<NotificationHost />` (see divergences)        |
-| Pagination    | 47    | page-ellipsis collapsing preserved                                   |
-| Progress      | 29    | `prefers-reduced-motion` → `AccessibilityInfo.isReduceMotionEnabled` |
-| Radio         | 25+21 | `Pressable` + shared Web `RadioGroup` keyboard navigation            |
-| Select        | 22+16 | `Modal` panel; +16 in `geometry.test.ts`                             |
-| Skeleton      | 29    | `@keyframes` → `Animated.loop`                                       |
-| Switch        | 24    | `Pressable` + `accessibilityRole="switch"`                           |
-| Table         | 16    | `table`/`rowgroup`/`row`/`columnheader`/`cell` roles all exist in RN |
-| Tabs          | 19    |                                                                      |
-| Tag           | 28    | `:hover` dropped                                                     |
-| Time          | 11    |                                                                      |
-| TimePicker    | 22+15 | panel in a `Modal`; +15 in `geometry.test.ts`                        |
-| Title         | 18    | `clip-path` / 135° corners → `react-native-svg`; default `ribbon`    |
-| Tooltip       | 19+20 | hover → press-and-hold; placement in `geometry.ts`                   |
-| Typewriter    | 13    |                                                                      |
+### Upstream synchronization and native changes
 
-Nothing is left unported. The Web sources remain on disk (they are the reference and they
-still build on `main`), but they are outside every include list on this branch.
+The locally available upstream main revision `2d855fc6c1cb56cc4152290f50c43439d4a4920f`
+was already included in the saved RN revision `ce23f9af7fd7d28fbb634cddfd46641f9d85fd2b`
+before the adaptation snapshot. At the October 26, 2026 checkpoint, the native adaptations
+and documentation described here are saved together in a local RN commit, without push
+or publication. The host pin must identify that snapshot's full SHA and require a clean
+working tree. Local commit identity does not establish remote CI/EAS availability.
+
+A read-only remote advertisement on October 24, 2026 (UTC) reports actual upstream main
+`f35813856ea241d022b85f0fbafac0f4223d5e71`, two commits beyond that known revision.
+A complete tree comparison changes only `README.md` and `docs/README.zh-CN.md`, adding
+the community WeChat Mini Program port link. Those entries were mirrored into the RN
+working tree before this snapshot; native APIs, artwork and dependencies are unchanged.
+The advertised upstream commit was not locally available for that comparison, and no
+fetch or merge was performed to create this snapshot. The local commit saves the mirrored
+documentation, not the advertised upstream commit or a remotely provisionable build.
+
+- Shared `src/icons/` artwork for Avatar, Select, Form, Upload, BackTop and Rate is copied
+  from verified `naive-icons@1.6.0` source and adapted to `react-native-svg`; its MIT notice
+  is retained in `src/icons/base.tsx`. Do not install a second React/DOM icon runtime.
+- Background/Card dot radii, warm-peach and revised palette values, Input surface,
+  Button text height, Countdown overflow and BackTop offsets follow the upstream sources.
+- Progress has a 2-unit outline, the single 14-unit grid of 1.5-radius dots, SVG mint
+  gradient and completion brightening. A host `fillColor` overrides gradient/scene.
+- Time uses instance-local English/Chinese dayjs formatting; DatePicker strict parsing
+  and TimePicker’s fixed `2000-01-01` anchor use the existing dayjs dependency.
+  The TypeScript build externalizes dayjs; it does not bundle a private copy.
+- CodeBlock preserves JSX/TypeScript and Shell tokenizers. Native copy still uses the
+  installed runtime’s deprecated Clipboard API; wrapped text is not Web horizontal scroll.
+- Select supports search, clearing, filtering and host-owned remote results. Native search
+  stays inside its Modal; keyboard-avoiding bounds constrain measured/fallback panels.
+  Web keyboard/focus/ARIA adapters are separate from the native event API.
+- Drawer honors host reduced motion, dark surfaces, keyboard avoidance and a scrollable
+  body. Its dialog does not flatten interactive descendants. Web focus trapping remains
+  unsupported; native focus/scroll/keyboard behavior still needs physical verification.
+- Loading retains the snow scene as static artwork for reduced motion. CountUp and Rate
+  suppress decorative effects without suppressing value changes or completion semantics.
+
+### New component boundaries
+
+Avatar uses native image descriptors and falls back after image failure. Avatar.Group
+inherits defaults without overwriting child choices. Badge uses accessible full counts.
+Calendar is a native six-week grid with controlled date/month callbacks, bounded event
+lanes and long-press responder range creation; its Web keyboard adapter is not a device
+gesture test. Native event palette/labels and drag affordance differ from upstream.
+CountUp keeps pause/reset/replay/formatter behavior; its native rings, sparkles and sticker
+are an approximation (flat sticker fill and scale sequence, not exact Web rotation).
+Rate uses upstream star artwork with native press targets; hover is Web-only.
+
+Upload **never simulates successful upload**. The host supplies `onPickFiles` and owns
+permissions and URI lifetime. Missing picker disables selection; a selected file without
+`action` or `customRequest` becomes an error, not `done`. Selection, transformed metadata,
+request configuration, asynchronous removal and late callbacks are fenced; descriptors
+are detached from mutable host input. Native multipart fields use URI/name/type rather
+than DOM File; Web action uploads require a host-supplied blob in the descriptor.
+Unmount/removal abort active work; no URI deletion,
+permission prompt or provider request is built into selection.
+
+Native APIs are in the bounded [host references](skills/animal-island-ui-style/references/components/native-host.md).
+The manifest is private and declares CC-BY-NC-4.0 while the root/upstream LICENSE is MIT.
+This unresolved packaging/licensing discrepancy is not a distribution approval.
 
 ### ⚠️ What this branch gives up
 
 Rewriting `package.json` for RN **removed the Web toolchain** (vite, vitest, less,
 `@testing-library/react`). eslint was re-added, but on RN's terms — see "Linting". So on `rn`:
 
-- `npm run ci` is the **RN** pipeline. Upstream's `ci` also ran `check:docs` and
-  `test:a11y`; neither has an RN equivalent here.
-- The Web sources still on disk are **no longer verified by anything** on this branch —
-  every component has an RN twin now, but only the RN side is in the include lists. Their
-  pipeline lives on `main`. If you edit a Web component here, you are on your own.
+- `npm run ci` is the **RN** pipeline. Run `node scripts/check-docs-sync.mjs` separately:
+  the upstream documentation checker is retained but is not in this manifest’s CI chain.
+  There is no installed Web axe/Vitest accessibility pipeline on this branch.
+- Retained Web Less/demo files are **not verified as a runnable Web library here**.
+  Component bodies on this branch are native; the runnable upstream DOM library is a
+  separate source/runtime. Native include lists do not establish its acceptance.
 - `.githooks/pre-commit` is **not active** (`core.hooksPath` is unset), so nothing runs `ci`
   automatically — run it yourself before committing.
 
@@ -150,29 +179,29 @@ include lists).
 
 ## The porting contract (Web → RN)
 
-| Web                                                                                      | RN                                                             | Notes                                                                  |
-| ---------------------------------------------------------------------------------------- | -------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| `className` + `*.module.less`                                                            | `style` (`StyleSheet.create` in the component file) + `testID` | RN has no class system; the Less files stay on disk for the Web build. |
-| `onClick`                                                                                | `onPress` on `Pressable`                                       |                                                                        |
-| `:hover`                                                                                 | —                                                              | dropped: no hover on touch                                             |
-| `:active`                                                                                | `pressed` from `Pressable`'s style callback                    |                                                                        |
-| `onMouseDown={e => e.preventDefault()}` (keep focus)                                     | —                                                              | dropped: `View` has no focus semantics                                 |
-| `ResizeObserver` / `clientWidth`                                                         | `onLayout`                                                     |                                                                        |
-| CSS `repeating-linear-gradient`                                                          | SVG `strokeDasharray`                                          | Divider                                                                |
-| CSS data-URI SVG tiling                                                                  | `<Path transform="translate(...)">` in a loop                  | Divider                                                                |
-| CSS Grid `grid-template-rows: 0fr → 1fr`                                                 | `onLayout` to measure, then `Animated.Value` driving `height`  | Collapse                                                               |
-| `@keyframes`                                                                             | `Animated.loop` + `Easing.linear`                              | Button's loading spinner                                               |
-| `box-shadow: <string>`                                                                   | `boxShadow: <string>` (RN 0.76+, CSS syntax)                   | **Requires the New Architecture on Android.**                          |
-| `@font-face` + woff2                                                                     | —                                                              | woff2 is Web-only; the host app must supply ttf/otf (see below).       |
-| `position: absolute` popover inside a `position: relative` wrapper                       | `Modal` + `measureInWindow` anchoring                          | TimePicker — see "Structural divergences"                              |
-| `document.addEventListener('mousedown')` (outside click)                                 | transparent full-screen `Pressable` inside the `Modal`         | same behaviour, no visual scrim                                        |
-| `window.innerHeight` / `innerWidth`                                                      | `useWindowDimensions()`                                        |                                                                        |
-| `list.scrollTop` / `list.clientHeight`                                                   | `ScrollView` + `onLayout` + `scrollTo({ y })`                  | TimePicker columns                                                     |
-| `onKeyDown` (Enter / Escape / Arrow keys)                                                | —                                                              | `Modal.onRequestClose` covers the Android back button                  |
-| `role`, `aria-label`, `aria-labelledby`, `aria-expanded`, `aria-disabled`, `aria-hidden` | same prop names                                                | RN 0.87 supports ARIA-style props                                      |
-| `aria-controls`, `aria-haspopup`                                                         | —                                                              | **no RN equivalent**                                                   |
-| `tabIndex={0}` / `{-1}`                                                                  | `tabIndex` → `focusable`                                       |                                                                        |
-| SVG `stroke="currentColor"`                                                              | thread an explicit colour through the icon                     | RN has no `currentColor`                                               |
+| Web                                                                                      | RN                                                            | Notes                                                                                                     |
+| ---------------------------------------------------------------------------------------- | ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `className` + `*.module.less`                                                            | `style` (StyleSheet) + `testID`                               | Retained Less is upstream visual reference, not a runnable Web build on this branch.                      |
+| `onClick`                                                                                | `onPress` on `Pressable`                                      |                                                                                                           |
+| `:hover`                                                                                 | —                                                             | dropped: no hover on touch                                                                                |
+| `:active`                                                                                | `pressed` from `Pressable`'s style callback                   |                                                                                                           |
+| `onMouseDown={e => e.preventDefault()}` (keep focus)                                     | —                                                             | dropped: `View` has no focus semantics                                                                    |
+| `ResizeObserver` / `clientWidth`                                                         | `onLayout`                                                    |                                                                                                           |
+| CSS `repeating-linear-gradient`                                                          | SVG `strokeDasharray`                                         | Divider                                                                                                   |
+| CSS data-URI SVG tiling                                                                  | `<Path transform="translate(...)">` in a loop                 | Divider                                                                                                   |
+| CSS Grid `grid-template-rows: 0fr → 1fr`                                                 | `onLayout` to measure, then `Animated.Value` driving `height` | Collapse                                                                                                  |
+| `@keyframes`                                                                             | `Animated.loop` + `Easing.linear`                             | Button's loading spinner                                                                                  |
+| `box-shadow: <string>`                                                                   | `boxShadow: <string>` (RN 0.76+, CSS syntax)                  | **Requires the New Architecture on Android.**                                                             |
+| `@font-face` + woff2                                                                     | —                                                             | woff2 is Web-only; the host app must supply ttf/otf (see below).                                          |
+| `position: absolute` popover inside a `position: relative` wrapper                       | `Modal` + `measureInWindow` anchoring                         | TimePicker — see "Structural divergences"                                                                 |
+| `document.addEventListener('mousedown')` (outside click)                                 | transparent full-screen `Pressable` inside the `Modal`        | same behaviour, no visual scrim                                                                           |
+| `window.innerHeight` / `innerWidth`                                                      | `useWindowDimensions()`                                       |                                                                                                           |
+| `list.scrollTop` / `list.clientHeight`                                                   | `ScrollView` + `onLayout` + `scrollTo({ y })`                 | TimePicker columns                                                                                        |
+| `onKeyDown` (Enter / Escape / arrows)                                                    | Separate Web adapter or native TextInput event                | Select, Calendar, Rate and RadioGroup retain documented Web keys; Android Back uses Modal.onRequestClose. |
+| `role`, `aria-label`, `aria-labelledby`, `aria-expanded`, `aria-disabled`, `aria-hidden` | same prop names                                               | RN 0.87 supports ARIA-style props                                                                         |
+| `aria-controls`, `aria-haspopup`                                                         | —                                                             | **no RN equivalent**                                                                                      |
+| `tabIndex={0}` / `{-1}`                                                                  | `tabIndex` → `focusable`                                      |                                                                                                           |
+| SVG `stroke="currentColor"`                                                              | thread an explicit colour through the icon                    | RN has no `currentColor`                                                                                  |
 
 ## Structural divergences (not just renames)
 
@@ -314,9 +343,10 @@ also commented at the point of change.
     second `AccessibilityInfo` listener, so it stays consistent with the host's own setting.
     Shipped as a `./theme` subpath export (see `package.json` `exports`) so build tools can
     read tokens without pulling in React Native. Button, Input, Switch, Select, Card,
-    Background, Modal and Progress now consume the provider for dark surfaces and text.
-    Button, Switch, Select, Card, Modal, Progress and Tooltip honor host reduced motion.
-    Other components still use their original static skin; provider coverage is not universal.
+    Background, Modal, Progress, Avatar, Badge, Calendar, CountUp, Rate, Upload and Drawer
+    consume provider colors. Button, Switch, Select, Card, Modal, Progress, Tooltip,
+    Badge, CountUp, Rate, Loading and Drawer honor host reduced motion.
+    Provider coverage is not universal; inherited Form styling remains neutral gray.
 
 ## Consuming the RN fork
 
@@ -351,17 +381,17 @@ Be honest about this before trusting the green build:
 | TimePicker panel anchoring                                       | jest preset mocks `measureInWindow` as a bare `jest.fn()` (`@react-native/jest-preset/jest/MockNativeMethods.js`) — it **never invokes the callback**. The panel therefore renders at the fallback `{ top: 0, left: 0 }`.                                                 |
 | TimePicker column centring                                       | `ScrollView.scrollTo` needs a native scroll node; there is none in the test renderer. **The arithmetic is unit-tested instead.**                                                                                                                                          |
 | `boxShadow` actually rendering                                   | No visual assertions anywhere. Also requires the New Architecture on Android; on the old architecture the shadows are silently dropped.                                                                                                                                   |
-| Fonts                                                            | `fontFamily` defaults to `undefined`. woff2 is unusable in RN; a host app wanting the island look must ship Nunito + Noto Sans SC as ttf/otf and override via the theme.                                                                                                  |
+| Fonts                                                            | The host supplies native ttf/otf and text styles. ThemeProvider has no font-injection prop; woff2 is not a native font input.                                                                                                                                             |
 | `onStartShouldSetResponder` actually blocking touch pass-through | RNTL fires events by walking **up** the tree for a handler; the Modal's backdrop is a **sibling**, so a naive `fireEvent.press(panel)` would pass whether or not the guard exists. The test asserts the mechanism (`onStartShouldSetResponder()` returns `true`) instead. |
 
-### Fallback anchoring, and why it doesn't flicker
+### Fallback anchoring is not visual acceptance
 
-`measureInWindow` is callback-based, so the panel first mounts at the fallback position and
-is corrected on the next frame. It does not flicker because the panel is simultaneously
-fading in from `opacity: 0` over 200 ms — a one-frame position correction at the start of a
-fade-in is not perceptible.
+Measurement is callback-based: a panel first uses fallback bounds, then updates when
+measurement arrives. A fade can mask a correction, but renderer tests do not prove that
+it is imperceptible. Reduced motion deliberately skips the fade; measured native/Web
+placement, keyboard reduction and initial positioning remain separate acceptance work.
 
-## Testing notes (RNTL v14 + RN 0.87 gotchas)
+## Testing notes (RNTL v14 + linked RN gotchas)
 
 - **`render` and `fireEvent` are async** — React 19's async `act`. Always `await`.
 - **Get the node type as `import type { TestInstance } from 'test-renderer';`.** That is the
@@ -434,8 +464,8 @@ within a <Text> component`. Components that accept free children (`Form.Item`, `
 ## Adding the next component
 
 1. Port into `src/components/<Name>/<Name>.tsx`, keeping the upstream prop names minus
-   `className` (add `testID` and `style` instead). Comment every divergence at the point of
-   change, with the upstream line it replaces.
+   `className` (add `testID` and `style` instead). Record differences in the native references; add source comments only for invariants
+   that cannot be recovered by reading the implementation.
 2. Add the barrel export to `src/index.ts`.
 3. Register the directory in **three** places, or it silently escapes the gate:
    `tsconfig.json` → `include`, `tsconfig.build.json` → `include`,

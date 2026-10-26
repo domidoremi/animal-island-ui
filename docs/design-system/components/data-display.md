@@ -1,6 +1,9 @@
 # Data display — pixel spec
 
 > **RN fork:** Image preview marks only its content as modal; its decorative dismissal backdrop is excluded from accessibility. Native screen-reader behavior still needs device verification. [RN contract](../../../RN-PORT.md). The remaining tables describe the upstream Web/light skin.
+>
+> Avatar/Badge/Calendar/CountUp use native nodes and provider colors; Rate uses upstream Star artwork. CodeBlock includes Shell highlighting. Native fitting, event palette and celebration remain documented divergences. [Native differences](native-adaptations.md).
+
 
 Exact values for the components that present content: Table, Pagination, CodeBlock, Tag, Badge, Image, Avatar, CountUp and Calendar.
 

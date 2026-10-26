@@ -40,6 +40,7 @@ import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, StyleSheet, Text, View, useWindowDimensions, type TextStyle } from 'react-native';
 import { Defs, RadialGradient, Rect, Stop, Svg } from 'react-native-svg';
 import type { LoadingProps } from './types';
+import { useTheme } from '../../theme/ThemeProvider';
 
 const FLAKE_COUNT = 50;
 
@@ -117,11 +118,20 @@ const createFlakes = (): FlakeSpec[] =>
  * **构造该 Value 时的值**，而原生驱动下每次迭代又回到「本段动画的起始值」——
  * 两条路都会把相位抹掉（每次循环都从 phase 处重新开始 = 明显跳帧）。
  */
-const Flake: React.FC<{ flake: FlakeSpec; distance: number; testID?: string }> = ({ flake, distance, testID }) => {
+const Flake: React.FC<{ flake: FlakeSpec; distance: number; reducedMotion: boolean; testID?: string }> = ({
+    flake,
+    distance,
+    reducedMotion,
+    testID,
+}) => {
     // 构造值即相位：首帧就落在周期中段（对应 Web 的负延迟）
     const progress = useRef(new Animated.Value(flake.phase)).current;
 
     useEffect(() => {
+        if (reducedMotion) {
+            progress.setValue(flake.phase);
+            return;
+        }
         const fall = (duration: number) =>
             Animated.timing(progress, {
                 toValue: 1,
@@ -138,14 +148,14 @@ const Flake: React.FC<{ flake: FlakeSpec; distance: number; testID?: string }> =
             ]),
             // 关掉 loop 自带的 reset：它会调用 `resetAnimation()`（回到构造值），
             // 而我们要的是「显式归零」这一条腿来定义循环起点。
-            // `iterations: -1` 是「无限」—— RN 0.87 的类型把该字段标成了必填。
+            // Explicit infinite iterations are required by the installed RN types.
             { iterations: -1, resetBeforeIteration: false }
         );
 
         const animation = Animated.sequence([fall(flake.durationMs * (1 - flake.phase)), loop]);
         animation.start();
         return () => animation.stop();
-    }, [flake.durationMs, flake.phase, progress]);
+    }, [flake.durationMs, flake.phase, progress, reducedMotion]);
 
     const translateY = progress.interpolate({ inputRange: [0, 1], outputRange: [0, distance] });
     const rotate = progress.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
@@ -177,6 +187,7 @@ export const Loading: React.FC<LoadingProps> = ({
     style,
     testID,
 }) => {
+    const { reducedMotion } = useTheme();
     // shown：雪花屏已显示（含淡出阶段）；exiting：正在渐变消失
     const [shown, setShown] = useState(false);
     const [exiting, setExiting] = useState(false);
@@ -214,6 +225,13 @@ export const Loading: React.FC<LoadingProps> = ({
 
         // active=false：只有显示过才进入渐变消失
         if (shownRef.current) {
+            if (reducedMotion) {
+                clearTimeout(hideTimerRef.current);
+                shownRef.current = false;
+                setShown(false);
+                setExiting(false);
+                return;
+            }
             setExiting(true);
             hideTimerRef.current = setTimeout(() => {
                 shownRef.current = false;
@@ -222,7 +240,7 @@ export const Loading: React.FC<LoadingProps> = ({
             }, fadeDuration * 1000);
         }
         return undefined;
-    }, [active, delay, fadeDuration]);
+    }, [active, delay, fadeDuration, reducedMotion]);
 
     // 卸载时清理计时器
     useEffect(
@@ -246,14 +264,19 @@ export const Loading: React.FC<LoadingProps> = ({
     const opacity = useRef(new Animated.Value(0)).current;
     useEffect(() => {
         if (!shown) return undefined;
-        Animated.timing(opacity, {
+        if (reducedMotion) {
+            opacity.setValue(exiting ? 0 : 1);
+            return;
+        }
+        const animation = Animated.timing(opacity, {
             toValue: exiting ? 0 : 1,
             duration: exiting ? fadeDuration * 1000 : FADE_IN_MS,
             easing: EASE,
             useNativeDriver: false,
-        }).start();
-        return undefined;
-    }, [shown, exiting, fadeDuration, opacity]);
+        });
+        animation.start();
+        return () => animation.stop();
+    }, [shown, exiting, fadeDuration, opacity, reducedMotion]);
 
     if (!shown) return null;
 
@@ -277,6 +300,7 @@ export const Loading: React.FC<LoadingProps> = ({
                         key={i}
                         flake={flake}
                         distance={distance}
+                        reducedMotion={reducedMotion}
                         testID={testID ? `${testID}-flake` : undefined}
                     />
                 ))}

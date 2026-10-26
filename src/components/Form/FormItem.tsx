@@ -22,6 +22,7 @@
 
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { CloseIcon } from '../../icons';
 import { FormContext } from './context';
 import { stringifyNamePath } from './types';
 import type { FormItemProps, NamePath, Rules, StoreValue } from './types';
@@ -279,7 +280,9 @@ export const FormItem: React.FC<FormItemProps> = (props) => {
         showHelp !== undefined ? (
             <View style={styles.explain} testID={testID ? `${testID}-help` : undefined}>
                 {hasFeedback && computedStatus === 'error' ? (
-                    <Text style={[styles.feedbackIcon, { color: STATUS_COLOR[computedStatus] }]}>✕</Text>
+                    <View style={styles.feedbackIcon} testID={testID ? `${testID}-feedback-icon` : undefined}>
+                        <CloseIcon size={12} />
+                    </View>
                 ) : null}
                 <Text style={[styles.explainText, { color: STATUS_COLOR[computedStatus] ?? HELP_COLOR }]}>
                     {showHelp}
@@ -362,6 +365,7 @@ const styles = StyleSheet.create({
     },
     // `.island-form-item-feedback-icon`
     feedbackIcon: {
-        fontSize: 12,
+        width: 12,
+        height: 12,
     },
 });

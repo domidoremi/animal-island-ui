@@ -177,7 +177,7 @@ describe('BackTop', () => {
     });
 
     describe('渲染', () => {
-        it('渲染火箭图标（react-native-svg 复刻 rocket.svg）', async () => {
+        it('renders the native port of naive-icons RocketIcon', async () => {
             const { getByTestId } = await render(<BackTop testID="b" scrollY={800} />);
             const icon = getByTestId('b-icon');
             expect(icon).toHaveStyle({ width: 64, height: 64 });
@@ -193,12 +193,12 @@ describe('BackTop', () => {
             expect(types.some((t) => t.toLowerCase().includes('svg'))).toBe(true);
         });
 
-        it('固定定位的对应物：absolute + bottom 32 / right 24 / zIndex 1000', async () => {
+        it('uses absolute positioning with upstream bottom/right offsets', async () => {
             const { getByTestId } = await render(<BackTop testID="b" scrollY={800} />);
             expect(getByTestId('b')).toHaveStyle({
                 position: 'absolute',
-                bottom: 32,
-                right: 24,
+                bottom: 48,
+                right: 32,
                 zIndex: 1000,
             });
         });
@@ -206,7 +206,7 @@ describe('BackTop', () => {
         it('style / testID 透传，且 style 排在最后可覆盖默认值', async () => {
             const { getByTestId } = await render(<BackTop testID="b" scrollY={800} style={{ bottom: 100 }} />);
             const root = getByTestId('b');
-            expect(root).toHaveStyle({ bottom: 100, right: 24 });
+            expect(root).toHaveStyle({ bottom: 100, right: 32 });
             expect(root.props.testID).toBe('b');
         });
     });

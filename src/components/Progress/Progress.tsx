@@ -1,8 +1,9 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 import { CoffeeBreak, ForestGrove, StarryCamp, SweetCorner, type SceneImageProps } from '../../assets/image/rn';
 import { colors, fontSize, spacing } from '../../theme/tokens';
-import { BACKGROUND_PATTERN_SPEC, BackgroundLayer, BackgroundPatternLayer } from '../Background/patterns';
+import Svg, { Circle, Defs, LinearGradient, Pattern, Rect, Stop } from 'react-native-svg';
+import { BackgroundLayer } from '../Background/patterns';
 import type { ProgressProps, ProgressSize, ProgressVariant } from './types';
 import { useReduceMotion } from './useReduceMotion';
 import { useTheme } from '../../theme/ThemeProvider';
@@ -34,45 +35,15 @@ const SIZE_HEIGHT: Record<ProgressSize, number> = {
 /** `.fill { transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1) }` */
 const EASE = Easing.bezier(0.4, 0, 0.2, 1);
 
-/**
- * track 的奶油色波点底。
- *
- * `.track` 的 CSS 是
- *   `radial-gradient(...) 0 0 / 28px 28px, radial-gradient(...) 7px 7px / 14px 14px, @track-bg`
- * —— Less 自己的注释写着「与 Background default / Card pattern-default 一致」，
- * 数值也确实和 `Background` 的 `default` 图案逐字相同。既然上游把它们定义为同一张壁纸，
- * 这里就直接复用 `Background` 的 spec（而不是再抄一份 10 个圆点），
- * 保证两处永远同步。代价是 Progress 依赖 Background 的图案模块。
- */
-const TRACK_PATTERN = BACKGROUND_PATTERN_SPEC.default;
+const TRACK_BORDER_WIDTH = 2;
 
-/** 把 `React.ReactNode` 收窄成能直接塞进 `<Text>` 的类型（RN 要求文本必须包在 Text 里） */
 const isTextual = (node: React.ReactNode): node is string | number =>
     typeof node === 'string' || typeof node === 'number';
 
-/**
- * 与上游 Web 版的差异（都在下面就地注释过，这里汇总一遍）：
- *
- * 1. **fill 宽度动画**：CSS 的 `transition: width 0.6s cubic-bezier(0.4,0,0.2,1)` 换成
- *    `Animated.Value` 驱动 `width`（`useNativeDriver: false`，因为 `width` 只能在 JS 侧算）。
- *    `duration` 语义不变（秒）。首次渲染不动画 —— 与 CSS transition 的行为一致。
- * 2. **`@media (prefers-reduced-motion: reduce)`** 换成 `useReduceMotion()`
- *    （`AccessibilityInfo.isReduceMotionEnabled`）。见 `useReduceMotion.ts`。
- * 3. **未测量到轨道宽度的那一帧不画场景图**：Web 用 `background-size: 100% auto` 兜底，
- *    RN 里「按宽度百分比推高度」不可表达，所以那一帧 fill 是空的。
- *    `onLayout` 在下一帧就会回调（Web 侧 `clientWidth` 也是首帧后才有值），
- *    且 fill 宽度同时从 0 开始展开，观感无差别。
- * 4. **`.track.size-small { border-width: 1.5px }` 不还原**：Web 上它是死代码
- *    （`border` 简写被注释掉了，没有 border-style），RN 里只写 `borderWidth` 会画出黑边。
- * 5. **track 的波点底复用 `Background` 的 spec**（而不是再抄一份），见 `TRACK_PATTERN`。
- * 6. **`.info` 拆成「盒子 View + Text」两层**：RN 的文字样式必须落在 `<Text>` 上。
- *    `infoFormat` 返回非文本节点时原样渲染，此时只有盒子的 `minWidth` / 右对齐，
- *    文字样式（字重 / 颜色 / 字距）不生效 —— 这是 RN 的 `<Text>` 语义决定的。
- */
 export const Progress: React.FC<ProgressProps> = ({
     percent,
     size = 'middle',
-    variant = 'sweet-corner',
+    variant,
     showInfo = true,
     infoFormat,
     duration = 0.6,
@@ -84,6 +55,9 @@ export const Progress: React.FC<ProgressProps> = ({
     fillColor,
 }) => {
     const { mode, theme, reducedMotion } = useTheme();
+    const artworkId = `animal-progress-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
+    const patternId = `${artworkId}-dots`;
+    const gradientId = `${artworkId}-fill`;
     const safePercent = useMemo(() => {
         if (typeof percent !== 'number' || Number.isNaN(percent)) return 0;
         return Math.max(0, Math.min(100, percent));
@@ -95,43 +69,43 @@ export const Progress: React.FC<ProgressProps> = ({
         return `${Math.round(safePercent)}%`;
     }, [infoFormat, safePercent, indeterminate]);
 
-    // track 宽度（px）：图片按整条轨道宽度铺满（取上部），fill 只显示左侧进度宽的部分 = 从左揭开。
-    // Web 靠 ResizeObserver + clientWidth（见 RN-PORT.md 的映射表）；RN 用 onLayout。
     const [trackWidth, setTrackWidth] = useState(0);
     const onTrackLayout = useCallback((e: LayoutChangeEvent) => {
-        setTrackWidth(e.nativeEvent.layout.width);
+        // Web clientWidth excludes the outline; RN onLayout includes it.
+        setTrackWidth(Math.max(0, e.nativeEvent.layout.width - 2 * TRACK_BORDER_WIDTH));
     }, []);
 
-    const Scene = VARIANT_IMAGE[variant];
+    const Scene = variant ? VARIANT_IMAGE[variant] : null;
+    const completed = !indeterminate && Math.round(safePercent) === 100;
+    const defaultPalette = mode === 'light' && theme.colors.primary === colors.primary;
+    const gradientColors = completed
+        ? [defaultPalette ? '#7fe0d5' : theme.colors.primaryHover, defaultPalette ? '#3dd4c6' : theme.colors.primary]
+        : [theme.colors.primaryHover, theme.colors.primary, defaultPalette ? '#14b6a8' : theme.colors.primaryActive];
+    const durationMs = Number.isFinite(duration) && duration > 0 ? Math.min(duration * 1000, 2147483647) : 0;
 
-    // ---------- fill 宽度动画：替代 CSS 的 `transition: width 0.6s cubic-bezier(...)` ----------
     const reduceMotion = useReduceMotion();
     const fillPercent = useRef(new Animated.Value(safePercent)).current;
     const isFirstRender = useRef(true);
 
     useEffect(() => {
-        // CSS 的 transition **不会**在首次渲染时播放（元素直接以目标宽度出现），
-        // 所以挂载时只同步数值、不动画。
         if (isFirstRender.current) {
             isFirstRender.current = false;
             fillPercent.setValue(safePercent);
             return undefined;
         }
-        // `duration={0}` → CSS 的 `.noTransition`；系统开了「减弱动态效果」→ 上游的
-        // `@media (prefers-reduced-motion: reduce)`。两者都直接跳到目标值。
-        if (duration === 0 || reduceMotion || reducedMotion) {
+        if (durationMs === 0 || reduceMotion || reducedMotion) {
             fillPercent.setValue(safePercent);
             return undefined;
         }
         const animation = Animated.timing(fillPercent, {
             toValue: safePercent,
-            duration: duration * 1000, // CSS 的 transition-duration 单位是秒
+            duration: durationMs,
             easing: EASE,
             useNativeDriver: false, // `width` 只能在 JS 侧算
         });
         animation.start();
         return () => animation.stop();
-    }, [safePercent, duration, reduceMotion, reducedMotion, fillPercent]);
+    }, [safePercent, durationMs, reduceMotion, reducedMotion, fillPercent]);
 
     // 0–100 的数值插值成百分比宽度字符串
     const fillWidth = fillPercent.interpolate({ inputRange: [0, 100], outputRange: ['0%', '100%'] });
@@ -139,10 +113,6 @@ export const Progress: React.FC<ProgressProps> = ({
     const ariaValueText = typeof renderedInfo === 'string' ? renderedInfo : undefined;
 
     return (
-        // 与 Collapse 的面板不同，这里**显式**加了 `accessible`：进度条子树只有一条装饰性
-        // 轨道 + 一段百分比文字，没有可交互 / 富内容会被「压平」，而且不加 `accessible`
-        // 时裸 View 在 iOS 上不会被当作无障碍元素，`role="progressbar"` 等于白设。
-        // （Web 版 `<div role="progressbar">` 本来就是暴露给读屏的。）
         <View
             role="progressbar"
             accessible
@@ -157,17 +127,39 @@ export const Progress: React.FC<ProgressProps> = ({
         >
             <View style={styles.row}>
                 <View
-                    style={[styles.track, { height: SIZE_HEIGHT[size], backgroundColor: theme.colors.bg }]}
+                    style={[
+                        styles.track,
+                        {
+                            height: SIZE_HEIGHT[size],
+                            backgroundColor: theme.colors.bg,
+                            borderColor:
+                                mode === 'light' && theme.colors.border === colors.border
+                                    ? '#e2d6bd'
+                                    : theme.colors.border,
+                        },
+                    ]}
                     onLayout={onTrackLayout}
                     testID={testID ? `${testID}-track` : undefined}
                 >
-                    {/* 奶油色波点底（对应 CSS 的 background 简写），铺在 fill 下面 */}
                     <BackgroundLayer testID={testID ? `${testID}-track-pattern` : undefined}>
-                        <BackgroundPatternLayer
-                            spec={
-                                mode === 'dark' ? { ...TRACK_PATTERN, base: theme.colors.bgSecondary } : TRACK_PATTERN
-                            }
-                        />
+                        <Svg width="100%" height="100%">
+                            <Defs>
+                                <Pattern id={patternId} width={14} height={14} patternUnits="userSpaceOnUse">
+                                    {[0, 14].map((cx) =>
+                                        [0, 14].map((cy) => (
+                                            <Circle
+                                                key={`${cx}-${cy}`}
+                                                cx={cx}
+                                                cy={cy}
+                                                r={1.5}
+                                                fill="rgba(196, 184, 158, 0.1)"
+                                            />
+                                        ))
+                                    )}
+                                </Pattern>
+                            </Defs>
+                            <Rect width="100%" height="100%" fill={`url(#${patternId})`} />
+                        </Svg>
                     </BackgroundLayer>
 
                     <Animated.View
@@ -181,21 +173,35 @@ export const Progress: React.FC<ProgressProps> = ({
                         ]}
                         testID={testID ? `${testID}-fill` : undefined}
                     >
-                        {trackWidth > 0 && !fillColor && (
-                            // 图片固定为**整条轨道**的宽度（高度按 16:9 算，所以只露出上部），
-                            // fill 自身 overflow: hidden 按进度宽度裁掉右侧 = 从左揭开。
-                            // Web 在测量到宽度前用的是 `100% auto`；RN 这里那一帧不画图
-                            // （见本文件顶部的「与上游 Web 版的差异」第 3 条）。
+                        {!Scene && !fillColor && (
+                            <BackgroundLayer testID={testID ? `${testID}-fill-gradient` : undefined}>
+                                <Svg width="100%" height="100%">
+                                    <Defs>
+                                        <LinearGradient id={gradientId} x1={0} y1={0} x2={0} y2={1}>
+                                            {gradientColors.map((color, index) => (
+                                                <Stop
+                                                    key={index}
+                                                    offset={completed ? index : [0, 0.6, 1][index]}
+                                                    stopColor={color}
+                                                />
+                                            ))}
+                                        </LinearGradient>
+                                    </Defs>
+                                    <Rect width="100%" height="100%" fill={`url(#${gradientId})`} />
+                                </Svg>
+                            </BackgroundLayer>
+                        )}
+                        {Scene && trackWidth > 0 && !fillColor && (
+                            // Native scenes need a measured aspect ratio; the first frame uses the fill color.
                             <View style={styles.fillImage} pointerEvents="none" aria-hidden>
                                 <Scene width={trackWidth} height={trackWidth / SCENE_ASPECT_RATIO} />
                             </View>
                         )}
+                        <View style={styles.fillHighlight} pointerEvents="none" aria-hidden />
                     </Animated.View>
                 </View>
 
                 {showInfo && (
-                    // Web 的 `.info` 是一个 div，同时承担盒子样式与文字样式；RN 里文字样式
-                    // 必须在 <Text> 上，所以拆成「盒子 View + Text」两层。
                     <View style={styles.infoBox} testID={testID ? `${testID}-info` : undefined}>
                         {isTextual(renderedInfo) ? (
                             <Text
@@ -205,7 +211,6 @@ export const Progress: React.FC<ProgressProps> = ({
                                 {renderedInfo}
                             </Text>
                         ) : (
-                            // infoFormat 返回非文本节点时原样渲染（Web 的 div 能放任意内容）
                             renderedInfo
                         )}
                     </View>
@@ -248,14 +253,9 @@ const styles = StyleSheet.create({
         flex: 1,
         minWidth: 80,
         backgroundColor: colors.bg, // @track-bg: #f8f8f0 —— 与 @bg-color 同值，用 token
-        // `.track { box-shadow: inset 0 2px 4px @track-inner }`
-        boxShadow: 'inset 0 2px 4px rgba(114, 93, 66, 0.08)',
         overflow: 'hidden',
         borderRadius: 999,
-        // ⚠️ `.track.size-small { border-width: 1.5px }` 在 Web 上是**死代码**：
-        // `.track` 里的 `border: 1px solid @track-border` 被注释掉了，没有 border-style
-        // 就没有可见边框。RN 里只写 borderWidth 会画出一条黑色边框（颜色默认黑），
-        // 所以这里**刻意不写**，保持与 Web 的实际观感一致。
+        borderWidth: TRACK_BORDER_WIDTH,
     },
     fill: {
         // `.fill { position: absolute; top: 0; left: 0; bottom: 0; width: 0; border-radius: 999px; overflow: hidden }`
@@ -272,6 +272,14 @@ const styles = StyleSheet.create({
         position: 'absolute',
         top: 0,
         left: 0,
+    },
+    fillHighlight: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: 2,
+        backgroundColor: 'rgba(255, 255, 255, 0.45)',
     },
     infoBox: {
         // `.info { flex-shrink: 0 }` + `.info.right { min-width: 44px; text-align: right }`

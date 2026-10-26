@@ -209,6 +209,8 @@ export const Modal: React.FC<ModalProps> = ({
                                 <Svg
                                     viewBox="0 0 1 1"
                                     preserveAspectRatio="none"
+                                    width="100%"
+                                    height="100%"
                                     style={StyleSheet.absoluteFill}
                                     testID={testID ? `${testID}-game-shape` : undefined}
                                 >

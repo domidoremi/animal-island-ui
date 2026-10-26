@@ -1,5 +1,7 @@
 # 仓库结构
 
+> **RN 分支：**当前 manifest 定义 React/React Native/SVG peers、dayjs 运行时依赖、Jest、TypeScript 和 StyleSheet，没有 Web dev/demo/deploy 命令。原生目录与实际命令见 [native-workflow.md](./native-workflow.md)；下文栈为上游 Web 参照。
+
 ## 项目简介
 
 animal-island-ui 是一套受《治愈系海岛风格》启发的 React + TypeScript UI 组件库，开源且采用 MIT 协议。设计语言核心：温暖大地色、大圆角 pill 形、游戏按键立体感、柔和动效、几何与有机形状并存 —— 定义见 [../design-system/](../design-system/)。

@@ -278,13 +278,13 @@ describe('Select', () => {
         expect(child(panel).props.onStartShouldSetResponder?.()).toBe(true);
     });
 
-    it('measureInWindow 不回调时，面板落在兜底位置（0, 0）', async () => {
+    it('constrains the fallback position to the native viewport gutter when measurement never calls back', async () => {
         const { getByTestId } = await render(<Host />);
         await fireEvent.press(getByTestId('s-trigger'));
         // jest preset 把 measureInWindow mock 成永不回调的空实现，
-        // 所以这里看到的就是 FALLBACK_PANEL_POSITION。
+        // Renderer measurement never calls back; this asserts the constrained fallback only.
         // ⚠️ 这条**不能**证明真机上的定位正确 —— 真正的定位判断在 geometry.test.ts 里。
-        expect(styleOf(getByTestId('s-listbox'))).toMatchObject({ top: 0, left: 0 });
+        expect(styleOf(getByTestId('s-listbox'))).toMatchObject({ top: 12, left: 12 });
     });
 
     it('当前选中项渲染 pillBar，未选中项不渲染', async () => {
@@ -355,7 +355,9 @@ describe('Select', () => {
         );
         await fireEvent.press(getByTestId('s-trigger'));
         expect(getByTestId('s-listbox')).toBeTruthy();
-        expect(queryAllByRole('option')).toHaveLength(0);
+        // Upstream now exposes the empty result as a disabled option.
+        expect(queryAllByRole('option')).toHaveLength(1);
+        expect(queryAllByRole('option')[0].props.accessibilityState).toMatchObject({ disabled: true, selected: false });
     });
 
     it('style / testID 透传到最外层容器', async () => {

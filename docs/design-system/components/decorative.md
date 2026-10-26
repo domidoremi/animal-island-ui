@@ -1,6 +1,9 @@
 # Decorative — pixel spec
 
 > **RN fork:** Background substitutes dark provider canvas/dot colors for wallpaper while retaining pattern geometry and scene artwork. [RN contract](../../../RN-PORT.md). The remaining tables describe the upstream Web/light skin.
+>
+> Background/Card palettes and dots follow upstream corrections; Time uses instance-local dayjs locale; Loading retains static snow under reduced motion. [Native differences](native-adaptations.md).
+
 
 ## Theme transition (RN host)
 

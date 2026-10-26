@@ -5,13 +5,8 @@
  * **RN 0.87 把 jest preset 从 `react-native` 包里拆出去了**，改用
  * `@react-native/jest-preset`。不能把 0.87 的 preset 用在消费应用链接的 0.86 运行时上。
  *
- * testMatch 只覆盖**已移植到 RN** 的子集。
- *
- * 2026-09-19：34 / 34 组件已全部移植，`src/` 下不再有 import `vitest` /
- * `@testing-library/react` / `.module.less` 的 Web 测试文件（实测 0 个），
- * 这 40 条穷举已与磁盘上的 40 个测试文件一一对应。同理 tsconfig.json 的说明，
- * 它在功能上等价于「src 下所有 .test.ts 与 .test.tsx」的 glob，
- * 是否简化属基建决策、待定。
+ * Explicit coverage includes all 40 native components, pure helpers, icons and themes.
+ * Keep new component directories aligned with both TypeScript include lists.
  */
 const fs = require('node:fs');
 const path = require('node:path');
@@ -92,6 +87,15 @@ module.exports = {
         '<rootDir>/src/components/Tooltip/*.test.ts',
         '<rootDir>/src/theme/*.test.ts',
         '<rootDir>/src/theme/*.test.tsx',
+        '<rootDir>/src/icons/*.test.tsx',
+        '<rootDir>/src/components/Avatar/*.test.tsx',
+        '<rootDir>/src/components/Badge/*.test.tsx',
+        '<rootDir>/src/components/Calendar/*.test.ts',
+        '<rootDir>/src/components/Calendar/*.test.tsx',
+        '<rootDir>/src/components/CountUp/*.test.tsx',
+        '<rootDir>/src/components/Rate/*.test.tsx',
+        '<rootDir>/src/components/Upload/*.test.ts',
+        '<rootDir>/src/components/Upload/*.test.tsx',
     ],
     collectCoverageFrom: ['src/**/*.{ts,tsx}', '!src/**/*.test.{ts,tsx}'],
 };

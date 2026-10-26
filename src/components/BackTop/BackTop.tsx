@@ -141,8 +141,8 @@ export const BackTop: React.FC<BackTopProps> = ({
             style={[styles.button, { opacity: progress, transform: [{ translateY }] }, style]}
             testID={testID}
         >
-            {/* Web: <img className={styles.img} src={rocketIcon} alt="返回顶部" />
-                → react-native-svg 复刻的 RocketIcon；可访问名由外层 aria-label 提供
+            {/* The upstream naive-icons RocketIcon is ported through react-native-svg.
+                可访问名由外层 aria-label 提供
                 （SVG 没有 alt 语义）。`filter: drop-shadow(...)` → boxShadow：
                 前者沿轮廓、后者沿盒子，这是近似（图标基本铺满 64×64，差异很小）。 */}
             <View style={styles.icon} testID={testID ? `${testID}-icon` : undefined}>
@@ -157,11 +157,11 @@ BackTop.displayName = 'BackTop';
 const styles = StyleSheet.create({
     button: {
         // Web 的 `.backtop`：
-        //   position: fixed; bottom: 32px; right: 24px; z-index: 1000;
+        //   position: fixed; bottom: 48px; right: 32px; z-index: 1000;
         //   border: none; background: none; padding: 0; margin: 0; line-height: 1
         position: 'absolute',
-        bottom: 32,
-        right: 24,
+        bottom: 48,
+        right: 32,
         zIndex: 1000,
         padding: 0,
         alignItems: 'center',

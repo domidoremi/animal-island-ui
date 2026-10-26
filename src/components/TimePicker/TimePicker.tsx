@@ -15,6 +15,8 @@ import {
     type ViewStyle,
 } from 'react-native';
 import { Circle, Path, Svg } from 'react-native-svg';
+import dayjs from 'dayjs';
+import customParseFormat from 'dayjs/plugin/customParseFormat.js';
 import {
     LIST_MAX_HEIGHT,
     LIST_PADDING,
@@ -26,6 +28,9 @@ import {
     computePanelPosition,
     type PanelPosition,
 } from './geometry';
+
+// 严格解析插件：拒绝 24:00:00 / 09:60:00 这类越界值，而不是让宽松解析进位到次日 / 下一小时
+dayjs.extend(customParseFormat);
 
 export type TimePickerSize = 'small' | 'middle' | 'large';
 
@@ -51,7 +56,8 @@ export interface TimePickerProps {
     size?: TimePickerSize;
     /** 校验状态 */
     status?: TimePickerStatus;
-    /** 展示格式，支持 HH / mm / ss 占位符，默认 HH:mm:ss；包含 ss 时面板显示秒列 */
+    /** 展示格式，支持 dayjs 核心时间 token（HH / mm / ss / h / A 等），默认 HH:mm:ss；包含 ss 时面板显示秒列。
+     *  时间值不带日期，请不要使用日期 token —— 它们会渲染内部锚点日期。 */
     format?: string;
     /** 小时步进（默认 1） */
     hourStep?: number;
@@ -75,24 +81,38 @@ export interface TimePickerProps {
 
 const pad2 = (n: number) => `${n}`.padStart(2, '0');
 
-/** 将 HH:mm:ss 字符串解析为时分秒对象，非法输入返回 null */
+// 时间值没有日期；固定锚点让解析/格式化不受宿主时区当天的夏令时空洞影响
+const TIME_ANCHOR = '2000-01-01';
+
+// 与旧版正则一致：字段允许 1–2 位，秒可省略。
+// 锚点日期写成 token：strict 解析不接受格式串里的字面量日期。
+const TIME_PARSE_FORMATS = ['H', 'HH'].flatMap((hour) =>
+    ['m', 'mm'].flatMap((minute) => [
+        `YYYY-MM-DD ${hour}:${minute}`,
+        `YYYY-MM-DD ${hour}:${minute}:s`,
+        `YYYY-MM-DD ${hour}:${minute}:ss`,
+    ])
+);
+
+/** 将 HH:mm:ss 字符串解析为时分秒对象，非法输入返回 null（严格模式：24:00 / 09:60 不回退到进位） */
 const parseTime = (value: string | null | undefined): TimePart | null => {
     if (!value) return null;
-    const match = /^(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?$/.exec(value);
-    if (!match) return null;
-    const part: TimePart = { h: Number(match[1]), m: Number(match[2]), s: Number(match[3] ?? 0) };
-    return part.h > 23 || part.m > 59 || part.s > 59 ? null : part;
+    const parsed = dayjs(`${TIME_ANCHOR} ${value}`, TIME_PARSE_FORMATS, true);
+    if (!parsed.isValid()) return null;
+    return { h: parsed.hour(), m: parsed.minute(), s: parsed.second() };
 };
 
+/** 把时分秒挂到固定锚点上，仅用于格式化/序列化 */
+const toDayjs = (part: TimePart) => dayjs(TIME_ANCHOR).locale('en').hour(part.h).minute(part.m).second(part.s);
+
 /** 将时分秒序列化为 HH:mm:ss */
-const toValue = (part: TimePart) => `${pad2(part.h)}:${pad2(part.m)}:${pad2(part.s)}`;
+const toValue = (part: TimePart) => toDayjs(part).format('HH:mm:ss');
 
-/** 按模板格式化时间，支持 HH / mm / ss 占位符 */
-const formatTime = (part: TimePart, format: string) =>
-    format.replace('HH', pad2(part.h)).replace('mm', pad2(part.m)).replace('ss', pad2(part.s));
+/** 按 dayjs 模板格式化时间 */
+const formatTime = (part: TimePart, format: string) => toDayjs(part).format(format);
 
-/** 面板是否展示秒列：format 包含 ss */
-const hasSeconds = (format: string) => format.includes('ss');
+/** 面板是否展示秒列：format 中未转义的 ss */
+const hasSeconds = (format: string) => format.replace(/\[[^\]]*]/g, '').includes('ss');
 
 /** 关闭退场动画时长，与 Web 版 `.panel` 的 0.2s 过渡一致，动画结束后再卸载面板 */
 const CLOSE_ANIMATION_MS = 200;
@@ -351,8 +371,8 @@ export const TimePicker: React.FC<TimePickerProps> = ({
 
     // 此刻：待选时间设为当前时间
     const setNow = () => {
-        const now = new Date();
-        setPending({ h: now.getHours(), m: now.getMinutes(), s: now.getSeconds() });
+        const now = dayjs();
+        setPending({ h: now.hour(), m: now.minute(), s: now.second() });
     };
 
     // 确定：值有变化时提交，随后关闭面板

@@ -1,8 +1,12 @@
 # 开发文档
 
+> **RN 分支：**先读 [native-workflow.md](./native-workflow.md)。其余页面保留上游 Web 指南，并提供原生路由提示。
+
 如何构建、测试并交付 animal-island-ui 的改动。视觉规范见 [../design-system/](../design-system/)，架构背后的取舍见 [../adr/](../adr/)。
 
 ## 目录
+
+- [native-workflow.md](./native-workflow.md) - RN 实际源码、运行时、测试与构建流程。
 
 - [repository-structure.md](./repository-structure.md) —— 项目简介、技术栈、npm 脚本、目录结构与路径别名。
 - [component-development.md](./component-development.md) —— 新增或修改组件的完整流程：文件结构、导出、demo 注册、文档同步。

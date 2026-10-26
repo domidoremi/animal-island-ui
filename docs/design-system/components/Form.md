@@ -1,5 +1,7 @@
 # Form — pixel spec
 
+> **RN fork:** feedback uses the shared upstream Close artwork; native form/scroll boundaries remain separate from DOM events. See [native adaptations](native-adaptations.md). The remaining tables describe the retained Web skin.
+
 Pixel-level styling for the Form container together with its companion exports `Form.Item` (FormItem) and `Form.useForm`.
 
 ## Form (container, FormItem + useForm)

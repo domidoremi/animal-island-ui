@@ -1,6 +1,6 @@
-import React from 'react';
-import classNames from 'classnames';
-import styles from './badge.module.less';
+import React, { useEffect, useRef, useState } from 'react';
+import { Animated, Easing, StyleSheet, Text, View, type ViewProps } from 'react-native';
+import { useTheme } from '../../theme/ThemeProvider';
 
 export type BadgeSize = 'small' | 'medium';
 
@@ -18,7 +18,7 @@ export type BadgeColor =
     | 'brown'
     | 'warm-peach-pink';
 
-export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
+export interface BadgeProps extends ViewProps {
     /** 展示的内容：数字 / 字符串，或任意 ReactNode（如 naive-icons 图标） */
     count?: React.ReactNode;
     /** 展示封顶的数字值，超过时显示为 `${overflowCount}+` */
@@ -31,14 +31,11 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
     size?: BadgeSize;
     /** 颜色，与 Card / Tag 调色板一致 */
     color?: BadgeColor;
+    /** Accessible full count, even when the visible number is capped. */
+    title?: string;
     /** 徽标包裹的元素；不传即为独立使用 */
     children?: React.ReactNode;
 }
-
-const SIZE_CLASS: Record<BadgeSize, string> = {
-    small: styles['size-small'],
-    medium: styles['size-medium'],
-};
 
 /** 纯数字或纯数字字符串才参与封顶换算，ReactNode 内容原样展示 */
 const toNumeric = (value: React.ReactNode): number | null => {
@@ -67,11 +64,13 @@ export const Badge: React.FC<BadgeProps> = ({
     dot = false,
     size = 'medium',
     color = 'app-red',
-    className,
     children,
     title,
+    style,
+    testID,
     ...rest
 }) => {
+    const { theme, reducedMotion } = useTheme();
     const numeric = toNumeric(count);
     // 封顶：仅数字参与换算，100 → "99+"
     const displayCount = numeric !== null && numeric > overflowCount ? `${overflowCount}+` : count;
@@ -88,25 +87,66 @@ export const Badge: React.FC<BadgeProps> = ({
     const indicatorTitle =
         title ?? (!showAsDot && (typeof count === 'number' || typeof count === 'string') ? String(count) : undefined);
 
-    const indicatorCls = classNames(
-        styles.indicator,
-        SIZE_CLASS[size],
-        // 正圆只对短内容有意义：dot 无内容，图标等 ReactNode 由调用方自行控制盒型
-        fitsCircle(displayCount) && styles.circle,
-        showAsDot && styles.dot,
-        styles[`color-${color}`]
-    );
-
+    const height = showAsDot ? 10 : size === 'small' ? 16 : 20;
+    const [indicatorWidth, setIndicatorWidth] = useState(height);
+    const scale = useRef(new Animated.Value(1)).current;
+    const face = theme.brand[color];
+    useEffect(() => {
+        if (isHidden || reducedMotion) {
+            scale.setValue(1);
+            return;
+        }
+        scale.setValue(0.6);
+        const animation = Animated.timing(scale, {
+            toValue: 1,
+            duration: 250,
+            easing: Easing.bezier(0.4, 0, 0.2, 1),
+            useNativeDriver: true,
+        });
+        animation.start();
+        return () => animation.stop();
+    }, [isHidden, reducedMotion, scale]);
     return (
-        <span className={classNames(styles.badge, isStandalone && styles.standalone, className)} {...rest}>
-            {children}
-            {!isHidden && (
-                <sup className={indicatorCls} title={indicatorTitle}>
-                    {showAsDot ? null : displayCount}
-                </sup>
-            )}
-        </span>
+        <View {...rest} testID={testID} style={[styles.badge, style]}>
+            {typeof children === 'string' || typeof children === 'number' ? <Text>{children}</Text> : children}
+            {!isHidden ? (
+                <Animated.View
+                    accessible
+                    accessibilityLabel={indicatorTitle ?? (showAsDot ? 'New activity' : undefined)}
+                    testID={testID ? `${testID}-indicator` : undefined}
+                    onLayout={(event) => setIndicatorWidth(event.nativeEvent.layout.width)}
+                    style={[
+                        styles.indicator,
+                        {
+                            minHeight: height,
+                            minWidth: height,
+                            width: showAsDot || fitsCircle(displayCount) ? height : undefined,
+                            paddingHorizontal: showAsDot || fitsCircle(displayCount) ? 0 : size === 'small' ? 4 : 6,
+                            backgroundColor: face.solidBg,
+                            borderColor: isStandalone ? 'transparent' : theme.colors.bg,
+                            position: isStandalone ? 'relative' : 'absolute',
+                            top: isStandalone ? undefined : -height / 2,
+                            right: isStandalone ? undefined : -indicatorWidth / 2,
+                            transform: [{ scale }],
+                        },
+                    ]}
+                >
+                    {showAsDot ? null : typeof displayCount === 'string' || typeof displayCount === 'number' ? (
+                        <Text style={{ color: face.onSolid, fontWeight: '700', fontSize: size === 'small' ? 9 : 10 }}>
+                            {displayCount}
+                        </Text>
+                    ) : (
+                        displayCount
+                    )}
+                </Animated.View>
+            ) : null}
+        </View>
     );
 };
 
 Badge.displayName = 'Badge';
+
+const styles = StyleSheet.create({
+    badge: { alignSelf: 'flex-start', position: 'relative' },
+    indicator: { borderRadius: 999, borderWidth: 2, alignItems: 'center', justifyContent: 'center', zIndex: 1 },
+});

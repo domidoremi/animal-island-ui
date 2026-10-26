@@ -1,5 +1,7 @@
 # Coding Standards
 
+> **RN branch:** the installed TypeScript configs and RN ESLint flat config outrank the Web defaults below. Use StyleSheet and instance-local dayjs; no DOM icon/runtime dependency. See [native-workflow.md](./native-workflow.md).
+
 Language, styling, and tooling rules that apply to every file in the repository. Component-level conventions (props
 shape, skeleton, naming, demo) live in [component-development.md](./component-development.md); visual rules live in
 [../design-system/design-rules.md](../design-system/design-rules.md).

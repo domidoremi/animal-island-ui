@@ -35,10 +35,11 @@ export type BackgroundPatternType =
     | 'dots-lime-green'
     | 'dots-yellow-green'
     | 'dots-brown'
-    | 'dots-warm-peach-pink';
+    | 'dots-warm-peach-pink'
+    | 'dots-gray';
 
 export type BackgroundPatternSpec =
-    /** 两层错位波点：`strong` 是大点（1.5px / 28px 网格），`weak` 是小点（1px / 14px 网格） */
+    /** 两层错位波点：`strong` 是大点（1.4px / 28px 网格），`weak` 是小点（1px / 14px 网格） */
     | { kind: 'dots'; base: string; strong: string; weak: string }
     /** 24px 网格线 */
     | { kind: 'grid'; base: string; line: string }
@@ -65,8 +66,8 @@ export const BACKGROUND_PATTERN_SPEC: Record<BackgroundPatternType, BackgroundPa
     'dots-pink': {
         kind: 'dots',
         base: '#fde4e8',
-        strong: 'rgba(248, 166, 178, 0.18)',
-        weak: 'rgba(255, 200, 210, 0.12)',
+        strong: 'rgba(248, 166, 178, 0.26)',
+        weak: 'rgba(255, 200, 210, 0.18)',
     },
     'dots-purple': {
         kind: 'dots',
@@ -83,8 +84,8 @@ export const BACKGROUND_PATTERN_SPEC: Record<BackgroundPatternType, BackgroundPa
     'dots-yellow': {
         kind: 'dots',
         base: '#fff8e0',
-        strong: 'rgba(247, 205, 103, 0.18)',
-        weak: 'rgba(255, 230, 160, 0.12)',
+        strong: 'rgba(247, 205, 103, 0.26)',
+        weak: 'rgba(255, 230, 160, 0.18)',
     },
     'dots-orange': {
         kind: 'dots',
@@ -95,8 +96,8 @@ export const BACKGROUND_PATTERN_SPEC: Record<BackgroundPatternType, BackgroundPa
     'dots-teal': {
         kind: 'dots',
         base: '#e8faf5',
-        strong: 'rgba(130, 213, 187, 0.18)',
-        weak: 'rgba(170, 235, 210, 0.12)',
+        strong: 'rgba(130, 213, 187, 0.26)',
+        weak: 'rgba(170, 235, 210, 0.18)',
     },
     'dots-green': {
         kind: 'dots',
@@ -113,14 +114,14 @@ export const BACKGROUND_PATTERN_SPEC: Record<BackgroundPatternType, BackgroundPa
     'dots-lime-green': {
         kind: 'dots',
         base: '#f5f8e0',
-        strong: 'rgba(209, 218, 73, 0.18)',
-        weak: 'rgba(230, 240, 130, 0.12)',
+        strong: 'rgba(209, 218, 73, 0.26)',
+        weak: 'rgba(230, 240, 130, 0.18)',
     },
     'dots-yellow-green': {
         kind: 'dots',
         base: '#fffde8',
-        strong: 'rgba(236, 223, 82, 0.18)',
-        weak: 'rgba(255, 245, 140, 0.12)',
+        strong: 'rgba(236, 223, 82, 0.26)',
+        weak: 'rgba(255, 245, 140, 0.18)',
     },
     'dots-brown': {
         kind: 'dots',
@@ -134,6 +135,12 @@ export const BACKGROUND_PATTERN_SPEC: Record<BackgroundPatternType, BackgroundPa
         strong: 'rgba(225, 140, 111, 0.18)',
         weak: 'rgba(255, 185, 160, 0.12)',
     },
+    'dots-gray': {
+        kind: 'dots',
+        base: '#ffffff',
+        strong: 'rgba(140, 140, 140, 0.18)',
+        weak: 'rgba(190, 190, 190, 0.12)',
+    },
 };
 
 /** `.bg-sweet-corner` / `.bg-coffee-break` 的 `background-color` */
@@ -146,7 +153,7 @@ const PATTERN_ID = 'animal-bg-pattern';
  * 波点的两套格子。
  *
  * CSS 原式（以 default 为例）：
- *   radial-gradient(circle, rgba(196,184,158,.15) 1.5px, transparent 1.5px) 0 0 / 28px 28px,
+ *   radial-gradient(circle, rgba(196,184,158,.15) 1.4px, transparent 1.4px) 0 0 / 28px 28px,
  *   radial-gradient(circle, rgba(196,184,158,.1)  1px,   transparent 1px)   7px 7px / 14px 14px,
  *   rgb(247,243,223)
  *
@@ -169,8 +176,8 @@ const DotsPattern: React.FC<{ id: string; spec: Extract<BackgroundPatternSpec, {
         {DOT_LATTICE.map((cx) =>
             DOT_LATTICE.map((cy) => <Circle key={`${cx}-${cy}`} cx={cx} cy={cy} r={1} fill={spec.weak} />)
         )}
-        {/* 第 1 层（强）：1.5px 大点，压在 28px 网格的中心上 */}
-        <Circle cx={14} cy={14} r={1.5} fill={spec.strong} />
+        {/* 第 1 层（强）：1.4px 大点，压在 28px 网格的中心上 */}
+        <Circle cx={14} cy={14} r={1.4} fill={spec.strong} />
     </Pattern>
 );
 

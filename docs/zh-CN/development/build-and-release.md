@@ -1,5 +1,7 @@
 # 构建与发布
 
+> **RN 分支：**`npm run build` 由 TypeScript 将 CommonJS/声明输出到 `dist/`，不是 Vite/CSS 打包。dayjs 外置。包为 private，manifest/许可差异未解决。以 [native-workflow.md](./native-workflow.md) 为准；下文 Web 发布步骤不是原生发布依据。
+
 `npm run build` 产出发布物：`vite build` 把 JavaScript、CSS 与静态资源输出到 `dist/`，随后 `tsc --project tsconfig.build.json --emitDeclarationOnly` 把类型声明输出到 `dist/types/`。下面这些选择背后的理由记录在 [../adr/](../adr/)，本页是契约本身。
 
 ## 构建契约

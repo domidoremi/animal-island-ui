@@ -5,6 +5,7 @@ import {
     OPTION_HEIGHT,
     computeDropdownPlacement,
     computeDropdownPosition,
+    constrainDropdownPosition,
     dropdownHeight,
 } from './geometry';
 
@@ -33,6 +34,28 @@ describe('几何常量', () => {
         expect(dropdownHeight(0)).toBe(24);
         expect(dropdownHeight(3)).toBe(156);
         expect(dropdownHeight(1)).toBe(68);
+    });
+});
+
+describe('native viewport constraints', () => {
+    it('keeps upstream placement when the measured panel fits', () => {
+        const position = computeDropdownPosition(MIDDLE, WIDE, 3);
+        expect(constrainDropdownPosition(position, WIDE, { width: 180, height: 156 })).toEqual(position);
+    });
+    it('keeps a large menu inside a narrow viewport even when upstream flips it offscreen', () => {
+        const win = { width: 320, height: 640 };
+        const position = computeDropdownPosition({ x: 16, y: 550, width: 288, height: 44 }, win, 20);
+        const bounded = constrainDropdownPosition(position, win, { width: 240, height: 1000 });
+        expect(bounded).toEqual({ right: 68, bottom: 12 });
+        expect(win.width - bounded.right! - 240).toBeGreaterThanOrEqual(12);
+    });
+    it('reconstrains against the keyboard-reduced layout height', () => {
+        const bounded = constrainDropdownPosition(
+            { left: 600, top: 500 },
+            { width: 360, height: 280 },
+            { width: 200, height: 600 }
+        );
+        expect(bounded).toEqual({ left: 148, top: 12 });
     });
 });
 

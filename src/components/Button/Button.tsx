@@ -57,6 +57,8 @@ export interface ButtonProps {
     textStyle?: StyleProp<TextStyle>;
     /** Extend a compact visual control's accessible touch target. */
     hitSlop?: PressableProps['hitSlop'];
+    /** Wrap the full label and grow from the size's minimum height. Defaults to false. */
+    multiline?: boolean;
 }
 
 /** 尺寸规格 —— 对应 .btn-small / .btn-middle / .btn-large */
@@ -236,6 +238,7 @@ export const Button: React.FC<ButtonProps> = ({
     accessibilityState,
     textStyle,
     hitSlop,
+    multiline = false,
 }) => {
     const { mode, theme, reducedMotion } = useTheme();
     // loading 时不可交互（对应 Web 的 pointer-events: none）
@@ -259,7 +262,8 @@ export const Button: React.FC<ButtonProps> = ({
         animation.start();
         return () => animation.stop();
     }, [loading, reducedMotion, spin]);
-    const rotate = spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '-360deg'] });
+    // 顺时针（上游 `animal-btn-spin` 的 to 帧从 `-360deg` 改成 `360deg`）
+    const rotate = spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
 
     const sizeSpec = SIZE_SPEC[size];
 
@@ -331,8 +335,10 @@ export const Button: React.FC<ButtonProps> = ({
     const renderPressableStyle = ({ pressed }: PressableStateCallbackType): StyleProp<ViewStyle> => [
         styles.base,
         {
-            height: sizeSpec.height,
+            height: multiline ? undefined : sizeSpec.height,
+            minHeight: multiline ? sizeSpec.height : undefined,
             paddingHorizontal: sizeSpec.paddingHorizontal,
+            paddingVertical: multiline ? spacing.sm : undefined,
             borderRadius: sizeSpec.borderRadius,
         },
         block ? styles.block : styles.inline,
@@ -389,8 +395,13 @@ export const Button: React.FC<ButtonProps> = ({
                     )}
                     {children != null && children !== false && (
                         <Text
-                            numberOfLines={1}
-                            style={[labelStyle, pressed && interactive ? pressedTextStyle : null, textStyle]}
+                            numberOfLines={multiline ? undefined : 1}
+                            style={[
+                                labelStyle,
+                                multiline ? styles.multilineLabel : null,
+                                pressed && interactive ? pressedTextStyle : null,
+                                textStyle,
+                            ]}
                         >
                             {children}
                         </Text>
@@ -421,6 +432,11 @@ const styles = StyleSheet.create({
     block: {
         alignSelf: 'stretch',
         width: '100%',
+    },
+    multilineLabel: {
+        minWidth: 0,
+        flexShrink: 1,
+        textAlign: 'center',
     },
     loading: {
         borderWidth: 4,

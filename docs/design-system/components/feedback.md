@@ -1,6 +1,9 @@
 # Feedback — pixel spec
 
 > **RN fork:** Progress uses dark track/text colors. fillColor can replace scene fill; indeterminate suppresses numeric progress and shows a static partial fill without claiming a measured percentage. [RN contract](../../../RN-PORT.md). The remaining tables describe the upstream Web/light skin.
+>
+> Progress follows the revised outline, single dot grid, gradient and completion brightening; BackTop uses upstream Rocket artwork and offsets. Indeterminate never announces fabricated percentage. [Native differences](native-adaptations.md).
+
 
 Exact values for the components that report progress or pending state: Progress, Skeleton and BackTop.
 

@@ -1,6 +1,9 @@
 # 表单控件 —— 精确样式规范
 
 > **RN fork:** Input 与 Select 使用暗色表面、文字和边框；Switch 使用暗色轨道与滑块。禁用选项不可选；紧凑控件以 hitSlop 扩大触控范围，不改变外观尺寸。 [RN contract](../../../RN-PORT.zh-CN.md). 其余表格描述上游 Web/亮色皮肤。
+>
+> Input 使用修订奶油表面、可收缩的文本区域及随主题变化的清除前景色；Select 搜索/清空/Modal 视口边界为原生适配，禁用态与值所有权保持明确。 [原生差异](native-adaptations.md).
+
 
 可交互录入类控件 Input、Switch、Checkbox、Radio、Select 的像素级样式规范。
 

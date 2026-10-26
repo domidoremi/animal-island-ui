@@ -1,8 +1,9 @@
 import React from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Animated, Dimensions, Pressable, Text, View } from 'react-native';
 import { act, fireEvent, render } from '@testing-library/react-native';
 import type { TestInstance } from 'test-renderer';
 import { Drawer } from './Drawer';
+import { ThemeProvider } from '../../theme/ThemeProvider';
 
 /**
  * RN 版测试，对应 Web 版 `Drawer.test.tsx` 的 20 个用例（含 6 个 a11y 用例）。
@@ -30,8 +31,7 @@ import { Drawer } from './Drawer';
  *   RN 必须自己维护 `mounted`，所以这条值得单独钉住）。
  *
  * **测不到的**：滑动位移的实际观感（测试里 `useNativeDriver` 是 no-op）、
- *   `max-width: calc(100vw - 32px)` 被降级成 `maxWidth: '100%'`
- *   （RN 不支持 `calc()`，那 32px 内缩丢了）、`.panel { color }` 的继承
+ *   keyboard behavior and physical scrolling; `.panel { color }` 的继承
  *   （RN 的 `View` 不向下继承 `color`）。
  */
 
@@ -67,6 +67,41 @@ const modalsOf = (container: TestInstance) => container.queryAll((n) => typeof n
 // 并伴随一堆 "overlapping act() calls"）。只在真正要推进退场延时的那个用例里临时开。
 
 describe('Drawer', () => {
+    it('uses host reduced motion, dark colors and a scrollable body without timing', async () => {
+        const timing = jest.spyOn(Animated, 'timing');
+        try {
+            const view = await render(
+                <ThemeProvider mode="dark" reducedMotion>
+                    <Drawer open title="Details" testID="t">
+                        <Text>Content</Text>
+                    </Drawer>
+                </ThemeProvider>
+            );
+            expect(timing).not.toHaveBeenCalled();
+            expect(view.getByTestId('t-panel', HIDDEN)).not.toHaveStyle({ backgroundColor: 'rgb(247, 243, 223)' });
+            expect(view.getByTestId('t-body').props.keyboardShouldPersistTaps).toBe('handled');
+            await view.rerender(
+                <ThemeProvider mode="dark" reducedMotion>
+                    <Drawer open={false} testID="t">
+                        <Text>Content</Text>
+                    </Drawer>
+                </ThemeProvider>
+            );
+            expect(view.queryByTestId('t-panel', HIDDEN)).toBeNull();
+            expect(timing).not.toHaveBeenCalled();
+        } finally {
+            timing.mockRestore();
+        }
+    });
+    it('clamps horizontal panels to the current viewport gutter', async () => {
+        const view = await render(
+            <Drawer open width={10000} testID="t">
+                Long content
+            </Drawer>
+        );
+        expect(view.getByTestId('t-panel', HIDDEN)).toHaveStyle({ width: Dimensions.get('window').width - 32 });
+        expect(view.getByText('Long content')).toBeTruthy();
+    });
     it('open=false 时面板不在树里（RN 的 Modal 只在可见时挂载）', async () => {
         const { queryByTestId, queryByRole } = await render(
             <Drawer open={false} testID="t">
@@ -78,7 +113,7 @@ describe('Drawer', () => {
     });
 
     it('open=true 渲染 role="dialog" + aria-modal + title + body', async () => {
-        const { getByRole, getByTestId, getByText } = await render(
+        const { getByTestId, getByText } = await render(
             <Drawer open title="标题" testID="t">
                 <Text testID="body">body content</Text>
             </Drawer>
@@ -86,9 +121,21 @@ describe('Drawer', () => {
         const panel = getByTestId('t-panel', HIDDEN);
         expect(panel.props.role).toBe('dialog');
         expect(panel.props['aria-modal']).toBe(true);
-        expect(getByRole('dialog')).toBeTruthy();
+        expect(panel.props.accessible).toBe(false);
         expect(getByText('标题')).toBeTruthy();
         expect(getByTestId('body')).toBeTruthy();
+    });
+    it('does not group interactive descendants into a single accessibility element', async () => {
+        const view = await render(
+            <Drawer open title="Actions" testID="t">
+                <Pressable accessibilityRole="button" accessibilityLabel="Save">
+                    <Text>Save</Text>
+                </Pressable>
+            </Drawer>
+        );
+        expect(view.getByRole('button', { name: 'Save' })).toBeTruthy();
+        expect(view.getByRole('button', { name: '关闭' })).toBeTruthy();
+        expect(view.getByTestId('t-panel', HIDDEN).props.accessible).toBe(false);
     });
 
     it('点击遮罩触发 onClose（默认 maskClosable）', async () => {
@@ -353,7 +400,7 @@ describe('Drawer', () => {
         // ⚠️ `rerender` 不能和后面的等待放在同一个 `act(async …)` 里：异步 act 里的
         // effect 要等 act 结束才 flush，那个 360ms 的卸载定时器就会在等待**之后**
         // 才被创建，于是永远等不到卸载。
-        rerender(
+        await rerender(
             <Drawer open={false} testID="t">
                 <Text>content</Text>
             </Drawer>

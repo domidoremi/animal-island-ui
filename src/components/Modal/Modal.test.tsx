@@ -110,6 +110,18 @@ describe('Modal', () => {
         expect(styleOf(getByTestId('t-clipped', HIDDEN)).borderRadius).toBe(0);
     });
 
+    it.each([332, 460])('game 背景使用百分比视口匹配宽度为 %s 的内容面板', async (width) => {
+        const screen = await render(
+            <Modal open width={width} typewriter={false} testID="viewport">
+                <Text>Short body</Text>
+            </Modal>
+        );
+        const shape = screen.getByTestId('viewport-game-shape', HIDDEN);
+        expect(shape.props.bbWidth).toBe('100%');
+        expect(shape.props.bbHeight).toBe('100%');
+        expect(styleOf(screen.getByTestId('viewport-panel', HIDDEN)).width).toBe(width);
+    });
+
     it('variant="default"：不渲染 game 有机底图，实底为圆角 22', async () => {
         const { queryByTestId, getByTestId } = await render(
             <Modal open variant="default" typewriter={false} testID="t">

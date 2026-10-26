@@ -82,7 +82,7 @@ export interface DatePickerProps {
     size?: DatePickerSize;
     /** 校验状态 */
     status?: DatePickerStatus;
-    /** 展示格式，支持 YYYY / MM / DD / M / D 占位符 */
+    /** 展示格式，支持 dayjs 核心 token 与方括号转义文本 */
     format?: string;
     /** 禁用日期判断函数，返回 true 的日期不可选 */
     disabledDate?: (date: Date) => boolean;

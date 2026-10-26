@@ -2,6 +2,11 @@
 
 > **RN fork:** [Native host API](references/components/native-host.md) 适用于 `animal-island-ui-rn`；本 skill 其余内容保留上游 Web 契约。
 
+RN fork 应读原生声明与有界原生参考，不使用 DOM props/示例。全部 40 个 API
+已有适配，其中包括明确记录的空操作。原生 manifest 为 private/CC-BY-NC-4.0，
+而保留的 LICENSE 为 MIT，不能据上游说明推断分发批准。Upload 要求宿主 picker
+和真实 action/customRequest；无传输是错误，绝不模拟成功。
+
 > 本文件是 [SKILL.md](SKILL.md) 的中文翻译，仅用于人工阅读与 review；Agent 只读取英文的 SKILL.md。frontmatter 以英文版为准。
 
 ## 名称与触发条件（对应 frontmatter）

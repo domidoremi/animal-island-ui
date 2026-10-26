@@ -1,8 +1,7 @@
 /**
  * animal-island-ui —— React Native 版入口。
  *
- * 注意：本文件在 `rn` 分支上是**增量**的。上游 Web 版有 34 个组件，
- * RN 版逐个移植，每移植一个就在这里加一行导出。当前 27 / 34。
+ * The rn branch exports all 40 upstream components through native renderers.
  * 上游 Web 版的完整导出清单见 `main` 分支的 `src/index.ts`。
  *
  * 与 Web 版的两点结构性差异：
@@ -162,7 +161,7 @@ export { Tag } from './components/Tag';
 export type { TagProps, TagSize, TagVariant, TagColor } from './components/Tag';
 
 export { Time } from './components/Time';
-export type { TimeProps } from './components/Time';
+export type { TimeProps, TimeLocale } from './components/Time';
 
 export { TimePicker } from './components/TimePicker';
 export type { TimePickerProps, TimePickerSize, TimePickerStatus, TimePart } from './components/TimePicker';
@@ -175,3 +174,37 @@ export type { TypewriterProps } from './components/Typewriter';
 
 export { Tooltip } from './components/Tooltip';
 export type { TooltipProps, TooltipPlacement, TooltipTrigger, TooltipVariant } from './components/Tooltip';
+
+export { Avatar, AvatarGroup } from './components/Avatar';
+export type { AvatarProps, AvatarGroupProps, AvatarShape, AvatarSize } from './components/Avatar';
+export { Badge } from './components/Badge';
+export type { BadgeProps, BadgeSize, BadgeColor } from './components/Badge';
+export { Calendar } from './components/Calendar';
+export type { CalendarProps, CalendarEvent, CalendarColor } from './components/Calendar';
+export { CountUp } from './components/CountUp';
+export type {
+    CountUpProps,
+    CountUpSize,
+    CountUpVariant,
+    CountUpEasing,
+    CountUpEasingName,
+    CountUpEasingFunction,
+    CountUpRenderState,
+    CountUpCelebrateOptions,
+    CountUpCompleteResult,
+} from './components/CountUp';
+export { Rate } from './components/Rate';
+export type { RateProps, RateSize } from './components/Rate';
+export { Upload } from './components/Upload';
+export type {
+    UploadProps,
+    UploadFile,
+    UploadFileStatus,
+    UploadListType,
+    UploadNativeFile,
+    UploadCustomRequestOptions,
+    UploadChangeParam,
+    UploadShowUploadList,
+    UploadOnChange,
+    UploadPickerOptions,
+} from './components/Upload';

@@ -1,5 +1,9 @@
 # Upload
 
+> **RN fork:** use [native-upload.md](native-upload.md), not the DOM API below.
+> No picker disables selection; no action/customRequest is error, never simulated success.
+> The File/ObjectURL and timer strategy below describe the retained upstream Web package.
+
 File upload with a cream-capsule trigger (text mode) or a dashed drop zone (`drag`), plus a file list in two shapes: `text` rows and `picture-card` image tiles. Give it an `action` URL to upload via the built-in **XMLHttpRequest** (progress + cancel), or pass `customRequest` for full control. With neither, the component **simulates upload progress** with a timer (~1.5s to done), so UIs can be built before the real endpoint exists.
 
 ```ts

@@ -1,9 +1,13 @@
 # Development
 
+> **RN branch:** start with [native-workflow.md](./native-workflow.md). The other pages retain upstream Web guidance with native routing notices.
+
 How to build, test, and ship changes to animal-island-ui. Visual specifications live in
 [../design-system/](../design-system/); the reasoning behind the architecture lives in [../adr/](../adr/).
 
 ## Contents
+
+- [native-workflow.md](./native-workflow.md) - actual RN source/runtime/test/build workflow.
 
 - [repository-structure.md](./repository-structure.md) — what the project is, its tech stack, npm scripts, directory
   layout, and path aliases.

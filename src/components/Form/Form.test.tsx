@@ -674,17 +674,17 @@ describe('Form', () => {
             expect(getByTestId('owner-input')).toBeTruthy();
         });
 
-        it('hasFeedback 时错误状态下显示 ✕ 图标', async () => {
+        it('hasFeedback renders the upstream CloseIcon for an error', async () => {
             const { Host, form } = harness((f) => (
                 <Form form={f}>
-                    <Form.Item name="a" hasFeedback rules={[{ required: true, message: '必填' }]}>
+                    <Form.Item name="a" hasFeedback testID="a" rules={[{ required: true, message: '必填' }]}>
                         <Input />
                     </Form.Item>
                 </Form>
             ));
-            const { getByText } = await render(<Host />);
+            const { getByTestId } = await render(<Host />);
             await submit(form());
-            expect(getByText('✕')).toBeTruthy();
+            expect(getByTestId('a-feedback-icon')).toHaveStyle({ width: 12, height: 12 });
         });
 
         it('validateStatus=success 手动指定（覆盖自动推断）', async () => {
@@ -812,9 +812,11 @@ describe('Form', () => {
                 </Form>
             ));
             await render(<Host />);
-            await expect(form().validateFields()).rejects.toMatchObject({
-                message: 'Validation failed',
-                errorFields: [{ name: 'a', errors: ['必填'] }],
+            await act(async () => {
+                await expect(form().validateFields()).rejects.toMatchObject({
+                    message: 'Validation failed',
+                    errorFields: [{ name: 'a', errors: ['必填'] }],
+                });
             });
         });
 

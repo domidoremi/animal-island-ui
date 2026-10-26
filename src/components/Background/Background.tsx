@@ -18,9 +18,9 @@ import {
  * - dots-dark-green 深绿波点
  * - sprinkles 彩色针糖（圆柱形糖针随机散落）
  * - sweet-corner / coffee-break 场景背景图（Progress 场景图同款，cover 铺满）
- * - 其余 12 色 dots-* 底色对应 Card pattern-* 系列的粉彩波点壁纸
+ * - 其余 13 色 dots-* 底色对应 Card pattern-* 系列的粉彩波点壁纸，其中 dots-gray 为白底浅灰波点
  *
- * 与上游 `BackgroundType` 的成员**完全一致**（只是把 16 个图案类收在
+ * 与上游 `BackgroundType` 的成员**完全一致**（只是把 17 个图案类收在
  * `BackgroundPatternType` 里再并上两张场景图；union 的书写顺序不影响语义）。
  */
 export type BackgroundType = BackgroundPatternType | 'sweet-corner' | 'coffee-break';

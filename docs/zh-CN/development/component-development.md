@@ -1,5 +1,7 @@
 # 组件开发
 
+> **RN 分支：**使用原生 props、StyleSheet、源码导出和显式 Jest/TypeScript include 白名单。修改组件前先读 [native-workflow.md](./native-workflow.md)。本页其余部分描述保留的上游 Web 流程。
+
 这是新增组件或修改既有组件的端到端流程，只停留在结构层面：单个组件的 props 在 `skills/animal-island-ui-style/references/components/*.md`，单个组件的像素级 spec 在 [../design-system/components/](../design-system/components/)，两者都不要在这里重复一遍。
 
 ## 开发流程

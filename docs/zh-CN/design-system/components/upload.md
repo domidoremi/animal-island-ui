@@ -1,5 +1,10 @@
 # Upload 上传 —— 精确样式规范
 
+> **RN fork：**以 [原生适配](native-adaptations.md) 与原生 Upload API 为准。
+> 宿主提供 picker；无 action/customRequest 是错误，绝不模拟 done。
+> 原生 URI 仍由宿主持有，drag 仅为视觉皮肤。
+> 下文 DOM/File/ObjectURL 与模拟策略是保留的上游参照。
+
 Source: `src/components/Upload/Upload.tsx` + `upload.module.less`.
 
 文件上传组件：text 形态为奶油胶囊触发钮（`drag` 时为虚线拖拽区），列表支持 `text` 文件行与 `picture-card` 图片卡片两种形态。传入 `action` 可用内置 XMLHttpRequest 真实上传（带进度、删除时中止）；或传 `customRequest` 完全自定义。两者皆不传时组件用定时器模拟上传进度（约 1.5s 走完），便于先搭 UI 再接真实接口。
