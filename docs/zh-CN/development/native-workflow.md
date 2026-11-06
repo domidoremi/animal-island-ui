@@ -14,6 +14,9 @@ DOM/Vite/Vitest 指南，不改变原生运行时、命令集或执行授权。
   dayjs，而不是打包隔离的日期运行时。
 - 源码导出、两份 TypeScript include 和 Jest testMatch 保持一致；测试/demo
   不进入构建 JS/声明。
+- Select 选项的游走式 `tabIndex` 仅用于 Web。已启用的原生选项即使未选中也保持
+  可聚焦，禁用项继续由原有按下保护阻断。给已启用选项传入 `tabIndex=-1`
+  会让 RN 移除原生焦点和点击动作。
 
 ## 命令
 

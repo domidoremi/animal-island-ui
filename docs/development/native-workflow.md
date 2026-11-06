@@ -16,6 +16,9 @@ native runtime, command set or execution authorization.
   TypeScript build leaves dayjs external rather than bundling an isolated date runtime.
 - Keep source exports, both TypeScript include lists and Jest testMatch aligned. Tests
   and demos are excluded from built JS/declarations.
+- Select's roving option `tabIndex` applies only on Web. Enabled native options remain
+  focusable even when unselected; disabled options keep their original press guard.
+  RN can remove native focus/click actions when an enabled option receives `tabIndex=-1`.
 
 ## Commands
 

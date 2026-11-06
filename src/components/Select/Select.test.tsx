@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { act, fireEvent, render } from '@testing-library/react-native';
+import { Platform } from 'react-native';
 import type { TestInstance } from 'test-renderer';
 import { Select, type SelectOption } from './Select';
 import { dropdownHeight } from './geometry';
@@ -46,6 +47,55 @@ const options: SelectOption[] = [
     { key: 'b', label: 'Banana' },
     { key: 'c', label: 'Cherry' },
 ];
+
+it.each(['android', 'ios'] as const)('keeps unselected native options focusable on %s', async (platform) => {
+    const original = Platform.OS;
+    Object.defineProperty(Platform, 'OS', { configurable: true, value: platform });
+    try {
+        const change = jest.fn();
+        const screen = await render(
+            <ThemeProvider reducedMotion>
+                <Select
+                    testID="native-focus"
+                    value="a"
+                    options={[...options, { key: 'off', label: 'Disabled', disabled: true }]}
+                    onChange={change}
+                />
+            </ThemeProvider>
+        );
+        await fireEvent.press(screen.getByTestId('native-focus-trigger'));
+        for (const key of ['a', 'b', 'c']) {
+            const option = screen.getByTestId(`native-focus-option-${key}`);
+            expect(option.props.focusable).toBe(true);
+            expect(option.props.tabIndex).toBeUndefined();
+        }
+        expect(screen.getByTestId('native-focus-option-off').props.focusable).toBe(false);
+        await fireEvent.press(screen.getByTestId('native-focus-option-off'));
+        expect(change).not.toHaveBeenCalled();
+        await fireEvent.press(screen.getByTestId('native-focus-option-b'));
+        expect(change).toHaveBeenCalledWith('b');
+        expect(screen.queryByTestId('native-focus-option-b')).toBeNull();
+    } finally {
+        Object.defineProperty(Platform, 'OS', { configurable: true, value: original });
+    }
+});
+
+it('keeps Web option keyboard order on the active option', async () => {
+    const original = Platform.OS;
+    Object.defineProperty(Platform, 'OS', { configurable: true, value: 'web' });
+    try {
+        const screen = await render(
+            <ThemeProvider reducedMotion>
+                <Select testID="web-focus" value="a" options={options} onChange={() => {}} />
+            </ThemeProvider>
+        );
+        await fireEvent.press(screen.getByTestId('web-focus-trigger'));
+        expect(screen.getByTestId('web-focus-option-a').props.tabIndex).toBe(0);
+        expect(screen.getByTestId('web-focus-option-b').props.tabIndex).toBe(-1);
+    } finally {
+        Object.defineProperty(Platform, 'OS', { configurable: true, value: original });
+    }
+});
 
 it('keeps disabled options inert and applies the host dark palette to the menu', async () => {
     const onChange = jest.fn();

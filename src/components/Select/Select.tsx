@@ -544,7 +544,15 @@ export const Select: React.FC<SelectProps> = ({
                                             <Pressable
                                                 key={option.key}
                                                 nativeID={optionPrefix + option.key}
-                                                tabIndex={option.key === activeKey && !option.disabled ? 0 : -1}
+                                                // Native tabIndex=-1 removes focus/click actions from an enabled option.
+                                                tabIndex={
+                                                    Platform.OS === 'web'
+                                                        ? option.key === activeKey && !option.disabled
+                                                            ? 0
+                                                            : -1
+                                                        : undefined
+                                                }
+                                                focusable={Platform.OS === 'web' ? undefined : !option.disabled}
                                                 role="option"
                                                 // `aria-selected`：RN 0.87 支持，RNTL 的 `getByRole('option', { selected })`
                                                 // 直接读它；真机上 RN 的 View.js 会改写成 accessibilityState.selected。
