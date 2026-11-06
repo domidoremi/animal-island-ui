@@ -95,6 +95,7 @@ export interface ButtonProps {
 ```
 
 Use `onPress`, not `onClick`. Loading disables presses and announces busy state.
+Host `accessibilityState.busy` survives custom progress icons but does not lock presses; supply `disabled` for that.
 `multiline` retains the size's minimum height and adds vertical padding instead of a
 fixed height. The host must bound button width and allow its action row to wrap.
 

@@ -26,6 +26,9 @@ Jest 优先使用当前运行时内置的 preset，不存在时使用 0.87 拆�
 **全部 40 个组件 API 已有原生适配**，包括 Avatar、Badge、Calendar、CountUp、
 Rate 与 Upload。其中仍有下文明确记录的空操作；不承诺 DOM 行为或设备上的像素级动画一致。
 
+Button 在未使用 `loading` 的自定义进度图标中也保留宿主的 `accessibilityState.busy`。
+只有 `disabled` 或 `loading` 控制点击锁。
+
 2026 年 10 月 23 日本地验证：串行全量 Jest **1300/1300 项、55/55 套件通过**，
 源码类型检查通过。数量来自该次运行的 Jest JSON，不来自覆盖率徽章。
 后续运行必须重新绑定源码与构建产物，不代表已完成浏览器渲染、安装设备或真实 Provider 验收。

@@ -29,6 +29,9 @@ workspace links, so rerun the consuming app's install before building it.
 CountUp, Rate and Upload. This includes the documented no-ops below; it does not promise
 DOM behavior or pixel-identical animation on a device.
 
+Button preserves a host's `accessibilityState.busy` for custom progress icons even
+without `loading`. Only `disabled` or `loading` controls its press lock.
+
 Local verification on October 23, 2026: **1300/1300 tests, 55/55 suites** in the full
 serial Jest run, plus a passing source typecheck. Counts come from that run’s Jest JSON,
 not coverage badges. Later runs must bind their own sources and built artifacts.

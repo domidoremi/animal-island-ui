@@ -28,6 +28,34 @@ const child = (node: unknown) => node as TestInstance;
  */
 const HIDDEN = { includeHiddenElements: true } as const;
 
+it('保留宿主自定义进度的 busy 状态，同时保留 loading 与 disabled 的执行边界', async () => {
+    const onPress = jest.fn();
+    const screen = await render(
+        <Button testID="host-progress" disabled accessibilityState={{ busy: true, expanded: true }} onPress={onPress}>
+            Save
+        </Button>
+    );
+    expect(screen.getByTestId('host-progress').props.accessibilityState).toMatchObject({
+        busy: true,
+        disabled: true,
+        expanded: true,
+    });
+    await fireEvent.press(screen.getByTestId('host-progress'));
+    expect(onPress).not.toHaveBeenCalled();
+    await screen.rerender(
+        <Button testID="host-progress" accessibilityState={{ busy: false }}>
+            Save
+        </Button>
+    );
+    expect(screen.getByTestId('host-progress').props.accessibilityState.busy).toBe(false);
+    await screen.rerender(
+        <Button testID="host-progress" loading accessibilityState={{ busy: false }}>
+            Save
+        </Button>
+    );
+    expect(screen.getByTestId('host-progress').props.accessibilityState.busy).toBe(true);
+});
+
 /**
  * 模拟「手指按住」。
  *

@@ -365,7 +365,11 @@ export const Button: React.FC<ButtonProps> = ({
         // 其内部的 Text 仍会被读出来。装饰性图标要的是前者（与 Web 版一致）。
         <Pressable
             accessibilityRole={accessibilityRole}
-            accessibilityState={{ ...accessibilityState, disabled: disabled || loading, busy: loading }}
+            accessibilityState={{
+                ...accessibilityState,
+                disabled: disabled || loading,
+                busy: loading || accessibilityState?.busy === true,
+            }}
             accessibilityLabel={accessibilityLabel}
             hitSlop={hitSlop}
             disabled={!interactive}
