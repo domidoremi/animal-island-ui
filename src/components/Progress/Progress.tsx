@@ -46,6 +46,7 @@ export const Progress: React.FC<ProgressProps> = ({
     variant,
     showInfo = true,
     infoFormat,
+    infoTextStyle,
     duration = 0.6,
     style,
     testID,
@@ -206,7 +207,7 @@ export const Progress: React.FC<ProgressProps> = ({
                         {isTextual(renderedInfo) ? (
                             <Text
                                 numberOfLines={1}
-                                style={[styles.infoText, mode === 'dark' && { color: theme.colors.textSecondary }]}
+                                style={[styles.infoText, mode === 'dark' && { color: theme.colors.textSecondary }, infoTextStyle]}
                             >
                                 {renderedInfo}
                             </Text>

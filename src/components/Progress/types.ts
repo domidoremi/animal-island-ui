@@ -1,5 +1,5 @@
 import React from 'react';
-import type { StyleProp, ViewStyle } from 'react-native';
+import type { StyleProp, TextStyle, ViewStyle } from 'react-native';
 
 /**
  * 进度条组件支持的尺寸
@@ -29,6 +29,8 @@ export interface ProgressProps {
     variant?: ProgressVariant;
     /** 自定义文字格式化（默认 `${percent}%`） */
     infoFormat?: (percent: number) => React.ReactNode;
+    /** Optional host typography for textual info; preserves the formatter and accessibility value. */
+    infoTextStyle?: StyleProp<TextStyle>;
     /** 进度条 fill 宽度动画时长（秒），0 = 不动画 */
     duration?: number;
     /** 自定义样式（作用于最外层容器；RN 里取代 Web 的 `className`） */

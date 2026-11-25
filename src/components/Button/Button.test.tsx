@@ -1,5 +1,5 @@
 import React from 'react';
-import { Animated, View, processColor } from 'react-native';
+import { Animated, Text, View, processColor } from 'react-native';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import type { TestInstance } from 'test-renderer';
 import { Button } from './Button';
@@ -124,6 +124,60 @@ const contrast = (foreground: string, background: string) => {
 };
 
 describe('Button', () => {
+    it.each(['light', 'dark'] as const)('%s 图标回调跟随实际文案前景、按下态与显式覆盖', async (mode) => {
+        const onPress = jest.fn();
+        const variants = [
+            { type: 'primary' },
+            { type: 'primary', danger: true },
+            { type: 'primary', ghost: true },
+            { type: 'default' },
+            { type: 'dashed' },
+            { type: 'link' },
+            { type: 'text', danger: true },
+        ] as const;
+        const tree = (variant: (typeof variants)[number], disabled = false, color?: string) => (
+            <ThemeProvider mode={mode} reducedMotion>
+                <Button
+                    {...variant}
+                    testID="foreground"
+                    disabled={disabled}
+                    onPress={onPress}
+                    textStyle={color ? { color } : undefined}
+                    icon={(foreground) => (
+                        <Text testID="foreground-icon" style={{ color: foreground }}>
+                            Icon
+                        </Text>
+                    )}
+                >
+                    Save
+                </Button>
+            </ThemeProvider>
+        );
+        const screen = await render(tree(variants[0]));
+        const expectMatching = () =>
+            expect(screen.getByTestId('foreground-icon', HIDDEN)).toHaveStyle({
+                color: styleOf(screen.getByText('Save')).color as string,
+            });
+        for (const variant of variants) {
+            await screen.rerender(tree(variant));
+            expectMatching();
+            await pressIn(screen.getByTestId('foreground'));
+            expectMatching();
+            await pressOut(screen.getByTestId('foreground'));
+            await waitFor(expectMatching);
+            await screen.rerender(tree(variant, true));
+            expectMatching();
+            const activations = onPress.mock.calls.length;
+            await fireEvent.press(screen.getByTestId('foreground'));
+            expect(onPress).toHaveBeenCalledTimes(activations);
+        }
+        await screen.rerender(tree(variants[0], false, '#725d42'));
+        expect(screen.getByTestId('foreground-icon', HIDDEN)).toHaveStyle({ color: '#725d42' });
+        await pressIn(screen.getByTestId('foreground'));
+        expectMatching();
+        await screen.unmount();
+    });
+
     it.each(['small', 'middle', 'large'] as const)(
         'keeps the ordinary %s button single-line and opts into an unconstrained multiline label',
         async (size) => {

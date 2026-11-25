@@ -36,8 +36,8 @@ export interface ButtonProps {
     loading?: boolean;
     /** 禁用状态 */
     disabled?: boolean;
-    /** 图标（置于文案左侧） */
-    icon?: React.ReactNode;
+    /** 图标（置于文案左侧）；回调接收实际文案前景色，包括按下态。 */
+    icon?: React.ReactNode | ((foreground: string) => React.ReactNode);
     /** 按钮文案 */
     children?: React.ReactNode;
     /** 点击回调（对应 Web 的 `onClick`） */
@@ -331,6 +331,7 @@ export const Button: React.FC<ButtonProps> = ({
     const faceTextStyle = toTextStyle(face);
     const pressedStyle = toViewStyle(pressedFace);
     const pressedTextStyle = toTextStyle(pressedFace);
+    const customForeground = StyleSheet.flatten(textStyle)?.color;
 
     const renderPressableStyle = ({ pressed }: PressableStateCallbackType): StyleProp<ViewStyle> => [
         styles.base,
@@ -393,7 +394,15 @@ export const Button: React.FC<ButtonProps> = ({
                     ) : (
                         icon != null && (
                             <View aria-hidden style={styles.icon}>
-                                {icon}
+                                {typeof icon === 'function'
+                                    ? icon(
+                                          typeof customForeground === 'string'
+                                              ? customForeground
+                                              : ((pressed && interactive
+                                                    ? (pressedFace.color ?? face.color)
+                                                    : face.color) ?? theme.colors.text)
+                                      )
+                                    : icon}
                             </View>
                         )
                     )}

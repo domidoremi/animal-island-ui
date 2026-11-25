@@ -81,7 +81,11 @@ export const Tooltip: React.FC<TooltipProps> = ({
     testID,
     open,
 }) => {
-    const { reducedMotion } = useTheme();
+    const { mode, theme, reducedMotion } = useTheme();
+    const darkSurface = mode === 'dark'
+        ? { backgroundColor: theme.colors.bgSecondary, borderColor: theme.colors.border }
+        : undefined;
+    const darkText = mode === 'dark' ? { color: theme.colors.textSecondary } : undefined;
     const [innerVisible, setVisible] = useState(false);
     const visible = open ?? innerVisible;
     const [wrapperHeight, setWrapperHeight] = useState<number>();
@@ -186,6 +190,7 @@ export const Tooltip: React.FC<TooltipProps> = ({
                 style={[
                     styles.bubble,
                     !isIsland && (bordered ? styles.bordered : styles.borderless),
+                    darkSurface,
                     isIsland && styles.island,
                     bubble,
                     { opacity },
@@ -203,8 +208,8 @@ export const Tooltip: React.FC<TooltipProps> = ({
                             >
                                 <Path
                                     d={ISLAND_CLIP_PATH}
-                                    fill={ISLAND_BG}
-                                    stroke={ISLAND_STROKE}
+                                    fill={mode === 'dark' ? theme.colors.bgSecondary : ISLAND_BG}
+                                    stroke={mode === 'dark' ? theme.colors.border : ISLAND_STROKE}
                                     strokeWidth={borderWidth}
                                     strokeLinejoin="round"
                                     vectorEffect="non-scaling-stroke"
@@ -212,21 +217,21 @@ export const Tooltip: React.FC<TooltipProps> = ({
                             </Svg>
                         )}
                         <View
-                            style={[styles.islandContent, !bordered && styles.islandContentSolid]}
+                            style={[styles.islandContent, !bordered && styles.islandContentSolid, !bordered && mode === 'dark' && { backgroundColor: theme.colors.bgSecondary }]}
                             testID={testID ? `${testID}-content` : undefined}
                         >
-                            <Text style={[styles.content, styles.islandText]}>{title}</Text>
+                            <Text style={[styles.content, styles.islandText, darkText]}>{title}</Text>
                         </View>
                     </View>
                 ) : (
-                    <Text style={styles.content} testID={testID ? `${testID}-content` : undefined}>
+                    <Text style={[styles.content, darkText]} testID={testID ? `${testID}-content` : undefined}>
                         {title}
                     </Text>
                 )}
                 {/* 上游的箭头是 `::after` 伪元素，RN 必须有真实节点 */}
                 <View
                     aria-hidden
-                    style={arrowStyle(box, variant, bordered)}
+                    style={[arrowStyle(box, variant, bordered), darkSurface]}
                     testID={testID ? `${testID}-arrow` : undefined}
                 />
             </Animated.View>
