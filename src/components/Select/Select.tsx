@@ -13,6 +13,7 @@ import {
     View,
     useWindowDimensions,
     type StyleProp,
+    type TextStyle,
     type ViewStyle,
 } from 'react-native';
 import { Path, Svg } from 'react-native-svg';
@@ -61,6 +62,8 @@ export interface SelectProps {
     'aria-labelledby'?: string;
     /** 自定义最外层容器样式；尺寸不引入上游未定义的 size 属性。 */
     style?: StyleProp<ViewStyle>;
+    /** Optional host typography for value, placeholder, options, search and empty copy. Defaults stay upstream-owned. */
+    textStyle?: StyleProp<TextStyle>;
     /** 测试标识（RN 里 `className` 的对应物） */
     testID?: string;
 }
@@ -124,6 +127,7 @@ export const Select: React.FC<SelectProps> = ({
     'aria-label': ariaLabel,
     'aria-labelledby': ariaLabelledBy,
     style,
+    textStyle,
     testID,
 }) => {
     const { mode, theme, reducedMotion } = useTheme();
@@ -359,7 +363,7 @@ export const Select: React.FC<SelectProps> = ({
                           if (event.nativeEvent.key !== 'Enter') handleKey(event.nativeEvent.key);
                       }
             }
-            style={[styles.searchInput, mode === 'dark' && { color: theme.colors.text }]}
+            style={[styles.searchInput, mode === 'dark' && { color: theme.colors.text }, textStyle]}
             testID={testID ? `${testID}-${inside ? 'panel-' : ''}search` : undefined}
         />
     );
@@ -404,6 +408,7 @@ export const Select: React.FC<SelectProps> = ({
                         style={[
                             value ? styles.value : styles.placeholder,
                             mode === 'dark' && { color: value ? theme.colors.text : theme.colors.textSecondary },
+                            textStyle,
                         ]}
                         numberOfLines={1}
                     >
@@ -529,6 +534,7 @@ export const Select: React.FC<SelectProps> = ({
                                                 style={[
                                                     styles.optionLabel,
                                                     mode === 'dark' && { color: theme.colors.textSecondary },
+                                                    textStyle,
                                                 ]}
                                             >
                                                 {notFoundContent}
@@ -585,6 +591,7 @@ export const Select: React.FC<SelectProps> = ({
                                                                 styles.optionLabel,
                                                                 (selected || pressed) && styles.optionLabelActive,
                                                                 mode === 'dark' && { color: theme.colors.text },
+                                                                textStyle,
                                                                 option.disabled && { color: theme.colors.textDisabled },
                                                             ]}
                                                         >
